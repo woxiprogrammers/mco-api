@@ -11,11 +11,12 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 
 class InventoryManageController extends BaseController
 {
-    public function getMaterialListing(Request $request,$pageId){
+    public function getMaterialListing(Request $request){
         try{
             $message = "Success";
             $status = 200;
             $displayLength = 10;
+            $pageId = $request->page_id;
             $totalRecords = $pageId * $displayLength;
             $inventoryComponents = InventoryComponent::where('is_material',true)->skip($totalRecords)->take($displayLength)->get()->toArray();
             $inventoryListingData = array();

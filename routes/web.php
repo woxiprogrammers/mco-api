@@ -18,5 +18,10 @@ $app->get('/', function () use ($app) {
 $app->post('/login',array('uses' => 'AuthController@login'));
 
 $app->group(['prefix' => 'inventory'],function () use($app){
-    $app->get('listing/{pageId}', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));
+    $app->group(['prefix' => 'material'],function () use($app){
+        $app->post('listing', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));
+    });
+    $app->group(['prefix' => 'asset'],function () use($app){
+        $app->post('listing', array('uses' => 'Inventory\AssetManagementController@getAssetListing'));
+    });
 });
