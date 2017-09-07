@@ -16,3 +16,4 @@ $app->get('/', function () use ($app) {
 });
 
 $app->post('/login',array('uses' => 'AuthController@login'));
+$app->post('/dashboard',array('uses' => 'AuthController@dashboard'));
