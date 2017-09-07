@@ -16,3 +16,7 @@ $app->get('/', function () use ($app) {
 });
 
 $app->post('/login',array('uses' => 'AuthController@login'));
+
+$app->group(['prefix' => 'inventory'],function () use($app){
+    $app->get('listing/{pageId}', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));
+});
