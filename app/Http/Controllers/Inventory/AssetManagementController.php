@@ -71,7 +71,7 @@ class AssetManagementController extends BaseController
             $displayLength = 10;
             $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
-            $totalMaterialCount = count($inventoryListingData);//InventoryComponent::where('is_material',true)->count();
+            $totalMaterialCount = count($inventoryListingData);
             $remainingCount = $totalMaterialCount - $totalSent;
             for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
                 $data['assets_list'][] = $inventoryListingData[$iterator];
