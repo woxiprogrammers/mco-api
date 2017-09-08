@@ -18,7 +18,7 @@ class InventoryManageController extends BaseController
             $displayLength = 10;
             $pageId = $request->page_id;
             $totalRecords = $pageId * $displayLength;
-            $inventoryComponents = InventoryComponent::where('is_material',true)->skip($totalRecords)->take($displayLength)->get()->toArray();
+            $inventoryComponents = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->skip($totalRecords)->take($displayLength)->get()->toArray();
             $inventoryListingData = array();
             $iterator = 0;
             foreach($inventoryComponents as $key => $inventoryComponent){
@@ -28,18 +28,18 @@ class InventoryManageController extends BaseController
                 $inventoryListingData[$iterator]['quantity_in'] = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_transfer_types.type','IN')
-                                                                    ->pluck('inventory_component_transfers.quantity')->first();
+                                                                    ->sum('inventory_component_transfers.quantity');
                 $inventoryListingData[$iterator]['quantity_out'] = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_transfer_types.type','OUT')
-                                                                    ->pluck('inventory_component_transfers.quantity')->first();
+                                                                    ->sum('inventory_component_transfers.quantity');
                 $inventoryListingData[$iterator]['quantity_available'] = (string)($inventoryListingData[$iterator]['quantity_in'] - $inventoryListingData[$iterator]['quantity_out']);
                 $iterator++;
             }
 
             $data['material_list'] = $inventoryListingData;
             $totalSent = ($pageId + 1) * $displayLength;
-            $totalMaterialCount = InventoryComponent::where('is_material',true)->count();
+            $totalMaterialCount = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->count();
             $remainingCount = $totalMaterialCount - $totalSent;
             if($remainingCount > 0 ){
                 $page_id = $pageId + 1;
@@ -56,6 +56,7 @@ class InventoryManageController extends BaseController
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
+            $next_url = "";
             Log::critical(json_encode($data));
         }
         $response = [

@@ -34,7 +34,7 @@ class AssetManagementController extends BaseController
                     $inventoryListingData[$iterator]['id'] = $inventoryComponent['id'];
                     if($inventoryComponent['reference_id'] == null || $inventoryComponent['reference_id'] == ''){
                         $inventoryListingData[$iterator]['model_number'] = '-';
-                        $inventoryListingData[$iterator]['asset_units'] = '-';
+                        $inventoryListingData[$iterator]['assets_units'] = '-';
                         $inventoryListingData[$iterator]['total_work_hour'] = '-';
                         $inventoryListingData[$iterator]['total_diesel_consume'] = '-';
                         $inventoryListingData[$iterator]['is_diesel'] = false;
@@ -53,12 +53,12 @@ class AssetManagementController extends BaseController
                                 $totalWorkHour += $endTime->diffInHours($startTime);
                                 $totalDieselConsume += ($asset['litre_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
                             }
-                            $inventoryListingData[$iterator]['asset_units'] = $assetUnits;
+                            $inventoryListingData[$iterator]['assets_units'] = $assetUnits;
                             $inventoryListingData[$iterator]['total_work_hour'] = $totalWorkHour;
                             $inventoryListingData[$iterator]['total_diesel_consume'] = $totalDieselConsume;
                             $inventoryListingData[$iterator]['is_diesel'] = true;
                         }else{
-                            $inventoryListingData[$iterator]['asset_units'] = '-';
+                            $inventoryListingData[$iterator]['assets_units'] = '-';
                             $inventoryListingData[$iterator]['total_work_hour'] = '-';
                             $inventoryListingData[$iterator]['total_diesel_consume'] = '-';
                             $inventoryListingData[$iterator]['is_diesel'] = false;
@@ -78,7 +78,7 @@ class AssetManagementController extends BaseController
             }
             if($remainingCount > 0 ){
                 $page_id = $pageId + 1;
-                $next_url = "/inventory/listing/{$page_id}";
+                $next_url = "/inventory/asset/listing";
             }else{
                 $next_url = "";
             }
@@ -86,12 +86,12 @@ class AssetManagementController extends BaseController
         }catch(\Exception $e){
             $message = "Fail";
             $status = 500;
-            dd($e->getMessage());
             $data = [
                 'action' => 'Get Asset Listing',
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
+            $next_url = "";
             Log::critical(json_encode($data));
         }
         $response = [
