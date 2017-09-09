@@ -6,11 +6,20 @@ use App\InventoryComponent;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class InventoryManageController extends BaseController
 {
+    public function __construct()
+    {
+        $this->middleware('jwt.auth');
+        if(!Auth::guest()) {
+            $this->user = Auth::user();
+        }
+    }
+
     public function getMaterialListing(Request $request){
         try{
             $message = "Success";

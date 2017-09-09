@@ -8,12 +8,21 @@ use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 
 class AssetManagementController extends BaseController
 {
+    public function __construct()
+    {
+        $this->middleware('jwt.auth');
+        if(!Auth::guest()) {
+            $this->user = Auth::user();
+        }
+    }
+
     public function getAssetListing(Request $request){
         try{
             $message = "Success";
