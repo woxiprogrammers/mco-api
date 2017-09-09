@@ -8,4 +8,8 @@ class InventoryComponent extends Model {
 
     protected $table = 'inventory_components';
 
+    public function fuelAssetReading(){
+        return $this->hasMany('App\FuelAssetReading','inventory_component_id');
+    }
+
 }
