@@ -14,4 +14,7 @@ class FuelAssetReading extends Model {
 
     protected $table = 'fuel_asset_readings';
 
+    public function inventoryComponent(){
+        return $this->belongsTo('App\InventoryComponent','inventory_component_id');
+    }
 }

@@ -17,10 +17,9 @@ class AssetManagementController extends BaseController
     public function getAssetListing(Request $request){
         try{
             $message = "Success";
+            $status = 200;
             $pageId = $request->page;
             $projectSiteId = $request->project_site_id;
-            $status = 200;
-
             $inventoryComponents = InventoryComponent::where('is_material',((boolean)false))->where('project_site_id',$projectSiteId)->get()->toArray();
             $inventoryListingData = array();
             $iterator = 0;
@@ -81,6 +80,7 @@ class AssetManagementController extends BaseController
                 $next_url = "/inventory/asset/listing";
             }else{
                 $next_url = "";
+                $page_id = "";
             }
 
         }catch(\Exception $e){
@@ -92,13 +92,55 @@ class AssetManagementController extends BaseController
                 'exception' => $e->getMessage()
             ];
             $next_url = "";
+            $page_id = "";
             Log::critical(json_encode($data));
         }
         $response = [
             "data" => $data,
             "next_url" => $next_url,
+            "page_id" => $page_id,
             "message" => $message,
 
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getSummaryAssetListing(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $inventoryComponent = InventoryComponent::where('id',$request->inventory_component_id)->first();
+            $fuelAssetReadings = $inventoryComponent->fuelAssetReading;
+            $asset = Asset::where('id',$inventoryComponent['reference_id'])->first();
+            $summaryAssetListing = array();
+            $iterator = 0;
+            foreach($fuelAssetReadings as $key => $assetReading){
+                $summaryAssetListing[$iterator]['id'] = $assetReading['id'];
+                $summaryAssetListing[$iterator]['assets_units'] = (((int)$assetReading['stop_reading']) - ((int)$assetReading['start_reading']));
+                $summaryAssetListing[$iterator]['work_hour_in_day'] = Carbon::parse($assetReading['stop_time'])->diffInHours(Carbon::parse($assetReading['start_time']));
+                $summaryAssetListing[$iterator]['total_diesel_consume'] = ($asset['litre_per_unit'] * ((((int)$assetReading['stop_reading']) - ((int)$assetReading['start_reading']))));
+                $summaryAssetListing[$iterator]['start_time'] = $assetReading['start_time'];
+                $summaryAssetListing[$iterator]['stop_time'] = $assetReading['stop_time'];
+                $summaryAssetListing[$iterator]['top_up_time'] = $assetReading['top_up_time'];
+                $summaryAssetListing[$iterator]['fuel_remaining'] = '-';
+                $iterator++;
+            }
+            $data['assets_summary_data']['assets_summary_list'] = $summaryAssetListing;
+            $data['asset_name'] = $asset['name'];
+            $data['next_url'] = "";
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Summary Asset Listing',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "data" => $data,
+            "message" => $message
         ];
         return response()->json($response,$status);
     }
