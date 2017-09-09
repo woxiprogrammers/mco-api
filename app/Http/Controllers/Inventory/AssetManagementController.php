@@ -80,6 +80,7 @@ class AssetManagementController extends BaseController
                 $next_url = "/inventory/asset/listing";
             }else{
                 $next_url = "";
+                $page_id = "";
             }
 
         }catch(\Exception $e){
@@ -91,11 +92,13 @@ class AssetManagementController extends BaseController
                 'exception' => $e->getMessage()
             ];
             $next_url = "";
+            $page_id = "";
             Log::critical(json_encode($data));
         }
         $response = [
             "data" => $data,
             "next_url" => $next_url,
+            "page_id" => $page_id,
             "message" => $message,
 
         ];
@@ -124,7 +127,7 @@ class AssetManagementController extends BaseController
             }
             $data['assets_summary_data']['assets_summary_list'] = $summaryAssetListing;
             $data['asset_name'] = $asset['name'];
-            $data['next_url'] = "-";
+            $data['next_url'] = "";
         }catch(\Exception $e){
             $message = "Fail";
             $status = 500;

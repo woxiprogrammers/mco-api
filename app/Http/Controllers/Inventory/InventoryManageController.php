@@ -43,9 +43,10 @@ class InventoryManageController extends BaseController
             $remainingCount = $totalMaterialCount - $totalSent;
             if($remainingCount > 0 ){
                 $page_id = $pageId + 1;
-                $next_url = "/inventory/listing/{$page_id}";
+                $next_url = "/inventory/listing";
             }else{
                 $next_url = "";
+                $page_id = "";
             }
 
         }catch(\Exception $e){
@@ -57,11 +58,13 @@ class InventoryManageController extends BaseController
                 'exception' => $e->getMessage()
             ];
             $next_url = "";
+            $page_id = "";
             Log::critical(json_encode($data));
         }
         $response = [
             "data" => $data,
             "next_url" => $next_url,
+            "page_id" => $page_id,
             "message" => $message,
 
         ];
