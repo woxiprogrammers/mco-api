@@ -119,11 +119,13 @@ class AssetManagementController extends BaseController
             $message = "Success";
             $status = 200;
             $inventoryComponent = InventoryComponent::where('id',$request->inventory_component_id)->first();
+
             $fuelAssetReadings = $inventoryComponent->fuelAssetReading;
             $asset = Asset::where('id',$inventoryComponent['reference_id'])->first();
             $summaryAssetListing = array();
             $iterator = 0;
             foreach($fuelAssetReadings as $key => $assetReading){
+                $inventoryTransferTypes = InventoryComponentTransfers::where('inventory_component_id',$assetReading->inventory_component_id)->pluck('transfer_type_id')->toArray();
                 $summaryAssetListing[$iterator]['id'] = $assetReading['id'];
                 $summaryAssetListing[$iterator]['assets_units'] = (((int)$assetReading['stop_reading']) - ((int)$assetReading['start_reading']));
                 $summaryAssetListing[$iterator]['work_hour_in_day'] = Carbon::parse($assetReading['stop_time'])->diffInHours(Carbon::parse($assetReading['start_time']));
@@ -131,7 +133,17 @@ class AssetManagementController extends BaseController
                 $summaryAssetListing[$iterator]['start_time'] = $assetReading['start_time'];
                 $summaryAssetListing[$iterator]['stop_time'] = $assetReading['stop_time'];
                 $summaryAssetListing[$iterator]['top_up_time'] = $assetReading['top_up_time'];
-                $summaryAssetListing[$iterator]['fuel_remaining'] = '-';
+                $inventory_quantity_in = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
+                                            ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
+                                            ->where('inventory_transfer_types.type','IN')
+                                            ->sum('inventory_component_transfers.quantity');
+
+                $inventory_quantity_out = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
+                                            ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
+                                            ->where('inventory_transfer_types.type','OUT')
+                                            ->sum('inventory_component_transfers.quantity');
+                
+                $summaryAssetListing[$iterator]['fuel_remaining'] = ($inventory_quantity_in - $inventory_quantity_out - $summaryAssetListing[$iterator]['total_diesel_consume']);
                 $iterator++;
             }
             $data['assets_summary_data']['assets_summary_list'] = $summaryAssetListing;
