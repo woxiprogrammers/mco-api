@@ -26,4 +26,9 @@ $app->group(['prefix' => 'inventory'],function () use($app){
         $app->post('summary-listing', array('uses' => 'Inventory\AssetManagementController@getSummaryAssetListing'));
     });
 });
+$app->group(['prefix' => 'users'], function () use($app){
+    $app->group(['prefix' => 'purchase'], function () use($app){
+            $app->get('purchase-request/approval-acl', array('uses' => 'User\PurchaseController@getPurchaseRequestApprovalACl'));
+    });
+});
 
