@@ -26,4 +26,9 @@ $app->group(['prefix' => 'inventory'],function () use($app){
         $app->post('summary-listing', array('uses' => 'Inventory\AssetManagementController@getSummaryAssetListing'));
     });
 });
+$app->group(['prefix' => 'purchase'],function () use($app){
+    $app->post('material-request',array('uses' => 'Purchase\MaterialRequestController@createMaterialRequest'));
+});
+
+$app->post('auto-suggest',array('uses' => 'Purchase\MaterialRequestController@autoSuggest'));
 
