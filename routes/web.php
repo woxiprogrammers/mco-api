@@ -24,6 +24,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
     $app->group(['prefix' => 'asset'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\AssetManagementController@getAssetListing'));
         $app->post('summary-listing', array('uses' => 'Inventory\AssetManagementController@getSummaryAssetListing'));
+        $app->post('request-maintenance', array('uses' => 'Inventory\AssetManagementController@createRequestMaintenance'));
     });
 });
 

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
+use Mockery\Exception;
 
 
 class AssetManagementController extends BaseController
@@ -149,6 +150,34 @@ class AssetManagementController extends BaseController
         }
         $response = [
             "data" => $data,
+            "message" => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function createRequestMaintenance(Request $request){
+        try{
+            $status = 200;
+            $data = $request->all();
+            if($request->has('remark')){
+                $inventoryComponentTransfer['remark'] = $data['remark'];
+            }
+            $inventoryComponentTransfer['user_id'] = Auth::user()->id;
+            $inventoryComponentTransfer['transfer_type_id'] = InventoryTransferTypes::where('slug','maintenance')->where('type','IN')->pluck('id')->first();
+            $inventoryComponentTransfer['inventory_component_id'] = $data['inventory_component_id'];
+            InventoryComponentTransfers::create($inventoryComponentTransfer);
+            $message = "Maintenance Request Sent Successfully";
+        }catch(Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $data = [
+                'action' => 'Create Request Maintenance',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
             "message" => $message
         ];
         return response()->json($response,$status);
