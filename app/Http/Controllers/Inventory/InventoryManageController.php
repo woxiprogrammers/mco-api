@@ -53,7 +53,7 @@ class InventoryManageController extends BaseController
                         ->whereIn('product_material_relation.material_version_id',$materialVersions)
                         ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
                     $units[0]['max_quantity'] = intval($material_quantity);
-                    $units[0]['unit_id'] = $isQuotationMaterial->unit->name;
+                    $units[0]['unit'] = $isQuotationMaterial->unit->name;
                     $unitConversionData = UnitConversion::where('unit_1_id',$isQuotationMaterial['unit_id'])->get();
                     $i = 1;
                     foreach($unitConversionData as $key1 => $unitConversion){
