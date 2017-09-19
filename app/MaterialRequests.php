@@ -10,5 +10,8 @@ class MaterialRequests extends Model
 
     protected $fillable = ['project_site_id','quotation_id','user_id'];
 
+    public function projectSite(){
+        return $this->belongsTo('App\ProjectSite','project_site_id');
+    }
 }
 
