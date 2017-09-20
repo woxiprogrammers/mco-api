@@ -13,5 +13,9 @@ class MaterialRequests extends Model
     public function projectSite(){
         return $this->belongsTo('App\ProjectSite','project_site_id');
     }
+
+    public function materialRequestComponents(){
+        return $this->hasMany('App\MaterialRequestComponents','material_request_id');
+    }
 }
 

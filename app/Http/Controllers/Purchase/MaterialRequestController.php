@@ -36,11 +36,16 @@ class MaterialRequestController extends BaseController{
             $user = Auth::user();
             $requestData = $request->all();
             $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->pluck('id')->first();
-            $materialRequest['project_site_id'] = $requestData['project_site_id'];
-            $materialRequest['user_id'] = $user['id'];
-            $materialRequest['quotation_id'] = $quotationId != null ? $quotationId : null;
-            $materialRequest['assigned_to'] = $requestData['assigned_to'];
-            $materialRequest = MaterialRequests::create($materialRequest);
+            $alreadyCreatedMaterialRequest = MaterialRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->get()->toArray();
+            if(count($alreadyCreatedMaterialRequest) > 0){
+                $materialRequest = $alreadyCreatedMaterialRequest;
+            }else{
+                $materialRequest['project_site_id'] = $requestData['project_site_id'];
+                $materialRequest['user_id'] = $user['id'];
+                $materialRequest['quotation_id'] = $quotationId != null ? $quotationId : null;
+                $materialRequest['assigned_to'] = $requestData['assigned_to'];
+                $materialRequest = MaterialRequests::create($materialRequest);
+            }
             foreach($requestData['item_list'] as $key => $itemData){
                 $materialRequestComponent['material_request_id'] = $materialRequest->id;
                 $materialRequestComponent['name'] = $itemData['name'];
@@ -182,6 +187,7 @@ class MaterialRequestController extends BaseController{
         ];
         return response()->json($response,$status);
     }
+
     public function changeStatus(Request $request){
         try{
             MaterialRequestComponents::where('material_request_id',$request['material_request_id'])->update(['component_status_id' => $request['change_status_to_id']]);
@@ -200,6 +206,45 @@ class MaterialRequestController extends BaseController{
         $response = [
             "message" => $message,
         ];
+        return response()->json($response,$status);
+    }
+
+    public function materialRequestListing(Request $request){
+        try{
+
+            $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$request['user_id'])->first();
+            $materialRequestList = array();
+            $iterator = 0;
+            foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
+                $materialRequestList[$iterator]['materail_request_component_id'] = $materialRequestComponents->id;
+                $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
+                $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
+                $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
+                $materialRequestList[$iterator]['unit'] = $materialRequestComponents->unit->name;
+                $materialRequestList[$iterator]['component_type_id'] = $materialRequestComponents->component_type_id;
+                $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
+                $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
+                $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
+                $iterator++;
+            }
+            $data['material_request_list'] = $materialRequestList;
+            $status = 200;
+            $message = "Success";
+        }catch(Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Material Request Listing',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "data" => $data,
+            "message" => $message,
+        ];
+
         return response()->json($response,$status);
     }
 }
