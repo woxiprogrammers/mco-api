@@ -85,22 +85,39 @@ class MaterialRequestController extends BaseController{
                     $quotationMaterials = QuotationMaterial::where('quotation_id',$quotation->id)->whereIn('material_id',$quotationMaterialId)->get();
                     $quotationMaterialSlug = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
                     $materialRequestID = MaterialRequests::where('project_site_id',$request['project_site_id'])->pluck('id')->first();
+                    $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
                     foreach($quotationMaterials as $key => $quotationMaterial){
-                        $usedMaterialQuantity = MaterialRequestComponents::where('material_request_id',$materialRequestID)->where('component_type_id',$quotationMaterialSlug->id)->where('name',$quotationMaterial->material->name)->sum('quantity');
-                        //$usedMaterialUnit =
+                        $usedMaterial = MaterialRequestComponents::where('material_request_id',$materialRequestID)->where('component_type_id',$quotationMaterialSlug->id)->where('component_status_id',$adminApproveComponentStatusId)->where('name',$quotationMaterial->material->name)->orderBy('created_at','asc')->get();
+                        $totalQuantityUsed = 0;
+                        foreach($usedMaterial as $index => $material){
+                            if($material->unit_id == $quotationMaterial->unit_id){
+                                $totalQuantityUsed += $material->quantity;
+                            }else{
+                                $unitConversionValue = UnitConversion::where('unit_1_id',$material->unit_id)->where('unit_2_id',$quotationMaterial->unit_id)->first();
+                                if(count($unitConversionValue) > 0){
+                                    $conversionQuantity = $material->quantity * $unitConversionValue->unit_1_value;
+                                    $totalQuantityUsed += $conversionQuantity;
+                                }else{
+                                    $reverseUnitConversionValue = UnitConversion::where('unit_1_id',$quotationMaterial->unit_id)->where('unit_2_id',$material->unit_id)->first();
+                                    $conversionQuantity = $material->quantity / $reverseUnitConversionValue->unit_2_value;
+                                    $totalQuantityUsed += $conversionQuantity;
+                                }
+                            }
+                        }
                         $materialVersions = MaterialVersion::where('material_id',$quotationMaterial['material_id'])->where('unit_id',$quotationMaterial['unit_id'])->pluck('id');
                         $material_quantity = QuotationProduct::where('quotation_products.quotation_id',$quotation->id)
                             ->join('product_material_relation','quotation_products.product_version_id','=','product_material_relation.product_version_id')
                             ->whereIn('product_material_relation.material_version_id',$materialVersions)
                             ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
+                        $allowedQuantity = $material_quantity - $totalQuantityUsed;
                         $materialList[$iterator]['material_name'] = $quotationMaterial->material->name;
-                        $materialList[$iterator]['unit_quantity'][0]['quantity'] = intval($material_quantity);
+                        $materialList[$iterator]['unit_quantity'][0]['quantity'] = $allowedQuantity;
                         $materialList[$iterator]['unit_quantity'][0]['unit_id'] = (int)$quotationMaterial->unit_id;
                         $materialList[$iterator]['unit_quantity'][0]['unit_name'] = $quotationMaterial->unit->name;
                         $unitConversionData = UnitConversion::where('unit_1_id',$quotationMaterial->unit_id)->get();
                         $i = 1;
                         foreach($unitConversionData as $key1 => $unitConversion){
-                            $materialList[$iterator]['unit_quantity'][$i]['quantity'] = $material_quantity * $unitConversion['unit_2_value'];
+                            $materialList[$iterator]['unit_quantity'][$i]['quantity'] = $allowedQuantity * $unitConversion['unit_2_value'];
                             $materialList[$iterator]['unit_quantity'][$i]['unit_id'] = $unitConversion->unit_2_id;
                             $materialList[$iterator]['unit_quantity'][$i]['unit_name'] = $unitConversion->toUnit->name;
                             $i++;
@@ -165,7 +182,6 @@ class MaterialRequestController extends BaseController{
         ];
         return response()->json($response,$status);
     }
-
     public function changeStatus(Request $request){
         try{
             MaterialRequestComponents::where('material_request_id',$request['material_request_id'])->update(['component_status_id' => $request['change_status_to_id']]);
@@ -185,16 +201,5 @@ class MaterialRequestController extends BaseController{
             "message" => $message,
         ];
         return response()->json($response,$status);
-    }
-
-    public function QuantityUnitConversion(){
-        try{
-
-        }catch(Exception $e){
-            $data = [
-                'action' => 'Quantity Unit Conversion',
-                ''
-            ];
-        }
     }
 }
