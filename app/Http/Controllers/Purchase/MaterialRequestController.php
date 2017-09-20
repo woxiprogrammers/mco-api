@@ -135,6 +135,8 @@ class MaterialRequestController extends BaseController{
                         $materialList['material_request_component_type_id'] = $newMaterialSlug->id;
                     }
                     $data['material_list'] = $materialList;
+                break;
+
                 case "asset" :
                     $assetList = array();
                     $alreadyExistAsset = Asset::where('name','ilike','%'.$request['keyword'].'%')->get();
@@ -144,7 +146,6 @@ class MaterialRequestController extends BaseController{
                         $iterator++;
                     }
                     $data['asset_list'] = $assetList;
-
                 break;
             }
 
@@ -184,5 +185,16 @@ class MaterialRequestController extends BaseController{
             "message" => $message,
         ];
         return response()->json($response,$status);
+    }
+
+    public function QuantityUnitConversion(){
+        try{
+
+        }catch(Exception $e){
+            $data = [
+                'action' => 'Quantity Unit Conversion',
+                ''
+            ];
+        }
     }
 }
