@@ -59,8 +59,9 @@ class InventoryManageController extends BaseController
                     $i = 1;
                     foreach($unitConversionData as $key1 => $unitConversion){
                         $units[$i]['max_quantity'] = $material_quantity * $unitConversion['unit_2_value'];
-                        $units[$i]['unit_id'] = $unitConversion->toUnit->id;
-                        $units[$i]['unit_name'] = $unitConversion->toUnit->name;
+                        $unitData = $unitConversion->toUnit;
+                        $units[$i]['unit_id'] = $unitData->id;
+                        $units[$i]['unit_name'] = $unitData->name;
                         $i++;
                     }
                 }

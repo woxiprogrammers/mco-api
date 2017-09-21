@@ -36,7 +36,7 @@ class MaterialRequestController extends BaseController{
             $user = Auth::user();
             $requestData = $request->all();
             $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->pluck('id')->first();
-            $alreadyCreatedMaterialRequest = MaterialRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->get()->toArray();
+            $alreadyCreatedMaterialRequest = MaterialRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->first();
             if(count($alreadyCreatedMaterialRequest) > 0){
                 $materialRequest = $alreadyCreatedMaterialRequest;
             }else{
@@ -47,7 +47,7 @@ class MaterialRequestController extends BaseController{
                 $materialRequest = MaterialRequests::create($materialRequest);
             }
             foreach($requestData['item_list'] as $key => $itemData){
-                $materialRequestComponent['material_request_id'] = $materialRequest->id;
+                $materialRequestComponent['material_request_id'] = $materialRequest['id'];
                 $materialRequestComponent['name'] = $itemData['name'];
                 $materialRequestComponent['quantity'] = $itemData['quantity'];
                 $materialRequestComponent['unit_id'] = $itemData['unit_id'];
@@ -235,7 +235,7 @@ class MaterialRequestController extends BaseController{
                     ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
                 $allowedQuantity = $material_quantity - $usedQuantity;
             }
-            if((int)$materialRequestComponent['quantity'] > $allowedQuantity){
+            if((int)$materialRequestComponent['quantity'] < $allowedQuantity){
                 MaterialRequestComponents::where('material_request_id',$request['material_request_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
                 $message = "Status Updated Successfully";
             }else{
