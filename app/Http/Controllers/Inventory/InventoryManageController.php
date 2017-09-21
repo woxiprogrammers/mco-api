@@ -53,12 +53,14 @@ class InventoryManageController extends BaseController
                         ->whereIn('product_material_relation.material_version_id',$materialVersions)
                         ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
                     $units[0]['max_quantity'] = intval($material_quantity);
-                    $units[0]['unit'] = $isQuotationMaterial->unit->name;
+                    $units[0]['unit_id'] = $isQuotationMaterial->unit->id;
+                    $units[0]['unit_name'] = $isQuotationMaterial->unit->name;
                     $unitConversionData = UnitConversion::where('unit_1_id',$isQuotationMaterial['unit_id'])->get();
                     $i = 1;
                     foreach($unitConversionData as $key1 => $unitConversion){
                         $units[$i]['max_quantity'] = $material_quantity * $unitConversion['unit_2_value'];
-                        $units[$i]['unit'] = $unitConversion->toUnit->name;
+                        $units[$i]['unit_id'] = $unitConversion->toUnit->id;
+                        $units[$i]['unit_name'] = $unitConversion->toUnit->name;
                         $i++;
                     }
                 }
@@ -82,7 +84,7 @@ class InventoryManageController extends BaseController
             $totalMaterialCount = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->count();
             $remainingCount = $totalMaterialCount - $totalSent;
             if($remainingCount > 0 ){
-                $page_id = $pageId + 1;
+                $page_id = (string)($pageId + 1);
                 $next_url = "/inventory/listing";
             }else{
                 $next_url = "";

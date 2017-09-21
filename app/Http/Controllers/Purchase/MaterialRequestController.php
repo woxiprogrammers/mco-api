@@ -55,7 +55,6 @@ class MaterialRequestController extends BaseController{
                 $materialRequestComponent['component_status_id'] = PurchaseRequestComponentStatuses::where('slug','pending')->pluck('id')->first();
                 MaterialRequestComponents::create($materialRequestComponent);
                 if(array_has($itemData,'images')){
-                    dd(123);
                  //images goes here
                 }
             }
@@ -188,10 +187,60 @@ class MaterialRequestController extends BaseController{
         return response()->json($response,$status);
     }
 
+    public static function unitConversion($fromUnit,$toUnit, $rate){
+        if($fromUnit == $toUnit){
+            $materialRateTo = $rate;
+        }else{
+            $conversion = UnitConversion::where('unit_1_id',$fromUnit)->where('unit_2_id',$toUnit)->first();
+            if($conversion != null){
+                $materialRateFrom = $conversion->unit_1_value / $conversion->unit_2_value;
+                $materialRateTo = $rate * $materialRateFrom;
+            }else{
+                $conversion = UnitConversion::where('unit_2_id',$fromUnit)->where('unit_1_id',$toUnit)->first();
+                if($conversion != null){
+                    $materialRateFrom = $conversion->unit_2_value / $conversion->unit_1_value;
+                    $materialRateTo = $rate * $materialRateFrom;
+                }else{
+                    $materialRateTo['unit'] = $fromUnit;
+                    $materialRateTo['rate'] = $rate;
+                    $unit1 = Unit::where('id',$fromUnit)->pluck('name')->first();
+                    $unit2 = Unit::where('id',$toUnit)->pluck('name')->first();
+                    $materialRateTo['message'] = "$unit1-$unit2 conversion is not present.";
+                }
+            }
+        }
+        return $materialRateTo;
+    }
+
     public function changeStatus(Request $request){
         try{
-            MaterialRequestComponents::where('material_request_id',$request['material_request_id'])->update(['component_status_id' => $request['change_status_to_id']]);
-            $message = "Status Updated Successfully";
+            $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component_id'])->first();
+            $quotationMaterialType = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
+            $allowedQuantity = 0;
+            if($materialRequestComponent['component_type_id'] == $quotationMaterialType->id){
+                $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
+                $usedQuantity = MaterialRequestComponents::where('id','!=',$materialRequestComponent->id)
+                                ->where('material_request_id',$materialRequestComponent['material_request_id'])
+                                ->where('component_type_id',$quotationMaterialType['id'])
+                                ->where('component_status_id',$adminApproveComponentStatusId)
+                                ->where('name',$materialRequestComponent['name'])->sum('quantity');
+                $quotation = Quotation::where('project_site_id',$request['project_site_id'])->first();
+                $quotationMaterialId = Material::whereIn('id',array_column($quotation->quotation_materials->toArray(),'material_id'))
+                    ->where('name',$materialRequestComponent->name)->pluck('id')->first();
+                $quotationMaterial = QuotationMaterial::where('quotation_id',$quotation->id)->where('material_id',$quotationMaterialId)->first();
+                $materialVersions = MaterialVersion::where('material_id',$quotationMaterial['material_id'])->where('unit_id',$quotationMaterial['unit_id'])->pluck('id');
+                $material_quantity = QuotationProduct::where('quotation_products.quotation_id',$quotation->id)
+                    ->join('product_material_relation','quotation_products.product_version_id','=','product_material_relation.product_version_id')
+                    ->whereIn('product_material_relation.material_version_id',$materialVersions)
+                    ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
+                $allowedQuantity = $material_quantity - $usedQuantity;
+            }
+            if((int)$materialRequestComponent['quantity'] > $allowedQuantity){
+                MaterialRequestComponents::where('material_request_id',$request['material_request_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
+                $message = "Status Updated Successfully";
+            }else{
+                $message = "Allowed quantity is ".$allowedQuantity;
+            }
             $status = 200;
         }catch(\Exception $e){
             $status = 500;
@@ -211,12 +260,11 @@ class MaterialRequestController extends BaseController{
 
     public function materialRequestListing(Request $request){
         try{
-
             $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$request['user_id'])->first();
             $materialRequestList = array();
             $iterator = 0;
             foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
-                $materialRequestList[$iterator]['materail_request_component_id'] = $materialRequestComponents->id;
+                $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
                 $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
                 $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
                 $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
