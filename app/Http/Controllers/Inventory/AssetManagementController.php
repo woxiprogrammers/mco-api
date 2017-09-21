@@ -131,14 +131,15 @@ class AssetManagementController extends BaseController
                 $summaryAssetListing[$iterator]['start_time'] = $assetReading['start_time'];
                 $summaryAssetListing[$iterator]['stop_time'] = $assetReading['stop_time'];
                 $summaryAssetListing[$iterator]['top_up_time'] = $assetReading['top_up_time'];
-                $summaryAssetListing[$iterator]['fuel_remaining'] = '-';
+                $summaryAssetListing[$iterator]['fuel_remaining'] = null;
                 $iterator++;
             }
-            $data['assets_summary_data']['assets_summary_list'] = $summaryAssetListing;
-            $data['asset_name'] = $asset['name'];
-            $data['next_url'] = "";
+            $data['assets_summary_list'] = $summaryAssetListing;
+            $asset_name = $asset['name'];
+            $next_url = "";
         }catch(\Exception $e){
             $message = "Fail";
+            $next_url = $asset_name = "";
             $status = 500;
             $data = [
                 'action' => 'Get Summary Asset Listing',
@@ -149,7 +150,9 @@ class AssetManagementController extends BaseController
         }
         $response = [
             "data" => $data,
-            "message" => $message
+            "message" => $message,
+            "next_url" => $next_url,
+            "asset_name" => $asset_name
         ];
         return response()->json($response,$status);
     }
