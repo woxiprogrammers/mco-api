@@ -85,7 +85,7 @@ class AssetManagementController extends BaseController
                 $data['assets_list'][] = $inventoryListingData[$iterator];
             }
             if($remainingCount > 0 ){
-                $page_id = $pageId + 1;
+                $page_id = (string)($pageId + 1);
                 $next_url = "/inventory/asset/listing";
             }else{
                 $next_url = "";

@@ -21,8 +21,11 @@ class Material extends Model
         ];
     }
 
-    public function versions()
-    {
+    public function versions(){
         return $this->hasMany('App\MaterialVersion','material_version');
+    }
+
+    public function unit(){
+        return $this->belongsTo('App\Unit','unit_id');
     }
 }
