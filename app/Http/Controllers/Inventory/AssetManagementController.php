@@ -61,9 +61,9 @@ class AssetManagementController extends BaseController
                                 $totalWorkHour += $endTime->diffInHours($startTime);
                                 $totalDieselConsume += ($asset['litre_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
                             }
-                            $inventoryListingData[$iterator]['assets_units'] = $assetUnits;
-                            $inventoryListingData[$iterator]['total_work_hour'] = $totalWorkHour;
-                            $inventoryListingData[$iterator]['total_diesel_consume'] = $totalDieselConsume;
+                            $inventoryListingData[$iterator]['assets_units'] = (string)$assetUnits;
+                            $inventoryListingData[$iterator]['total_work_hour'] = (string)$totalWorkHour;
+                            $inventoryListingData[$iterator]['total_diesel_consume'] = (string)$totalDieselConsume;
                             $inventoryListingData[$iterator]['is_diesel'] = true;
                         }else{
                             $inventoryListingData[$iterator]['assets_units'] = '-';
