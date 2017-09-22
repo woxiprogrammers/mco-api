@@ -23,7 +23,7 @@ use Mockery\Exception;
 class MaterialRequestController extends BaseController{
 
     public function __construct(){
-        $this->middleware('jwt.auth',['except' => ['autoSuggest']]);
+        $this->middleware('jwt.auth',['except' => ['autoSuggest','getPurchaseRequestComponentStatus']]);
         if(!Auth::guest()) {
             $this->user = Auth::user();
         }
@@ -187,31 +187,6 @@ class MaterialRequestController extends BaseController{
         return response()->json($response,$status);
     }
 
-    public static function unitConversion($fromUnit,$toUnit, $rate){
-        if($fromUnit == $toUnit){
-            $materialRateTo = $rate;
-        }else{
-            $conversion = UnitConversion::where('unit_1_id',$fromUnit)->where('unit_2_id',$toUnit)->first();
-            if($conversion != null){
-                $materialRateFrom = $conversion->unit_1_value / $conversion->unit_2_value;
-                $materialRateTo = $rate * $materialRateFrom;
-            }else{
-                $conversion = UnitConversion::where('unit_2_id',$fromUnit)->where('unit_1_id',$toUnit)->first();
-                if($conversion != null){
-                    $materialRateFrom = $conversion->unit_2_value / $conversion->unit_1_value;
-                    $materialRateTo = $rate * $materialRateFrom;
-                }else{
-                    $materialRateTo['unit'] = $fromUnit;
-                    $materialRateTo['rate'] = $rate;
-                    $unit1 = Unit::where('id',$fromUnit)->pluck('name')->first();
-                    $unit2 = Unit::where('id',$toUnit)->pluck('name')->first();
-                    $materialRateTo['message'] = "$unit1-$unit2 conversion is not present.";
-                }
-            }
-        }
-        return $materialRateTo;
-    }
-
     public function changeStatus(Request $request){
         try{
             $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component_id'])->first();
@@ -293,6 +268,28 @@ class MaterialRequestController extends BaseController{
             "message" => $message,
         ];
 
+        return response()->json($response,$status);
+    }
+
+    public function getPurchaseRequestComponentStatus(Request $request){
+        try{
+            $data['status'] = PurchaseRequestComponentStatuses::get()->toArray();
+            $message = "Success";
+            $status = 200;
+        }catch(Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Purchase Request Component Status',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "data" => $data,
+            "message" => $message,
+        ];
         return response()->json($response,$status);
     }
 }
