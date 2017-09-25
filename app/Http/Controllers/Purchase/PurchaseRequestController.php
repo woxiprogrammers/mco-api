@@ -104,25 +104,26 @@ use MaterialRequestTrait;
             $user = Auth::user();
             $pageId = $request->page;
             $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->get();
-            $purchaseRequestList = array();
+            $purchaseRequestList = $data = array();
             $iterator = 0;
-            foreach($purchaseRequests as $key => $purchaseRequest){
-                $purchaseRequestList[$iterator]['purchase_request_id'] = $purchaseRequest['id'];
-                $purchaseRequestList[$iterator]['purchase_request_format'] = $this->getPurchaseRequestIDFormat($request['project_site_id'],$purchaseRequest['created_at'],$iterator+1);
-                $purchaseRequestList[$iterator]['date'] = date('l, d F Y',strtotime($purchaseRequest['created_at']));
-                $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
-                $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
-                $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->name;
-                $iterator++;
+            if(count($purchaseRequests) > 0){
+                foreach($purchaseRequests as $key => $purchaseRequest){
+                    $purchaseRequestList[$iterator]['purchase_request_id'] = $purchaseRequest['id'];
+                    $purchaseRequestList[$iterator]['purchase_request_format'] = $this->getPurchaseRequestIDFormat($request['project_site_id'],$purchaseRequest['created_at'],$iterator+1);
+                    $purchaseRequestList[$iterator]['date'] = date('l, d F Y',strtotime($purchaseRequest['created_at']));
+                    $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
+                    $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
+                    $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->name;
+                    $iterator++;
+                }
             }
-
             $displayLength = 10;
             $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = count($purchaseRequestList);
             $remainingCount = $totalMaterialCount - $totalSent;
             for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
-                $data['purchase_request_list'][] = $purchaseRequestList[$iterator];
+                $data['purchase_request_list'] = $purchaseRequestList[$iterator];
             }
             if($remainingCount > 0 ){
                 $page_id = (string)($pageId + 1);
@@ -151,7 +152,6 @@ use MaterialRequestTrait;
             "next_url" => $next_url,
             "page_id" => $pageId
         ];
-
         return response()->json($response,$status);
     }
 

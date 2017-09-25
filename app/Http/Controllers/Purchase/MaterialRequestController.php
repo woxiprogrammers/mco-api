@@ -217,18 +217,20 @@ use MaterialRequestTrait;
             $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$request['user_id'])->first();
             $materialRequestList = array();
             $iterator = 0;
-            foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
-                $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
-                $materialRequestList[$iterator]['material_request_format'] = $this->getMaterialRequestIDFormat($materialRequest['project_site_id'],$materialRequestComponents['created_at'],$iterator+1);
-                $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
-                $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
-                $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
-                $materialRequestList[$iterator]['unit'] = $materialRequestComponents->unit->name;
-                $materialRequestList[$iterator]['component_type_id'] = $materialRequestComponents->component_type_id;
-                $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
-                $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
-                $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
-                $iterator++;
+            if(count($materialRequest) > 0){
+                foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
+                    $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
+                    $materialRequestList[$iterator]['material_request_format'] = $this->getMaterialRequestIDFormat($materialRequest['project_site_id'],$materialRequestComponents['created_at'],$iterator+1);
+                    $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
+                    $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
+                    $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
+                    $materialRequestList[$iterator]['unit'] = $materialRequestComponents->unit->name;
+                    $materialRequestList[$iterator]['component_type_id'] = $materialRequestComponents->component_type_id;
+                    $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
+                    $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
+                    $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
+                    $iterator++;
+                }
             }
             $data['material_request_list'] = $materialRequestList;
             $status = 200;
