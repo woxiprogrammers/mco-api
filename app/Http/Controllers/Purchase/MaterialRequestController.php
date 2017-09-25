@@ -14,6 +14,7 @@ use App\QuotationMaterial;
 use App\QuotationProduct;
 use App\Unit;
 use App\UnitConversion;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -120,18 +121,18 @@ use MaterialRequestTrait;
                         $iterator++;
                     }
                     if(count($materialList) == 0){
-                        $materialList['material_name'] = null;
+                        $materialList[$iterator]['material_name'] = null;
                         $systemUnits = Unit::where('is_active',true)->get();
                         $j = 0;
                         foreach($systemUnits as $key2 => $unit){
-                            $materialList['unit_quantity'][$j]['quantity'] = null;
-                            $materialList['unit_quantity'][$j]['unit_id'] = $unit->id;
-                            $materialList['unit_quantity'][$j]['unit_name'] = $unit->name;
+                            $materialList[$iterator]['unit_quantity'][$j]['quantity'] = null;
+                            $materialList[$iterator]['unit_quantity'][$j]['unit_id'] = $unit->id;
+                            $materialList[$iterator]['unit_quantity'][$j]['unit_name'] = $unit->name;
                             $j++;
                         }
                         $newMaterialSlug = MaterialRequestComponentTypes::where('slug','new-material')->first();
-                        $materialList['material_request_component_type_slug'] = $newMaterialSlug->slug;
-                        $materialList['material_request_component_type_id'] = $newMaterialSlug->id;
+                        $materialList[$iterator]['material_request_component_type_slug'] = $newMaterialSlug->slug;
+                        $materialList[$iterator]['material_request_component_type_id'] = $newMaterialSlug->id;
                     }
                     $data['material_list'] = $materialList;
                 break;
@@ -218,6 +219,7 @@ use MaterialRequestTrait;
             $iterator = 0;
             foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
                 $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
+                $materialRequestList[$iterator]['material_request_format'] = $this->getMaterialRequestIDFormat($materialRequest['project_site_id'],$materialRequestComponents['created_at'],$iterator+1);
                 $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
                 $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
                 $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
@@ -269,5 +271,10 @@ use MaterialRequestTrait;
             "message" => $message,
         ];
         return response()->json($response,$status);
+    }
+
+    public function getMaterialRequestIDFormat($project_site_id,$created_at,$serial_no){
+        $format = "MR".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
+        return $format;
     }
 }

@@ -9,6 +9,7 @@
 namespace App\Http\Controllers\Purchase;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
 use App\MaterialRequestComponents;
+use App\MaterialRequests;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequests;
@@ -75,5 +76,87 @@ use MaterialRequestTrait;
             "message" => $message
         ];
         return response()->json($response,$status);
+    }
+
+    public function changeStatus(Request $request){
+        try{
+            PurchaseRequests::where('id',$request['purchase_request_id'])->update(['purchase_component_status_id' => $request['change_component_status_id_to']]);
+            $status = 200;
+            $message = "Status Updated Successfully";
+        }catch(\Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $data = [
+                'action' => 'Change Purchase Request status',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function purchaseRequestListing(Request $request){
+        try{
+            $user = Auth::user();
+            $pageId = $request->page;
+            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->get();
+            $purchaseRequestList = array();
+            $iterator = 0;
+            foreach($purchaseRequests as $key => $purchaseRequest){
+                $purchaseRequestList[$iterator]['purchase_request_id'] = $purchaseRequest['id'];
+                $purchaseRequestList[$iterator]['purchase_request_format'] = $this->getPurchaseRequestIDFormat($request['project_site_id'],$purchaseRequest['created_at'],$iterator+1);
+                $purchaseRequestList[$iterator]['date'] = date('l, d F Y',strtotime($purchaseRequest['created_at']));
+                $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
+                $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
+                $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->name;
+                $iterator++;
+            }
+
+            $displayLength = 10;
+            $start = ((int)$pageId) * $displayLength;
+            $totalSent = ($pageId + 1) * $displayLength;
+            $totalMaterialCount = count($purchaseRequestList);
+            $remainingCount = $totalMaterialCount - $totalSent;
+            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
+                $data['purchase_request_list'][] = $purchaseRequestList[$iterator];
+            }
+            if($remainingCount > 0 ){
+                $page_id = (string)($pageId + 1);
+                $next_url = "/purchase/purchase-request/listing";
+            }else{
+                $next_url = "";
+                $page_id = "";
+            }
+            $status = 200;
+            $message = "Success";
+        }catch(Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Purchase Request Listing',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            $next_url = "";
+            $page_id = "";
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "data" => $data,
+            "message" => $message,
+            "next_url" => $next_url,
+            "page_id" => $pageId
+        ];
+
+        return response()->json($response,$status);
+    }
+
+    public function getPurchaseRequestIDFormat($project_site_id,$created_at,$serial_no){
+         $format = "PR".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
+        return $format;
     }
 }
