@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Purchase;
 use App\Asset;
+use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
 use App\Material;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
@@ -21,7 +22,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 use Mockery\Exception;
 
 class MaterialRequestController extends BaseController{
-
+use MaterialRequestTrait;
     public function __construct(){
         $this->middleware('jwt.auth',['except' => ['autoSuggest','getPurchaseRequestComponentStatus']]);
         if(!Auth::guest()) {
@@ -29,35 +30,12 @@ class MaterialRequestController extends BaseController{
         }
     }
 
-    public function createMaterialRequest(Request $request){
+    public function createMaterialRequestData(Request $request){
         try{
             $status = 200;
             $message = "Success";
             $user = Auth::user();
-            $requestData = $request->all();
-            $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->pluck('id')->first();
-            $alreadyCreatedMaterialRequest = MaterialRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->first();
-            if(count($alreadyCreatedMaterialRequest) > 0){
-                $materialRequest = $alreadyCreatedMaterialRequest;
-            }else{
-                $materialRequest['project_site_id'] = $requestData['project_site_id'];
-                $materialRequest['user_id'] = $user['id'];
-                $materialRequest['quotation_id'] = $quotationId != null ? $quotationId : null;
-                $materialRequest['assigned_to'] = $requestData['assigned_to'];
-                $materialRequest = MaterialRequests::create($materialRequest);
-            }
-            foreach($requestData['item_list'] as $key => $itemData){
-                $materialRequestComponent['material_request_id'] = $materialRequest['id'];
-                $materialRequestComponent['name'] = $itemData['name'];
-                $materialRequestComponent['quantity'] = $itemData['quantity'];
-                $materialRequestComponent['unit_id'] = $itemData['unit_id'];
-                $materialRequestComponent['component_type_id'] = $itemData['component_type_id'];
-                $materialRequestComponent['component_status_id'] = PurchaseRequestComponentStatuses::where('slug','pending')->pluck('id')->first();
-                MaterialRequestComponents::create($materialRequestComponent);
-                if(array_has($itemData,'images')){
-                 //images goes here
-                }
-            }
+            $materialRequestComponentIds = $this->createMaterialRequest($request->all(),$user,$is_purchase_request = false);
         }catch (Exception $e){
             $status = 500;
             $message = "Fail";

@@ -29,7 +29,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
 $app->group(['prefix' => 'purchase'],function () use($app){
     $app->get('get-purchase-request-status',array('uses' => 'Purchase\MaterialRequestController@getPurchaseRequestComponentStatus'));
     $app->group(['prefix' => 'material-request'],function () use ($app){
-        $app->post('create',array('uses' => 'Purchase\MaterialRequestController@createMaterialRequest'));
+        $app->post('create',array('uses' => 'Purchase\MaterialRequestController@createMaterialRequestData'));
         $app->post('change-status',array('uses' => 'Purchase\MaterialRequestController@changeStatus'));
         $app->post('listing',array('uses' => 'Purchase\MaterialRequestController@materialRequestListing'));
     });

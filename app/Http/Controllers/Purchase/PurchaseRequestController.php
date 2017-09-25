@@ -7,6 +7,9 @@
      */
 
 namespace App\Http\Controllers\Purchase;
+use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
+use App\MaterialRequestComponents;
+use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequests;
 use App\Quotation;
@@ -17,8 +20,9 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 use Mockery\Exception;
 
 class PurchaseRequestController extends BaseController{
+use MaterialRequestTrait;
 
-    public function construct(){
+    public function __construct(){
         $this->middleware('jwt.auth');
         if(!Auth::guest()){
             $this->user = Auth::user();
@@ -31,29 +35,37 @@ class PurchaseRequestController extends BaseController{
             $message = "Success";
             $user = Auth::user();
             $requestData = $request->all();
-            if($request->has('item_list')){
-                dd($request['item_list']);
-            }
             $purchaseRequest = array();
+            if($request->has('item_list')){
+                $materialRequestComponentId = $this->createMaterialRequest($request->except('material_request_component_id'),$user,$is_purchase_request = true);
+                $materialRequestComponentIds = array_merge($materialRequestComponentId,$request['material_request_component_id']);
+            }else{
+                $materialRequestComponentIds = $request['material_request_component_id'];
+            }
             $alreadyCreatedPurchaseRequest = PurchaseRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->first();
             if(count($alreadyCreatedPurchaseRequest) > 0){
                 $purchaseRequest = $alreadyCreatedPurchaseRequest;
             }else{
-                $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->pluck('id')->first();
+                $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->first();
                 if(count($quotationId) > 0){
-                    $purchaseRequest['quotation_id'] = $quotationId;
+                    $purchaseRequest['quotation_id'] = $quotationId['id'];
                 }
-                $purchaseRequest['user'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
-                //$purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','')
-
+                $purchaseRequest['project_site_id'] = $request['project_site_id'];
+                $purchaseRequest['user_id'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
+                $purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','purchase-requested')->first();
+                $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
+                $purchaseRequest = PurchaseRequests::create($purchaseRequest);
             }
-
-
+            foreach($materialRequestComponentIds as $materialRequestComponentId){
+                PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
+            }
+            $PRAssignedStatusId = PurchaseRequestComponentStatuses::where('slug','p-r-assigned')->pluck('id')->first();
+            MaterialRequestComponents::whereIn('id',$request['material_request_component_id'])->update(['component_status_id' => $PRAssignedStatusId]);
         }catch (Exception $e){
             $status = 500;
             $message = "Fail";
             $data = [
-                'action' => 'Create Material Request',
+                'action' => 'Create Purchase Request',
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
