@@ -97,12 +97,15 @@ use MaterialRequestTrait;
                         $materialList[$iterator]['unit_quantity'][0]['quantity'] = $allowedQuantity;
                         $materialList[$iterator]['unit_quantity'][0]['unit_id'] = (int)$quotationMaterial->unit_id;
                         $materialList[$iterator]['unit_quantity'][0]['unit_name'] = $quotationMaterial->unit->name;
-                        $unitConversionData = UnitConversion::where('unit_1_id',$quotationMaterial->unit_id)->get();
+                        $unitConversionIds1 = UnitConversion::where('unit_1_id',$quotationMaterial->unit_id)->pluck('unit_2_id');
+                        $unitConversionIds2 = UnitConversion::where('unit_2_id',$quotationMaterial->unit_id)->pluck('unit_1_id');
+                        $unitConversionNeededIds = array_merge($unitConversionIds1->toArray(),$unitConversionIds2->toArray());
                         $i = 1;
-                        foreach($unitConversionData as $key1 => $unitConversion){
-                            $materialList[$iterator]['unit_quantity'][$i]['quantity'] = $allowedQuantity * $unitConversion['unit_2_value'];
-                            $materialList[$iterator]['unit_quantity'][$i]['unit_id'] = $unitConversion->unit_2_id;
-                            $materialList[$iterator]['unit_quantity'][$i]['unit_name'] = $unitConversion->toUnit->name;
+                        foreach($unitConversionNeededIds as $unitId){
+                            $conversionData = $this->unitConversion($quotationMaterial->unit_id,$unitId,$allowedQuantity);
+                            $materialList[$iterator]['unit_quantity'][$i]['quantity'] = $conversionData['quantity_to'];
+                            $materialList[$iterator]['unit_quantity'][$i]['unit_id'] = $conversionData['unit_to_id'];
+                            $materialList[$iterator]['unit_quantity'][$i]['unit_name'] = $conversionData['unit_to_name'];
                             $i++;
                         }
                         $materialList[$iterator]['material_request_component_type_slug'] = $quotationMaterialSlug->slug;
@@ -116,6 +119,17 @@ use MaterialRequestTrait;
                         $materialList[$iterator]['unit_quantity'][0]['quantity'] = null;
                         $materialList[$iterator]['unit_quantity'][0]['unit_id'] = $material->unit_id;
                         $materialList[$iterator]['unit_quantity'][0]['unit_name'] = $material->unit->name;
+                        $unitConversionIds1 = UnitConversion::where('unit_1_id',$material->unit_id)->pluck('unit_2_id');
+                        $unitConversionIds2 = UnitConversion::where('unit_2_id',$material->unit_id)->pluck('unit_1_id');
+                        $unitConversionNeededIds = array_merge($unitConversionIds1->toArray(),$unitConversionIds2->toArray());
+                        $i = 1;
+                        foreach($unitConversionNeededIds as $unitId){
+                            $conversionData = $this->unitConversion($material->unit_id,$unitId,null);
+                            $materialList[$iterator]['unit_quantity'][$i]['quantity'] = $conversionData['quantity_to'];
+                            $materialList[$iterator]['unit_quantity'][$i]['unit_id'] = $conversionData['unit_to_id'];
+                            $materialList[$iterator]['unit_quantity'][$i]['unit_name'] = $conversionData['unit_to_name'];
+                            $i++;
+                        }
                         $materialList[$iterator]['material_request_component_type_slug'] = $structureMaterialSlug->slug;
                         $materialList[$iterator]['material_request_component_type_id'] = $structureMaterialSlug->id;
                         $iterator++;
@@ -144,7 +158,7 @@ use MaterialRequestTrait;
                     foreach ($alreadyExistAsset as $key => $asset){
                         $assetList[$iterator]['asset_id'] = $asset['id'];
                         $assetList[$iterator]['asset_name'] = $asset['name'];
-                        $assetList[$iterator]['asset_unit'] = 1;
+                        $assetList[$iterator]['asset_unit'] = Unit::where('slug','nos')->pluck('name')->first();
                         $assetList[$iterator]['asset_request_component_type_slug'] = $systemAssetStatus->slug;
                         $assetList[$iterator]['asset_request_component_type_id'] = $systemAssetStatus->id;
                         $iterator++;
@@ -176,6 +190,21 @@ use MaterialRequestTrait;
             "data" => $data
         ];
         return response()->json($response,$status);
+    }
+
+    public function unitConversion($unit_from_id,$unit_to_id,$quantity_from){
+        $unitConversionData = UnitConversion::where('unit_1_id',$unit_from_id)->where('unit_2_id',$unit_to_id)->first();
+        if(count($unitConversionData) > 0){
+            $data['quantity_to'] = ($quantity_from == null) ? null :($unitConversionData['unit_2_value'] * $quantity_from) / $unitConversionData['unit_1_value'];
+            $data['unit_to_id'] = $unitConversionData->unit_2_id;
+            $data['unit_to_name'] = $unitConversionData->toUnit->name;
+        }else{
+            $reverseUnitConversionData = UnitConversion::where('unit_2_id',$unit_from_id)->where('unit_1_id',$unit_to_id)->first();
+            $data['quantity_to'] = ($quantity_from == null) ? null :($reverseUnitConversionData['unit_1_value'] * $quantity_from) / $reverseUnitConversionData['unit_2_value'];
+            $data['unit_to_id'] = $reverseUnitConversionData->unit_1_id;
+            $data['unit_to_name'] = $reverseUnitConversionData->fromUnit->name;
+        }
+        return $data;
     }
 
     public function changeStatus(Request $request){
