@@ -27,7 +27,6 @@ trait MaterialRequestTrait{
             $materialRequest['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
             $materialRequest['assigned_to'] = $data['assigned_to'];
             $materialRequest = MaterialRequests::create($materialRequest);
-            $materialRequest['id'] = 1;
         }
         $iterator = 0;
         $materialRequestComponent = array();
@@ -48,10 +47,11 @@ trait MaterialRequestTrait{
             if(array_has($itemData,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
+                $sha1MaterialRequestId = sha1($materialRequest['id']);
                 foreach($itemData['images'] as $key1 => $imageName){
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
-                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_IMAGE_UPLOAD').$sha1UserId;
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_IMAGE_UPLOAD').$sha1MaterialRequestId;
                         if(!file_exists($imageUploadNewPath)) {
                             File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                         }
