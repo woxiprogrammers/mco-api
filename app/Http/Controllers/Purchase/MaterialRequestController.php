@@ -159,8 +159,8 @@ use MaterialRequestTrait;
                         $assetList[$iterator]['asset_id'] = $asset['id'];
                         $assetList[$iterator]['asset_name'] = $asset['name'];
                         $assetList[$iterator]['asset_unit'] = Unit::where('slug','nos')->pluck('name')->first();
-                        $assetList[$iterator]['asset_request_component_type_slug'] = $systemAssetStatus->slug;
-                        $assetList[$iterator]['asset_request_component_type_id'] = $systemAssetStatus->id;
+                        $assetList[$iterator]['material_request_component_type_slug'] = $systemAssetStatus->slug;
+                        $assetList[$iterator]['material_request_component_type_id'] = $systemAssetStatus->id;
                         $iterator++;
                     }
                     if(count($assetList) == 0){
