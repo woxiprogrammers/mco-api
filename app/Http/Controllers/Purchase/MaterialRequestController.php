@@ -140,10 +140,22 @@ use MaterialRequestTrait;
                 case "asset" :
                     $assetList = array();
                     $alreadyExistAsset = Asset::where('name','ilike','%'.$request['keyword'].'%')->get();
+                    $systemAssetStatus = MaterialRequestComponentTypes::where('slug','system-asset')->first();
                     foreach ($alreadyExistAsset as $key => $asset){
                         $assetList[$iterator]['asset_id'] = $asset['id'];
                         $assetList[$iterator]['asset_name'] = $asset['name'];
+                        $assetList[$iterator]['asset_unit'] = 1;
+                        $assetList[$iterator]['asset_request_component_type_slug'] = $systemAssetStatus->slug;
+                        $assetList[$iterator]['asset_request_component_type_id'] = $systemAssetStatus->id;
                         $iterator++;
+                    }
+                    if(count($assetList) == 0){
+                        $assetList[$iterator]['asset_id'] = null;
+                        $assetList[$iterator]['asset_name'] = null;
+                        $assetList[$iterator]['asset_unit'] = null;
+                        $newAssetSlug = MaterialRequestComponentTypes::where('slug','new-asset')->first();
+                        $assetList[$iterator]['material_request_component_type_slug'] = $newAssetSlug->slug;
+                        $assetList[$iterator]['material_request_component_type_id'] = $newAssetSlug->id;
                     }
                     $data['asset_list'] = $assetList;
                 break;
