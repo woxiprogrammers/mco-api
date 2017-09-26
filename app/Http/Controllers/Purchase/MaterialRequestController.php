@@ -200,13 +200,17 @@ use MaterialRequestTrait;
                     ->whereIn('product_material_relation.material_version_id',$materialVersions)
                     ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
                 $allowedQuantity = $material_quantity - $usedQuantity;
-            }
-            if((int)$materialRequestComponent['quantity'] < $allowedQuantity){
-                MaterialRequestComponents::where('material_request_id',$request['material_request_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
-                $message = "Status Updated Successfully";
+                if((int)$materialRequestComponent['quantity'] < $allowedQuantity){
+                    MaterialRequestComponents::where('id',$request['material_request_component_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
+                    $message = "Status Updated Successfully";
+                }else{
+                    $message = "Allowed quantity is ".$allowedQuantity;
+                }
             }else{
-                $message = "Allowed quantity is ".$allowedQuantity;
+                MaterialRequestComponents::where('id',$request['material_request_component_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
+                $message = "Status Updated Successfully";
             }
+
             $status = 200;
         }catch(\Exception $e){
             $status = 500;
