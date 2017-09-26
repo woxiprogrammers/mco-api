@@ -62,9 +62,9 @@ class AssetManagementController extends BaseController
                                 $totalWorkHour += $endTime->diffInHours($startTime);
                                 $totalDieselConsume += ($asset['litre_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
                             }
-                            $inventoryListingData[$iterator]['assets_units'] = $assetUnits;
-                            $inventoryListingData[$iterator]['total_work_hour'] = $totalWorkHour;
-                            $inventoryListingData[$iterator]['total_diesel_consume'] = $totalDieselConsume;
+                            $inventoryListingData[$iterator]['assets_units'] = (string)$assetUnits;
+                            $inventoryListingData[$iterator]['total_work_hour'] = (string)$totalWorkHour;
+                            $inventoryListingData[$iterator]['total_diesel_consume'] = (string)$totalDieselConsume;
                             $inventoryListingData[$iterator]['is_diesel'] = true;
                         }else{
                             $inventoryListingData[$iterator]['assets_units'] = '-';
@@ -86,7 +86,7 @@ class AssetManagementController extends BaseController
                 $data['assets_list'][] = $inventoryListingData[$iterator];
             }
             if($remainingCount > 0 ){
-                $page_id = $pageId + 1;
+                $page_id = (string)($pageId + 1);
                 $next_url = "/inventory/asset/listing";
             }else{
                 $next_url = "";
@@ -132,14 +132,15 @@ class AssetManagementController extends BaseController
                 $summaryAssetListing[$iterator]['start_time'] = $assetReading['start_time'];
                 $summaryAssetListing[$iterator]['stop_time'] = $assetReading['stop_time'];
                 $summaryAssetListing[$iterator]['top_up_time'] = $assetReading['top_up_time'];
-                $summaryAssetListing[$iterator]['fuel_remaining'] = '-';
+                $summaryAssetListing[$iterator]['fuel_remaining'] = null;
                 $iterator++;
             }
-            $data['assets_summary_data']['assets_summary_list'] = $summaryAssetListing;
-            $data['asset_name'] = $asset['name'];
-            $data['next_url'] = "";
+            $data['assets_summary_list'] = $summaryAssetListing;
+            $asset_name = $asset['name'];
+            $next_url = "";
         }catch(\Exception $e){
             $message = "Fail";
+            $next_url = $asset_name = "";
             $status = 500;
             $data = [
                 'action' => 'Get Summary Asset Listing',
@@ -150,7 +151,9 @@ class AssetManagementController extends BaseController
         }
         $response = [
             "data" => $data,
-            "message" => $message
+            "message" => $message,
+            "next_url" => $next_url,
+            "asset_name" => $asset_name
         ];
         return response()->json($response,$status);
     }
