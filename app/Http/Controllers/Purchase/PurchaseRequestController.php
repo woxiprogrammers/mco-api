@@ -122,8 +122,9 @@ use MaterialRequestTrait;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = count($purchaseRequestList);
             $remainingCount = $totalMaterialCount - $totalSent;
+            $data['purchase_request_list'] = array();
             for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
-                $data['purchase_request_list'] = $purchaseRequestList[$iterator];
+                $data['purchase_request_list'][] = $purchaseRequestList[$iterator];
             }
             if($remainingCount > 0 ){
                 $page_id = (string)($pageId + 1);
