@@ -21,4 +21,8 @@ class MaterialRequestComponents extends Model
     public function purchaseRequestComponentStatuses(){
         return $this->belongsTo('App\PurchaseRequestComponentStatuses','component_status_id');
     }
+
+    public function materialRequestComponentImages(){
+        return $this->hasMany('App\MaterialRequestComponentImages','material_request_component_id');
+    }
 }
