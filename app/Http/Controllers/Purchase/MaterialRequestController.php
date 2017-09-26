@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Purchase;
 use App\Asset;
+use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
 use App\Material;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
@@ -13,6 +14,7 @@ use App\QuotationMaterial;
 use App\QuotationProduct;
 use App\Unit;
 use App\UnitConversion;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +23,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 use Mockery\Exception;
 
 class MaterialRequestController extends BaseController{
-
+use MaterialRequestTrait;
     public function __construct(){
         $this->middleware('jwt.auth',['except' => ['autoSuggest','getPurchaseRequestComponentStatus']]);
         if(!Auth::guest()) {
@@ -29,35 +31,12 @@ class MaterialRequestController extends BaseController{
         }
     }
 
-    public function createMaterialRequest(Request $request){
+    public function createMaterialRequestData(Request $request){
         try{
             $status = 200;
             $message = "Success";
             $user = Auth::user();
-            $requestData = $request->all();
-            $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->pluck('id')->first();
-            $alreadyCreatedMaterialRequest = MaterialRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->first();
-            if(count($alreadyCreatedMaterialRequest) > 0){
-                $materialRequest = $alreadyCreatedMaterialRequest;
-            }else{
-                $materialRequest['project_site_id'] = $requestData['project_site_id'];
-                $materialRequest['user_id'] = $user['id'];
-                $materialRequest['quotation_id'] = $quotationId != null ? $quotationId : null;
-                $materialRequest['assigned_to'] = $requestData['assigned_to'];
-                $materialRequest = MaterialRequests::create($materialRequest);
-            }
-            foreach($requestData['item_list'] as $key => $itemData){
-                $materialRequestComponent['material_request_id'] = $materialRequest['id'];
-                $materialRequestComponent['name'] = $itemData['name'];
-                $materialRequestComponent['quantity'] = $itemData['quantity'];
-                $materialRequestComponent['unit_id'] = $itemData['unit_id'];
-                $materialRequestComponent['component_type_id'] = $itemData['component_type_id'];
-                $materialRequestComponent['component_status_id'] = PurchaseRequestComponentStatuses::where('slug','pending')->pluck('id')->first();
-                MaterialRequestComponents::create($materialRequestComponent);
-                if(array_has($itemData,'images')){
-                 //images goes here
-                }
-            }
+            $materialRequestComponentIds = $this->createMaterialRequest($request->all(),$user,$is_purchase_request = false);
         }catch (Exception $e){
             $status = 500;
             $message = "Fail";
@@ -142,18 +121,18 @@ class MaterialRequestController extends BaseController{
                         $iterator++;
                     }
                     if(count($materialList) == 0){
-                        $materialList['material_name'] = null;
+                        $materialList[$iterator]['material_name'] = null;
                         $systemUnits = Unit::where('is_active',true)->get();
                         $j = 0;
                         foreach($systemUnits as $key2 => $unit){
-                            $materialList['unit_quantity'][$j]['quantity'] = null;
-                            $materialList['unit_quantity'][$j]['unit_id'] = $unit->id;
-                            $materialList['unit_quantity'][$j]['unit_name'] = $unit->name;
+                            $materialList[$iterator]['unit_quantity'][$j]['quantity'] = null;
+                            $materialList[$iterator]['unit_quantity'][$j]['unit_id'] = $unit->id;
+                            $materialList[$iterator]['unit_quantity'][$j]['unit_name'] = $unit->name;
                             $j++;
                         }
                         $newMaterialSlug = MaterialRequestComponentTypes::where('slug','new-material')->first();
-                        $materialList['material_request_component_type_slug'] = $newMaterialSlug->slug;
-                        $materialList['material_request_component_type_id'] = $newMaterialSlug->id;
+                        $materialList[$iterator]['material_request_component_type_slug'] = $newMaterialSlug->slug;
+                        $materialList[$iterator]['material_request_component_type_id'] = $newMaterialSlug->id;
                     }
                     $data['material_list'] = $materialList;
                 break;
@@ -161,10 +140,22 @@ class MaterialRequestController extends BaseController{
                 case "asset" :
                     $assetList = array();
                     $alreadyExistAsset = Asset::where('name','ilike','%'.$request['keyword'].'%')->get();
+                    $systemAssetStatus = MaterialRequestComponentTypes::where('slug','system-asset')->first();
                     foreach ($alreadyExistAsset as $key => $asset){
                         $assetList[$iterator]['asset_id'] = $asset['id'];
                         $assetList[$iterator]['asset_name'] = $asset['name'];
+                        $assetList[$iterator]['asset_unit'] = 1;
+                        $assetList[$iterator]['asset_request_component_type_slug'] = $systemAssetStatus->slug;
+                        $assetList[$iterator]['asset_request_component_type_id'] = $systemAssetStatus->id;
                         $iterator++;
+                    }
+                    if(count($assetList) == 0){
+                        $assetList[$iterator]['asset_id'] = null;
+                        $assetList[$iterator]['asset_name'] = null;
+                        $assetList[$iterator]['asset_unit'] = null;
+                        $newAssetSlug = MaterialRequestComponentTypes::where('slug','new-asset')->first();
+                        $assetList[$iterator]['material_request_component_type_slug'] = $newAssetSlug->slug;
+                        $assetList[$iterator]['material_request_component_type_id'] = $newAssetSlug->id;
                     }
                     $data['asset_list'] = $assetList;
                 break;
@@ -238,17 +229,20 @@ class MaterialRequestController extends BaseController{
             $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$request['user_id'])->first();
             $materialRequestList = array();
             $iterator = 0;
-            foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
-                $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
-                $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
-                $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
-                $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
-                $materialRequestList[$iterator]['unit'] = $materialRequestComponents->unit->name;
-                $materialRequestList[$iterator]['component_type_id'] = $materialRequestComponents->component_type_id;
-                $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
-                $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
-                $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
-                $iterator++;
+            if(count($materialRequest) > 0){
+                foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
+                    $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
+                    $materialRequestList[$iterator]['material_request_format'] = $this->getMaterialRequestIDFormat($materialRequest['project_site_id'],$materialRequestComponents['created_at'],$iterator+1);
+                    $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
+                    $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
+                    $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
+                    $materialRequestList[$iterator]['unit'] = $materialRequestComponents->unit->name;
+                    $materialRequestList[$iterator]['component_type_id'] = $materialRequestComponents->component_type_id;
+                    $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
+                    $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
+                    $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
+                    $iterator++;
+                }
             }
             $data['material_request_list'] = $materialRequestList;
             $status = 200;
@@ -291,5 +285,10 @@ class MaterialRequestController extends BaseController{
             "message" => $message,
         ];
         return response()->json($response,$status);
+    }
+
+    public function getMaterialRequestIDFormat($project_site_id,$created_at,$serial_no){
+        $format = "MR".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
+        return $format;
     }
 }
