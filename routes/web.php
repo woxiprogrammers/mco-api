@@ -17,6 +17,7 @@ $app->get('/', function () use ($app) {
 
 $app->post('/login',array('uses' => 'AuthController@login'));
 $app->post('/dashboard',array('uses' => 'AuthController@dashboard'));
+$app->post('save-image',array('uses' => 'ImageController@saveImages'));
 $app->group(['prefix' => 'inventory'],function () use($app){
     $app->group(['prefix' => 'material'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));
@@ -32,7 +33,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('create',array('uses' => 'Purchase\MaterialRequestController@createMaterialRequestData'));
         $app->post('change-status',array('uses' => 'Purchase\MaterialRequestController@changeStatus'));
         $app->post('listing',array('uses' => 'Purchase\MaterialRequestController@materialRequestListing'));
-        $app->post('save-image',array('uses' => 'Purchase\MaterialRequestController@saveMaterialRequestImages'));
+
     });
     $app->group(['prefix' => 'purchase-request'],function () use ($app){
         $app->post('create',array('uses' => 'Purchase\PurchaseRequestController@createPurchaseRequest'));
