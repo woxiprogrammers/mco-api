@@ -36,11 +36,16 @@ class AuthController extends BaseController
             if($request->has(['email','password'])){
                 $credentials = $request->only('email','password');
                 if( $token = JWTAuth::attempt($credentials) ){
-                    $message = "Logged in successfully!!";
-                    $status = 200;
                     $user = Auth::user();
-                    $data = $this->getData($user);
-                    $loginDate = Carbon::now();
+                    if($user['is_active'] == true){
+                        $message = "Logged in successfully!!";
+                        $status = 200;
+                        $data = $this->getData($user);
+                        $loginDate = Carbon::now();
+                    }else{
+                        $status = 401;
+                        $message = "User is not activated yet. Please activate user first.";
+                    }
                 }else{
                     $message = "Invalid credentials";
                     $status = 401;
@@ -48,11 +53,16 @@ class AuthController extends BaseController
             }elseif($request->has(['mobile','password'])){
                 $credentials = $request->only('mobile','password');
                 if( $token = JWTAuth::attempt($credentials) ){
-                    $message = "Logged in successfully!!";
-                    $status = 200;
                     $user = Auth::user();
-                    $data = $this->getData($user);
-                    $loginDate = Carbon::now();
+                    if($user['is_active'] == true){
+                        $message = "Logged in successfully!!";
+                        $status = 200;
+                        $data = $this->getData($user);
+                        $loginDate = Carbon::now();
+                    }else{
+                        $status = 401;
+                        $message = "User is not activated yet. Please activate user first.";
+                    }
                 }else{
                     $message = "Invalid credentials";
                     $status = 401;
