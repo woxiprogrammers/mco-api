@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Inventory;
 use App\Asset;
 use App\FuelAssetReading;
 use App\InventoryComponent;
+use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Mockery\Exception;
@@ -162,13 +164,30 @@ class AssetManagementController extends BaseController
         try{
             $status = 200;
             $data = $request->all();
+            $user = Auth::user();
             if($request->has('remark')){
                 $inventoryComponentTransfer['remark'] = $data['remark'];
             }
-            $inventoryComponentTransfer['user_id'] = Auth::user()->id;
+            $inventoryComponentTransfer['user_id'] = $user['id'];
             $inventoryComponentTransfer['transfer_type_id'] = InventoryTransferTypes::where('slug','maintenance')->where('type','IN')->pluck('id')->first();
             $inventoryComponentTransfer['inventory_component_id'] = $data['inventory_component_id'];
-            InventoryComponentTransfers::create($inventoryComponentTransfer);
+            $inventoryComponentTransferId = InventoryComponentTransfers::insertGetId($inventoryComponentTransfer);
+            if($request->has('image')){
+                $sha1UserId = sha1($user['id']);
+                $sha1MaterialRequestId = sha1($inventoryComponentTransferId);
+                foreach($request['image'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_IMAGE_UPLOAD').$sha1MaterialRequestId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::move($tempUploadFile,$imageUploadNewPath);
+                        InventoryComponentTransferImage::create(['name' => $imageName,'inventory_component_transfer_id' => $inventoryComponentTransferId]);
+                    }
+                }
+            }
             $message = "Maintenance Request Sent Successfully";
         }catch(Exception $e){
             $status = 500;

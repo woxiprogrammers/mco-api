@@ -26,9 +26,12 @@ class ImageController extends BaseController{
     public function saveImages(Request $request){
         try{
             $user = Auth::user();
+            $sha1UserId = sha1($user['id']);
             if($request['image_for'] == 'material-request'){
-                $sha1UserId = sha1($user['id']);
                 $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
+                $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+            }elseif($request['image_for'] == 'request-maintenance'){
+                $tempUploadPath = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD');
                 $tempImageUploadPath = $tempUploadPath.$sha1UserId;
             }
             if (!file_exists($tempImageUploadPath)) {
