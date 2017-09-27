@@ -65,36 +65,4 @@ trait MaterialRequestTrait{
         }
         return $materialRequestComponent;
     }
-
-    public function saveMaterialRequestImages(Request $request){
-        try{
-            $user = Auth::user();
-            $sha1UserId = sha1($user['id']);
-            $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
-            $tempImageUploadPath = $tempUploadPath.$sha1UserId;
-            if (!file_exists($tempImageUploadPath)) {
-                File::makeDirectory($tempImageUploadPath, $mode = 0777, true, true);
-            }
-            $extension = $request->file('image')->getClientOriginalExtension();
-            $filename = mt_rand(1,10000000000).sha1(time()).".{$extension}";
-            $request->file('image')->move($tempImageUploadPath,$filename);
-            $message = "Success";
-            $status = 200;
-        }catch(\Exception $e){
-            $data = [
-                'action' => 'Save Material Request Images',
-                'request' => $request->all(),
-                'exception' => $e->getMessage()
-            ];
-            $message = "Fail";
-            $status = 500;
-            $filename = null;
-            Log::critical(json_encode($data));
-        }
-        $response = [
-            "message" => $message,
-            "filename" => $filename
-        ];
-        return response()->json($response,$status);
-    }
 }
