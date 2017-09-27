@@ -17,7 +17,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 class ImageController extends BaseController{
 
     public function __construct(){
-        $this->middleware('jwt.auth',['except' => ['autoSuggest','getPurchaseRequestComponentStatus']]);
+        $this->middleware('jwt.auth');
         if(!Auth::guest()) {
             $this->user = Auth::user();
         }
