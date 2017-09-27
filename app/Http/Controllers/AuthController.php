@@ -32,9 +32,21 @@ class AuthController extends BaseController
             $projects = null;
             $moduleResponse = null;
             $data = null;
-            $credentials = $request->only('email','password');
             $loginDate = null;
             if($request->has(['email','password'])){
+                $credentials = $request->only('email','password');
+                if( $token = JWTAuth::attempt($credentials) ){
+                    $message = "Logged in successfully!!";
+                    $status = 200;
+                    $user = Auth::user();
+                    $data = $this->getData($user);
+                    $loginDate = Carbon::now();
+                }else{
+                    $message = "Invalid credentials";
+                    $status = 401;
+                }
+            }elseif($request->has(['mobile','password'])){
+                $credentials = $request->only('mobile','password');
                 if( $token = JWTAuth::attempt($credentials) ){
                     $message = "Logged in successfully!!";
                     $status = 200;
