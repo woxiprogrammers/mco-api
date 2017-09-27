@@ -38,6 +38,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('create',array('uses' => 'Purchase\PurchaseRequestController@createPurchaseRequest'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseRequestController@changeStatus'));
         $app->post('listing',array('uses' => 'Purchase\PurchaseRequestController@purchaseRequestListing'));
+        $app->post('detail-listing',array('uses' => 'Purchase\PurchaseRequestController@getDetailListing'));
     });
 
 });
