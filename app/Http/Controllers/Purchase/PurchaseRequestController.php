@@ -1,7 +1,6 @@
 <?php
     /**
      * Created by Harsha.
-     * User: manoj
      * Date: 22/9/17
      * Time: 10:14 AM
      */
@@ -151,7 +150,7 @@ use MaterialRequestTrait;
             "data" => $data,
             "message" => $message,
             "next_url" => $next_url,
-            "page_id" => $pageId
+            "page_id" => $page_id
         ];
         return response()->json($response,$status);
     }
@@ -159,5 +158,59 @@ use MaterialRequestTrait;
     public function getPurchaseRequestIDFormat($project_site_id,$created_at,$serial_no){
          $format = "PR".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
         return $format;
+    }
+
+    public function getDetailListing(Request $request){
+        try{
+            $iterator = 0;
+            $material_list = array();
+            $materialRequestComponentIds = PurchaseRequestComponents::where('purchase_request_id',$request['purchase_request_id'])->pluck('material_request_component_id');
+            $materialRequestComponentData = MaterialRequestComponents::whereIn('id',$materialRequestComponentIds)->orderBy('id','asc')->get();
+            foreach ($materialRequestComponentData as $key => $materialRequestComponent){
+                $material_list[$iterator]['id'] = $materialRequestComponent['id'];
+                $material_list[$iterator]['name'] = $materialRequestComponent['name'];
+                $material_list[$iterator]['quantity'] = $materialRequestComponent['quantity'];
+                $material_list[$iterator]['unit_id'] = $materialRequestComponent['unit_id'];
+                $material_list[$iterator]['unit_name'] = $materialRequestComponent->unit->name;
+                $material_list[$iterator]['list_of_images'] = array();
+                $materialRequestComponentImages = $materialRequestComponent->materialRequestComponentImages;
+                if(count($materialRequestComponentImages) > 0){
+                    $material_list[$iterator]['list_of_images'] = $this->getUploadedImages($materialRequestComponentImages,$materialRequestComponent['id']);
+                }else{
+                    $material_list[$iterator]['list_of_images'][0]['image_url'] = null;
+                }
+                $iterator++;
+            }
+            $data['item_list'] = $material_list;
+            $message = "Success";
+            $status = 200;
+
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Purchase Request Listing',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "purchase_details_data" => $data,
+            "message" => $message,
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getUploadedImages($materialRequestComponentImages,$materialRequestComponentId){
+        $iterator = 0;
+        $images = array();
+        $sha1MaterialRequestId = sha1($materialRequestComponentId);
+        $imageUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_IMAGE_UPLOAD').$sha1MaterialRequestId;
+        foreach($materialRequestComponentImages as $index => $images){
+            $images[$iterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$images->name;
+            $iterator++;
+        }
+        return $images;
     }
 }
