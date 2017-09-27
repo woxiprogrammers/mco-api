@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 use App\MaterialRequests;
 use App\Module;
 use App\Permission;
+use App\PurchaseRequestComponentStatuses;
 use App\User;
 use App\UserHasPermission;
 use Illuminate\Http\Request;
@@ -40,9 +41,10 @@ class PurchaseController extends BaseController
             }
             $materialRequestAssigned = MaterialRequests::where('assigned_to',$authUser['id'])->get();
             $materialRequestList = array();
+            $inIndentStatusId = PurchaseRequestComponentStatuses::where('slug','in-indent')->pluck('id')->first();
             $iterator = 0;
             foreach ($materialRequestAssigned as $key1 => $materialRequest){
-                foreach($materialRequest->materialRequestComponents as $index => $materialRequestComponent){
+                foreach($materialRequest->materialRequestComponents->where('component_status_id',$inIndentStatusId) as $index => $materialRequestComponent){
                     $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponent->id;
                     $materialRequestList[$iterator]['name'] = $materialRequestComponent->name;
                     $materialRequestList[$iterator]['quantity'] = $materialRequestComponent->quantity;
