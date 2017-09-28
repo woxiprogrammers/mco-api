@@ -47,7 +47,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
 $app->post('auto-suggest',array('uses' => 'Purchase\MaterialRequestController@autoSuggest'));
 $app->group(['prefix' => 'users'], function () use($app){
     $app->group(['prefix' => 'purchase'], function () use($app){
-            $app->get('purchase-request/approval-acl', array('uses' => 'User\PurchaseController@getPurchaseRequestApprovalACl'));
+            $app->post('purchase-request/approval-acl', array('uses' => 'User\PurchaseController@getPurchaseRequestApprovalACl'));
     });
 });
 

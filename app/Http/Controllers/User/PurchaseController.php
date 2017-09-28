@@ -41,10 +41,10 @@ class PurchaseController extends BaseController
             }
             $materialRequestAssigned = MaterialRequests::where('assigned_to',$authUser['id'])->get();
             $materialRequestList = array();
-            $inIndentStatusId = PurchaseRequestComponentStatuses::where('slug','in-indent')->pluck('id')->first();
+            $requestedStatusId = PurchaseRequestComponentStatuses::where('slug',$request['component_status_slug'])->pluck('id')->first();
             $iterator = 0;
             foreach ($materialRequestAssigned as $key1 => $materialRequest){
-                foreach($materialRequest->materialRequestComponents->where('component_status_id',$inIndentStatusId) as $index => $materialRequestComponent){
+                foreach($materialRequest->materialRequestComponents->where('component_status_id',$requestedStatusId) as $index => $materialRequestComponent){
                     $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponent->id;
                     $materialRequestList[$iterator]['name'] = $materialRequestComponent->name;
                     $materialRequestList[$iterator]['quantity'] = $materialRequestComponent->quantity;
