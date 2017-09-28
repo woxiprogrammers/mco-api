@@ -18,16 +18,11 @@ trait MaterialRequestTrait{
 
     public function createMaterialRequest($data,$user,$is_purchase_request){
         $quotationId = Quotation::where('project_site_id',$data['project_site_id'])->pluck('id')->first();
-        $alreadyCreatedMaterialRequest = MaterialRequests::where('project_site_id',$data['project_site_id'])->where('user_id',$user['id'])->first();
-        if(count($alreadyCreatedMaterialRequest) > 0){
-            $materialRequest = $alreadyCreatedMaterialRequest;
-        }else{
-            $materialRequest['project_site_id'] = $data['project_site_id'];
-            $materialRequest['user_id'] = $user['id'];
-            $materialRequest['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
-            $materialRequest['assigned_to'] = $data['assigned_to'];
-            $materialRequest = MaterialRequests::create($materialRequest);
-        }
+        $materialRequest['project_site_id'] = $data['project_site_id'];
+        $materialRequest['user_id'] = $user['id'];
+        $materialRequest['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
+        $materialRequest['assigned_to'] = $data['assigned_to'];
+        $materialRequest = MaterialRequests::create($materialRequest);
         $iterator = 0;
         $materialRequestComponent = array();
         foreach($data['item_list'] as $key => $itemData){
