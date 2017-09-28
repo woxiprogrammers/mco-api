@@ -7,8 +7,11 @@
 namespace App\Http\Controllers;
 
 use App\Module;
+use App\ProductVersion;
 use App\Project;
+use App\ProjectSite;
 use App\UserHasPermission;
+use App\UserProjectSiteRelation;
 use Carbon\Carbon;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
@@ -173,9 +176,24 @@ class AuthController extends BaseController
             unset($user['role_id']);
             $data = $user;
             $data['modules'] = $moduleResponse;
-            $projects = Project::where('is_active', true)->select('id','name')->get();
-            if($projects  != null){
-                $projects = $projects->toArray();
+            $userProjectSiteIds = UserProjectSiteRelation::where('user_id',$user['id'])->pluck('project_site_id');
+            $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
+                        ->where('projects.is_active',true)
+                        ->whereIn('project_sites.id',$userProjectSiteIds)->select('projects.id')->get();
+            $kIterator = 0;
+            $projectSites = ProjectSite::whereIn('project_id',$projectIds)->get();
+            $projects = array();
+            if($projectSites != null){
+                foreach ($projectSites as $key1 => $projectSite) {
+                    $projects[$kIterator]['project_site_id'] = $projectSite->id;
+                    $projects[$kIterator]['project_site_name'] = $projectSite->name;
+                    $projects[$kIterator]['project_site_address'] = $projectSite->name;
+                    $project = $projectSite->project;
+                    $projects[$kIterator]['project_id'] = $project->id;
+                    $projects[$kIterator]['project_name'] = $project->name;
+                    $projects[$kIterator]['client_company_name'] = $projectSite->project->client->company;
+                    $kIterator++;
+                }
             }
             $data['projects'] = $projects;
             return $data;
