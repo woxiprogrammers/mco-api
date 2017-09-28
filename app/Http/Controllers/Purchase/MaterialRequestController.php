@@ -68,10 +68,10 @@ use MaterialRequestTrait;
                             ->where('name','ilike','%'.$request->keyword.'%')->pluck('id');
                         $quotationMaterials = QuotationMaterial::where('quotation_id',$quotation->id)->whereIn('material_id',$quotationMaterialId)->get();
                         $quotationMaterialSlug = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
-                        $materialRequestID = MaterialRequests::where('project_site_id',$request['project_site_id'])->pluck('id')->first();
+                        $materialRequestID = MaterialRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
                         $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
                         foreach($quotationMaterials as $key => $quotationMaterial){
-                            $usedMaterial = MaterialRequestComponents::where('material_request_id',$materialRequestID)->where('component_type_id',$quotationMaterialSlug->id)->where('component_status_id',$adminApproveComponentStatusId)->where('name',$quotationMaterial->material->name)->orderBy('created_at','asc')->get();
+                            $usedMaterial = MaterialRequestComponents::whereIn('material_request_id',$materialRequestID)->where('component_type_id',$quotationMaterialSlug->id)->where('component_status_id',$adminApproveComponentStatusId)->where('name',$quotationMaterial->material->name)->orderBy('created_at','asc')->get();
                             $totalQuantityUsed = 0;
                             foreach($usedMaterial as $index => $material){
                                 if($material->unit_id == $quotationMaterial->unit_id){
