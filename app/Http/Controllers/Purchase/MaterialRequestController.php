@@ -219,11 +219,13 @@ use MaterialRequestTrait;
             $quotationMaterialType = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
             if($materialRequestComponent['component_type_id'] == $quotationMaterialType->id){
                 $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
-                $usedQuantity = MaterialRequestComponents::where('id','!=',$materialRequestComponent->id)
-                                ->where('material_request_id',$materialRequestComponent['material_request_id'])
-                                ->where('component_type_id',$quotationMaterialType['id'])
-                                ->where('component_status_id',$adminApproveComponentStatusId)
-                                ->where('name',$materialRequestComponent['name'])->sum('quantity');
+                $usedQuantity = MaterialRequestComponents::join('material_requests','material_requests.id','=','material_request_components.material_request_id')
+                    ->where('material_request_components.id','!=',$materialRequestComponent->id)
+                    ->where('material_requests.project_site_id', $request['project_site_id'])
+                    ->where('material_request_components.component_type_id',$quotationMaterialType['id'])
+                    ->where('material_request_components.component_status_id',$adminApproveComponentStatusId)
+                    ->where('material_request_components.name',$materialRequestComponent['name'])
+                    ->sum('material_request_components.quantity');
                 $quotation = Quotation::where('project_site_id',$request['project_site_id'])->first();
                 $quotationMaterialId = Material::whereIn('id',array_column($quotation->quotation_materials->toArray(),'material_id'))
                     ->where('name',$materialRequestComponent->name)->pluck('id')->first();
