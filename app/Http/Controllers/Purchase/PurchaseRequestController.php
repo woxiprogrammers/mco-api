@@ -42,20 +42,15 @@ use MaterialRequestTrait;
             }else{
                 $materialRequestComponentIds = $request['material_request_component_id'];
             }
-            $alreadyCreatedPurchaseRequest = PurchaseRequests::where('project_site_id',$requestData['project_site_id'])->where('user_id',$user['id'])->first();
-            if(count($alreadyCreatedPurchaseRequest) > 0){
-                $purchaseRequest = $alreadyCreatedPurchaseRequest;
-            }else{
-                $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->first();
-                if(count($quotationId) > 0){
-                    $purchaseRequest['quotation_id'] = $quotationId['id'];
-                }
-                $purchaseRequest['project_site_id'] = $request['project_site_id'];
-                $purchaseRequest['user_id'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
-                $purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','purchase-requested')->first();
-                $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
-                $purchaseRequest = PurchaseRequests::create($purchaseRequest);
+            $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->first();
+            if(count($quotationId) > 0){
+                $purchaseRequest['quotation_id'] = $quotationId['id'];
             }
+            $purchaseRequest['project_site_id'] = $request['project_site_id'];
+            $purchaseRequest['user_id'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
+            $purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','purchase-requested')->first();
+            $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
+            $purchaseRequest = PurchaseRequests::create($purchaseRequest);
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
             }
