@@ -260,7 +260,8 @@ use MaterialRequestTrait;
 
     public function materialRequestListing(Request $request){
         try{
-            $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$request['user_id'])->first();
+            $user = Auth::user();
+            $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->first();
             $materialRequestList = array();
             $iterator = 0;
             if(count($materialRequest) > 0){
