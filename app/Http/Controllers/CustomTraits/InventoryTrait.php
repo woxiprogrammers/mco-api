@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CustomTraits;
 
+use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -32,9 +33,11 @@ trait InventoryTrait{
 
     public function createInventoryTransfer(Request $request){
         try{
-            dd(123);
-            $a = "out";
-            $message = "Inventory Component moved".$a."successfully";
+            $inventoryComponentTransferData = $request->except('name','type','token');
+            $selectedTransferType = InventoryTransferTypes::where('slug',$request['name'])->where('type',$request['type'])->first();
+            $inventoryComponentTransferData['transfer_type_id'] = $selectedTransferType->id;
+            InventoryComponentTransfers::create($inventoryComponentTransferData);
+            $message = "Inventory Component moved".strtolower($selectedTransferType->type)."successfully";
             $status = 200;
         }catch(\Exception $e){
             $message = "Fail";
@@ -46,6 +49,9 @@ trait InventoryTrait{
             ];
             Log::critical(json_encode($data));
         }
-        $response = [];
+        $response = [
+            'message' => $message,
+        ];
+        return response()->json($response,$status);
     }
 }
