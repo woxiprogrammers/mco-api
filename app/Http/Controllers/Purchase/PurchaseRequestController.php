@@ -7,6 +7,7 @@
 
 namespace App\Http\Controllers\Purchase;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
+use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
 use App\MaterialRequests;
 use App\PurchaseRequestComponents;
@@ -56,6 +57,14 @@ use MaterialRequestTrait;
             }
             $PRAssignedStatusId = PurchaseRequestComponentStatuses::where('slug','p-r-assigned')->pluck('id')->first();
             MaterialRequestComponents::whereIn('id',$request['material_request_component_id'])->update(['component_status_id' => $PRAssignedStatusId]);
+            $materialComponentHistoryData = array();
+            $materialComponentHistoryData['remark'] = '';
+            $materialComponentHistoryData['user_id'] = $user['id'];
+            $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
+            foreach($request['material_request_component_ids'] as $materialRequestComponentId){
+                $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentId;
+                MaterialRequestComponentHistory::create($materialComponentHistoryData);
+            }
         }catch (Exception $e){
             $status = 500;
             $message = "Fail";
@@ -74,7 +83,20 @@ use MaterialRequestTrait;
 
     public function changeStatus(Request $request){
         try{
-            PurchaseRequests::where('id',$request['purchase_request_id'])->update(['purchase_component_status_id' => $request['change_component_status_id_to']]);
+            $user = Auth::user();
+            $materialComponentHistoryData = array();
+            $materialComponentHistoryData['remark'] = '';
+            $materialComponentHistoryData['user_id'] = $user['id'];
+            PurchaseRequests::where('id',$request['purchase_request_id'])->update([
+                'purchase_component_status_id' => $request['change_component_status_id_to']
+            ]);
+            $materialComponentIds = PurchaseRequestComponents::where('purchase_request_id',$request['purchase_request_id'])->pluck('material_request_component_id')->toArray();
+            MaterialRequestComponents::whereIn('id',$materialComponentIds)->update(['component_status_id' => $request['change_component_status_id_to']]);
+            $materialComponentHistoryData['component_status_id'] = $request['change_component_status_id_to'];
+            foreach($materialComponentIds as $materialComponentId) {
+                $materialComponentHistoryData['material_request_component_id'] = $materialComponentId;
+                MaterialRequestComponentHistory::create($materialComponentHistoryData);
+            }
             $status = 200;
             $message = "Status Updated Successfully";
         }catch(\Exception $e){
