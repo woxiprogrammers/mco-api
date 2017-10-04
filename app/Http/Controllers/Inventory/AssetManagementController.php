@@ -42,7 +42,7 @@ class AssetManagementController extends BaseController
                 $currentInComponent = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$inTransferIds)->where('created_at','>',$lastOutTransfer['created_at'])->first();
                 if($currentInComponent != null){
                     $inventoryListingData[$iterator]['assets_name'] = $inventoryComponent['name'];
-                    $inventoryListingData[$iterator]['id'] = $inventoryComponent['id'];
+                    $inventoryListingData[$iterator]['inventory_component_id'] = $inventoryComponent['id'];
                     if($inventoryComponent['reference_id'] == null || $inventoryComponent['reference_id'] == ''){
                         $inventoryListingData[$iterator]['model_number'] = '-';
                         $inventoryListingData[$iterator]['assets_units'] = '-';
@@ -168,6 +168,7 @@ class AssetManagementController extends BaseController
             if($request->has('remark')){
                 $inventoryComponentTransfer['remark'] = $data['remark'];
             }
+            $inventoryComponentTransfer['next_maintenance_hour'] = $data['next_maintenance_hour'];
             $inventoryComponentTransfer['user_id'] = $user['id'];
             $inventoryComponentTransfer['transfer_type_id'] = InventoryTransferTypes::where('slug','maintenance')->where('type','IN')->pluck('id')->first();
             $inventoryComponentTransfer['inventory_component_id'] = $data['inventory_component_id'];
