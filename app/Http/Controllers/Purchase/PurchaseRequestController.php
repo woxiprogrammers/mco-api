@@ -36,11 +36,15 @@ use MaterialRequestTrait;
             $message = "Success";
             $user = Auth::user();
             $requestData = $request->all();
-            $purchaseRequest = array();
+            $purchaseRequest = $materialRequestComponentIds = array();
             if($request->has('item_list')){
                 $materialRequestComponentId = $this->createMaterialRequest($request->except('material_request_component_id'),$user,$is_purchase_request = true);
-                $materialRequestComponentIds = array_merge($materialRequestComponentId,$request['material_request_component_id']);
-            }else{
+                if($request->has('material_request_component_id')){
+                    $materialRequestComponentIds = array_merge($materialRequestComponentId,$request['material_request_component_id']);
+                }else{
+                    $materialRequestComponentIds = $materialRequestComponentId;
+                }
+            }elseif($request->has('material_request_component_id')){
                 $materialRequestComponentIds = $request['material_request_component_id'];
             }
             $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->first();
@@ -55,16 +59,20 @@ use MaterialRequestTrait;
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
             }
-            $PRAssignedStatusId = PurchaseRequestComponentStatuses::where('slug','p-r-assigned')->pluck('id')->first();
-            MaterialRequestComponents::whereIn('id',$request['material_request_component_id'])->update(['component_status_id' => $PRAssignedStatusId]);
-            $materialComponentHistoryData = array();
-            $materialComponentHistoryData['remark'] = '';
-            $materialComponentHistoryData['user_id'] = $user['id'];
-            $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
-            foreach($request['material_request_component_ids'] as $materialRequestComponentId){
-                $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentId;
-                MaterialRequestComponentHistory::create($materialComponentHistoryData);
+            if($request->has('material_request_component_id')){
+                $PRAssignedStatusId = PurchaseRequestComponentStatuses::where('slug','p-r-assigned')->pluck('id')->first();
+                MaterialRequestComponents::whereIn('id',$request['material_request_component_id'])->update(['component_status_id' => $PRAssignedStatusId]);
+                $materialComponentHistoryData = array();
+                $materialComponentHistoryData['remark'] = '';
+                $materialComponentHistoryData['user_id'] = $user['id'];
+                $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
+
+                foreach($request['material_request_component_ids'] as $materialRequestComponentId){
+                    $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentId;
+                    MaterialRequestComponentHistory::create($materialComponentHistoryData);
+                }
             }
+
         }catch (Exception $e){
             $status = 500;
             $message = "Fail";
