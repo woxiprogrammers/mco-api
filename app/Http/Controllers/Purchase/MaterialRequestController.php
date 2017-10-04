@@ -282,6 +282,7 @@ use MaterialRequestTrait;
                     $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
                     $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
                     $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
+                    $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
                     $iterator++;
                 }
             }

@@ -52,6 +52,7 @@ class PurchaseController extends BaseController
                     $materialRequestList[$iterator]['component_type'] = $materialRequestComponent->materialRequestComponentTypes->name;
                     $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponent->component_status_id;
                     $materialRequestList[$iterator]['component_status'] = $materialRequestComponent->purchaseRequestComponentStatuses->name;
+                    $materialRequestList[$iterator]['created_at'] = date($materialRequestComponent->created_at);
                     $iterator++;
                 }
             }
