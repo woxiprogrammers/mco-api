@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Inventory;
 
+use App\Http\Controllers\CustomTraits\InventoryTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
@@ -20,6 +21,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 
 class InventoryManageController extends BaseController
 {
+use InventoryTrait;
     public function __construct()
     {
         $this->middleware('jwt.auth');

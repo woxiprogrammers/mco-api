@@ -266,7 +266,8 @@ use MaterialRequestTrait;
 
     public function materialRequestListing(Request $request){
         try{
-            $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$request['user_id'])->first();
+            $user = Auth::user();
+            $materialRequest = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->first();
             $materialRequestList = array();
             $iterator = 0;
             if(count($materialRequest) > 0){
@@ -281,6 +282,7 @@ use MaterialRequestTrait;
                     $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
                     $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
                     $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
+                    $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
                     $iterator++;
                 }
             }

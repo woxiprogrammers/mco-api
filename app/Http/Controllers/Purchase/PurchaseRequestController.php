@@ -202,8 +202,8 @@ use MaterialRequestTrait;
         $images = array();
         $sha1MaterialRequestId = sha1($materialRequestComponentId);
         $imageUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_IMAGE_UPLOAD').$sha1MaterialRequestId;
-        foreach($materialRequestComponentImages as $index => $images){
-            $images[$iterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$images->name;
+        foreach($materialRequestComponentImages as $index => $image){
+            $images[$iterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image->name;
             $iterator++;
         }
         return $images;

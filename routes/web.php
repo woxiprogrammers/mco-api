@@ -19,6 +19,7 @@ $app->post('/login',array('uses' => 'AuthController@login'));
 $app->post('/dashboard',array('uses' => 'AuthController@dashboard'));
 $app->post('save-image',array('uses' => 'ImageController@saveImages'));
 $app->group(['prefix' => 'inventory'],function () use($app){
+    $app->post('create-transfer', array('uses' => 'Inventory\InventoryManageController@createInventoryTransfer'));
     $app->group(['prefix' => 'material'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));
     });
