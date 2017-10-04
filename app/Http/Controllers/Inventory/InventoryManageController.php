@@ -24,7 +24,7 @@ class InventoryManageController extends BaseController
 use InventoryTrait;
     public function __construct()
     {
-        $this->middleware('jwt.auth',['except' => 'getInventoryTransferTypes']);
+        $this->middleware('jwt.auth');
         if(!Auth::guest()) {
             $this->user = Auth::user();
         }
