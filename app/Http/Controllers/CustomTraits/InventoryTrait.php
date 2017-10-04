@@ -37,7 +37,7 @@ trait InventoryTrait{
             $selectedTransferType = InventoryTransferTypes::where('slug',$request['name'])->where('type',$request['type'])->first();
             $inventoryComponentTransferData['transfer_type_id'] = $selectedTransferType->id;
             InventoryComponentTransfers::create($inventoryComponentTransferData);
-            $message = "Inventory Component moved".strtolower($selectedTransferType->type)."successfully";
+            $message = "Inventory Component moved ".strtolower($selectedTransferType->type)." successfully";
             $status = 200;
         }catch(\Exception $e){
             $message = "Fail";
