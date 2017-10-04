@@ -42,7 +42,8 @@ trait MaterialRequestTrait{
             }else{
                 $materialRequestComponentData['component_status_id'] = $purchaseRequestComponentStatus->where('slug','pending')->first()->id;
             }
-
+            $materialRequestComponentData['created_at'] = Carbon::now();
+            $materialRequestComponentData['updated_at'] = Carbon::now();
             $materialRequestComponent[$iterator] = MaterialRequestComponents::insertGetId($materialRequestComponentData);
             $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponent[$iterator];
             MaterialRequestComponentHistory::create($materialComponentHistoryData);

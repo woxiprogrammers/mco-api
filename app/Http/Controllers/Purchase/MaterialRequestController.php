@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Purchase;
 use App\Asset;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
 use App\Material;
+use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
 use App\MaterialRequests;
@@ -215,10 +216,15 @@ use MaterialRequestTrait;
 
     public function changeStatus(Request $request){
         try{
+            $user = Auth::user();
             $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component_id'])->first();
             $quotationMaterialType = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
+            $materialComponentHistoryData = array();
+            $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
+            $materialComponentHistoryData['component_status_id'] = $adminApproveComponentStatusId;
+            $materialComponentHistoryData['user_id'] = $user['id'];
+            $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponent['component_type_id'];
             if($materialRequestComponent['component_type_id'] == $quotationMaterialType->id){
-                $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
                 $usedQuantity = MaterialRequestComponents::join('material_requests','material_requests.id','=','material_request_components.material_request_id')
                     ->where('material_request_components.id','!=',$materialRequestComponent->id)
                     ->where('material_requests.project_site_id', $request['project_site_id'])
@@ -239,12 +245,14 @@ use MaterialRequestTrait;
                 if((int)$materialRequestComponent['quantity'] < $allowedQuantity){
                     MaterialRequestComponents::where('id',$request['material_request_component_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
                     $message = "Status Updated Successfully";
+                    MaterialRequestComponentHistory::create($materialComponentHistoryData);
                 }else{
                     $message = "Allowed quantity is ".$allowedQuantity;
                 }
             }else{
                 MaterialRequestComponents::where('id',$request['material_request_component_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
                 $message = "Status Updated Successfully";
+                MaterialRequestComponentHistory::create($materialComponentHistoryData);
             }
 
             $status = 200;
@@ -281,7 +289,7 @@ use MaterialRequestTrait;
                     $materialRequestList[$iterator]['component_type_id'] = $materialRequestComponents->component_type_id;
                     $materialRequestList[$iterator]['component_type'] = $materialRequestComponents->materialRequestComponentTypes->name;
                     $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
-                    $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->name;
+                    $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->slug;
                     $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
                     $iterator++;
                 }
