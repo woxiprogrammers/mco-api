@@ -7,15 +7,17 @@
 
 namespace App\Http\Controllers\Purchase;
 
+use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\MaterialRequestComponents;
 use App\PurchaseOrder;
+use App\PurchaseRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class PurchaseOrderController extends BaseController{
-
+use PurchaseTrait;
     public function __construct(){
         $this->middleware('jwt.auth');
         if(!Auth::guest()){
@@ -26,14 +28,16 @@ class PurchaseOrderController extends BaseController{
     public function getPurchaseOrderListing(Request $request){
         try{
             $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->get();
+            $purchaseRequest = PurchaseRequests::where('id',$request['purchase_request_id'])->first();
             $purchaseOrderList = array();
             $iterator = 0;
             if(count($purchaseOrderDetail) > 0){
                 foreach($purchaseOrderDetail as $key => $purchaseOrder){
                     $purchaseOrderList[$iterator]['purchase_order_id'] = $purchaseOrder['id'];
                     $projectSite = $purchaseOrder->purchaseRequest->projectSite;
-                    $purchaseOrderList[$iterator]['purchase_order_format_id'] = $this->getPurchaseOrderIDFormat($projectSite['id'],$purchaseOrder['created_at'],$iterator);
+                    $purchaseOrderList[$iterator]['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSite['id'],$purchaseOrder['created_at'],$purchaseOrder['serial_no']);
                     $purchaseOrderList[$iterator]['purchase_request_id'] = $purchaseOrder['purchase_request_id'];
+                    $purchaseOrderList[$iterator]['purchase_request_format_id'] = $this->getPurchaseIDFormat('purchase-request',$projectSite['id'],$purchaseRequest['created_at'],$purchaseRequest['serial_no']);
                     $project = $projectSite->project;
                     $purchaseOrderList[$iterator]['vendor_id'] = $purchaseOrder['vendor_id'];
                     $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->name;
@@ -68,10 +72,5 @@ class PurchaseOrderController extends BaseController{
             'message' => $message
         ];
         return response()->json($response,$status);
-    }
-
-    public function getPurchaseOrderIDFormat($project_site_id,$created_at,$serial_no){
-        $format = "PO".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
-        return $format;
     }
 }

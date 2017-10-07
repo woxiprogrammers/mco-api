@@ -8,7 +8,7 @@ class PurchaseOrder extends Model
 {
     protected $table = 'purchase_orders';
 
-    protected $fillable = ['user_id','vendor_id','is_approved','purchase_request_id'];
+    protected $fillable = ['user_id','vendor_id','is_approved','purchase_request_id','serial_no'];
 
     public function purchaseRequest(){
         return $this->belongsTo('App\PurchaseRequests' , 'purchase_request_id');

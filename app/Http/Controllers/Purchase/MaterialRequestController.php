@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Purchase;
 use App\Asset;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
+use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\Material;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
@@ -25,6 +26,7 @@ use Mockery\Exception;
 
 class MaterialRequestController extends BaseController{
 use MaterialRequestTrait;
+use PurchaseTrait;
     public function __construct(){
         $this->middleware('jwt.auth',['except' => ['autoSuggest','getPurchaseRequestComponentStatus']]);
         if(!Auth::guest()) {
@@ -284,7 +286,7 @@ use MaterialRequestTrait;
                 foreach($materialRequests as $index => $materialRequest){
                     foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
                         $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
-                        $materialRequestList[$iterator]['material_request_format'] = $this->getMaterialRequestIDFormat($materialRequest['project_site_id'],$materialRequestComponents['created_at'],$iterator+1);
+                        $materialRequestList[$iterator]['material_request_format'] = $this->getPurchaseIDFormat('material-request-component',$materialRequest['project_site_id'],$materialRequestComponents['created_at'],$materialRequestComponents['serial_no']);
                         $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
                         $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
                         $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
@@ -339,10 +341,5 @@ use MaterialRequestTrait;
             "message" => $message,
         ];
         return response()->json($response,$status);
-    }
-
-    public function getMaterialRequestIDFormat($project_site_id,$created_at,$serial_no){
-        $format = "MR".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
-        return $format;
     }
 }
