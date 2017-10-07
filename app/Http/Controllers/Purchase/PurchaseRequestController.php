@@ -193,8 +193,11 @@ use PurchaseTrait;
             $materialRequestComponentIds = PurchaseRequestComponents::where('purchase_request_id',$request['purchase_request_id'])->pluck('material_request_component_id');
             $materialRequestComponentData = MaterialRequestComponents::whereIn('id',$materialRequestComponentIds)->orderBy('id','asc')->get();
             foreach ($materialRequestComponentData as $key => $materialRequestComponent){
-                $material_list[$iterator]['id'] = $materialRequestComponent['id'];
-                $material_list[$iterator]['material_request_component_format_id'] = $this->getPurchaseIDFormat('material-request-component',$materialRequestComponent->materialRequest->project_site_id,$materialRequestComponent['created_at'],$materialRequestComponent['serial_no']);
+                $materialRequest = $materialRequestComponent->materialRequest;
+                $material_list[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
+                $material_list[$iterator]['material_request_component_format_id'] = $this->getPurchaseIDFormat('material-request-component',$materialRequest->project_site_id,$materialRequestComponent['created_at'],$materialRequestComponent['serial_no']);
+                $material_list[$iterator]['material_request_id'] = $materialRequestComponent['material_request_id'];
+                $material_list[$iterator]['material_request_format'] = $this->getPurchaseIDFormat('material-request',$materialRequest->project_site_id,$materialRequest['created_at'],$materialRequest['serial_no']);
                 $material_list[$iterator]['name'] = $materialRequestComponent['name'];
                 $material_list[$iterator]['quantity'] = $materialRequestComponent['quantity'];
                 $material_list[$iterator]['unit_id'] = $materialRequestComponent['unit_id'];

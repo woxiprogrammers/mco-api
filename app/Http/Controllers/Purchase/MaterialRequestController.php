@@ -286,7 +286,9 @@ use PurchaseTrait;
                 foreach($materialRequests as $index => $materialRequest){
                     foreach($materialRequest->materialRequestComponents as $key => $materialRequestComponents){
                         $materialRequestList[$iterator]['material_request_component_id'] = $materialRequestComponents->id;
-                        $materialRequestList[$iterator]['material_request_format'] = $this->getPurchaseIDFormat('material-request-component',$materialRequest['project_site_id'],$materialRequestComponents['created_at'],$materialRequestComponents['serial_no']);
+                        $materialRequestList[$iterator]['material_request_component_format'] = $this->getPurchaseIDFormat('material-request-component',$materialRequest['project_site_id'],$materialRequestComponents['created_at'],$materialRequestComponents['serial_no']);
+                        $materialRequestList[$iterator]['material_request_id'] = $materialRequest->id;
+                        $materialRequestList[$iterator]['material_request_format'] = $this->getPurchaseIDFormat('material-request',$materialRequest['project_site_id'],$materialRequest['created_at'],$materialRequest['serial_no']);
                         $materialRequestList[$iterator]['name'] = $materialRequestComponents->name;
                         $materialRequestList[$iterator]['quantity'] = $materialRequestComponents->quantity;
                         $materialRequestList[$iterator]['unit_id'] = $materialRequestComponents->unit_id;
