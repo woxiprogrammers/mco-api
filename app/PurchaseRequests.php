@@ -17,4 +17,8 @@ class PurchaseRequests extends Model
     public function purchaseRequestComponents(){
         return $this->hasMany('App\PurchaseRequestComponents','purchase_request_id');
     }
+
+    public function projectSite(){
+        return $this->belongsTo('App\ProjectSite','project_site_id');
+    }
 }

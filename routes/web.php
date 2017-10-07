@@ -43,6 +43,9 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseRequestController@purchaseRequestListing'));
         $app->post('detail-listing',array('uses' => 'Purchase\PurchaseRequestController@getDetailListing'));
     });
+    $app->group(['prefix' => 'purchase-order'], function () use ($app){
+        $app->post('listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderListing'));
+    });
 
 });
 $app->post('auto-suggest',array('uses' => 'Purchase\MaterialRequestController@autoSuggest'));
