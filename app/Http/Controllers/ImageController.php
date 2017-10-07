@@ -27,13 +27,32 @@ class ImageController extends BaseController{
         try{
             $user = Auth::user();
             $sha1UserId = sha1($user['id']);
-            if($request['image_for'] == 'material-request'){
+            switch ($request['image_for']){
+                case 'material-request' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
+                    $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+                break;
+
+                case 'request-maintenance' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
+                    $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+                break;
+
+                case 'inventory-transfer' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD');
+                    $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+                break;
+            }
+            /*if($request['image_for'] == 'material-request'){
                 $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
                 $tempImageUploadPath = $tempUploadPath.$sha1UserId;
             }elseif($request['image_for'] == 'request-maintenance'){
                 $tempUploadPath = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD');
                 $tempImageUploadPath = $tempUploadPath.$sha1UserId;
-            }
+            }elseif('inventory-transfer'){
+                $tempUploadPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD');
+                $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+            }*/
             if (!file_exists($tempImageUploadPath)) {
                 File::makeDirectory($tempImageUploadPath, $mode = 0777, true, true);
             }
