@@ -18,12 +18,15 @@ use Illuminate\Support\Facades\Log;
 trait MaterialRequestTrait{
 
     public function createMaterialRequest($data,$user,$is_purchase_request){
+        $currentDate = Carbon::now();
         $purchaseRequestComponentStatus = PurchaseRequestComponentStatuses::get();
+        $materialRequestSerialNoCount = MaterialRequests::whereDate('created_at',$currentDate)->count();
         $quotationId = Quotation::where('project_site_id',$data['project_site_id'])->pluck('id')->first();
         $materialRequest['project_site_id'] = $data['project_site_id'];
         $materialRequest['user_id'] = $user['id'];
         $materialRequest['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
         $materialRequest['assigned_to'] = $data['assigned_to'];
+        $materialRequest['serial_no'] = $materialRequestSerialNoCount + 1;
         $materialRequest = MaterialRequests::create($materialRequest);
         $iterator = 0;
         $materialRequestComponent = array();
@@ -42,6 +45,8 @@ trait MaterialRequestTrait{
             }else{
                 $materialRequestComponentData['component_status_id'] = $purchaseRequestComponentStatus->where('slug','pending')->first()->id;
             }
+            $materialRequestComponentSerialNo = MaterialRequestComponents::whereDate('created_at',$currentDate)->count();
+            $materialRequestComponentData['serial_no'] = $materialRequestComponentSerialNo + 1;
             $materialRequestComponentData['created_at'] = Carbon::now();
             $materialRequestComponentData['updated_at'] = Carbon::now();
             $materialRequestComponent[$iterator] = MaterialRequestComponents::insertGetId($materialRequestComponentData);

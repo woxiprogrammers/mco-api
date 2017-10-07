@@ -7,6 +7,7 @@
 
 namespace App\Http\Controllers\Purchase;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
+use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
 use App\MaterialRequests;
@@ -14,6 +15,7 @@ use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequests;
 use App\Quotation;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +24,7 @@ use Mockery\Exception;
 
 class PurchaseRequestController extends BaseController{
 use MaterialRequestTrait;
+use PurchaseTrait;
 
     public function __construct(){
         $this->middleware('jwt.auth');
@@ -55,6 +58,8 @@ use MaterialRequestTrait;
             $purchaseRequest['user_id'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
             $purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','purchase-requested')->first();
             $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
+            $serialNoCount = PurchaseRequests::whereDate('created_at',Carbon::now())->count();
+            $purchaseRequest['serial_no']  = $serialNoCount + 1;
             $purchaseRequest = PurchaseRequests::create($purchaseRequest);
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
@@ -67,7 +72,7 @@ use MaterialRequestTrait;
                 $materialComponentHistoryData['user_id'] = $user['id'];
                 $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
 
-                foreach($request['material_request_component_ids'] as $materialRequestComponentId){
+                foreach($request['material_request_component_id'] as $materialRequestComponentId){
                     $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentId;
                     MaterialRequestComponentHistory::create($materialComponentHistoryData);
                 }
@@ -133,7 +138,7 @@ use MaterialRequestTrait;
             if(count($purchaseRequests) > 0){
                 foreach($purchaseRequests as $key => $purchaseRequest){
                     $purchaseRequestList[$iterator]['purchase_request_id'] = $purchaseRequest['id'];
-                    $purchaseRequestList[$iterator]['purchase_request_format'] = $this->getPurchaseRequestIDFormat($request['project_site_id'],$purchaseRequest['created_at'],$iterator+1);
+                    $purchaseRequestList[$iterator]['purchase_request_format'] = $this->getPurchaseIDFormat('purchase-request',$request['project_site_id'],$purchaseRequest['created_at'],$purchaseRequest['serial_no']);
                     $purchaseRequestList[$iterator]['date'] = date('l, d F Y',strtotime($purchaseRequest['created_at']));
                     $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
                     $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
@@ -180,19 +185,19 @@ use MaterialRequestTrait;
         return response()->json($response,$status);
     }
 
-    public function getPurchaseRequestIDFormat($project_site_id,$created_at,$serial_no){
-         $format = "PR".$project_site_id.date_format($created_at,'y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
-        return $format;
-    }
-
     public function getDetailListing(Request $request){
         try{
+
             $iterator = 0;
             $material_list = array();
             $materialRequestComponentIds = PurchaseRequestComponents::where('purchase_request_id',$request['purchase_request_id'])->pluck('material_request_component_id');
             $materialRequestComponentData = MaterialRequestComponents::whereIn('id',$materialRequestComponentIds)->orderBy('id','asc')->get();
             foreach ($materialRequestComponentData as $key => $materialRequestComponent){
-                $material_list[$iterator]['id'] = $materialRequestComponent['id'];
+                $materialRequest = $materialRequestComponent->materialRequest;
+                $material_list[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
+                $material_list[$iterator]['material_request_component_format_id'] = $this->getPurchaseIDFormat('material-request-component',$materialRequest->project_site_id,$materialRequestComponent['created_at'],$materialRequestComponent['serial_no']);
+                $material_list[$iterator]['material_request_id'] = $materialRequestComponent['material_request_id'];
+                $material_list[$iterator]['material_request_format'] = $this->getPurchaseIDFormat('material-request',$materialRequest->project_site_id,$materialRequest['created_at'],$materialRequest['serial_no']);
                 $material_list[$iterator]['name'] = $materialRequestComponent['name'];
                 $material_list[$iterator]['quantity'] = $materialRequestComponent['quantity'];
                 $material_list[$iterator]['unit_id'] = $materialRequestComponent['unit_id'];
