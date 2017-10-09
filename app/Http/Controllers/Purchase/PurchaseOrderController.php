@@ -73,4 +73,40 @@ use PurchaseTrait;
         ];
         return response()->json($response,$status);
     }
+
+    public function getPurchaseOrderMaterialListing(Request $request){
+        try{
+            $purchaseOrder = PurchaseOrder::where('id',$request['purchase_order_id'])->first();
+            $iterator = 0;
+            $materialList = array();
+            foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
+            $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
+            $materialList[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
+            $materialList[$iterator]['material_component_name'] = $materialRequestComponent['name'];
+            $materialList[$iterator]['material_component_units'] = array();
+            $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
+            $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
+            $materialList[$iterator]['material_component_images'][0]['image_id'] = 1;
+            $materialList[$iterator]['material_component_images'][0]['image_url'] = '/assets/global/img/logo.jpg';
+            $iterator++;
+           }
+           $data['material_list'] = $materialList;
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Purchase Order Material Listing',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
 }
