@@ -12,4 +12,12 @@ class PurchaseOrderBill extends Model
         'purchase_order_component_id','bill_number','vehicle_number','grn','in_time','out_time','quantity',
         'is_paid','unit_id','is_amendment','bill_amount'
     ];
+
+    public function purchaseOrderComponent(){
+        return $this->belongsTo('App\PurchaseOrderComponent','purchase_order_component_id');
+    }
+
+    public function unit(){
+        return $this->belongsTo('App\Unit','unit_id');
+    }
 }
