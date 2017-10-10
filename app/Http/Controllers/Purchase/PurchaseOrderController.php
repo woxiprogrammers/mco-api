@@ -121,7 +121,6 @@ use PurchaseTrait;
 
     public function createPurchaseOrderBillTransaction(Request $request){
         try{
-            $purchaseOrderBill = array();
             $purchaseOrderBill = $request->except('type','token','images');
             switch($request['type']){
                 case 'upload_bill' :
@@ -139,14 +138,17 @@ use PurchaseTrait;
             $purchaseOrderBill['created_at'] = $currentTimeStamp;
             $purchaseOrderBill['updated_at'] = $currentTimeStamp;
             $purchaseOrderBillId = PurchaseOrderBill::insertGetId($purchaseOrderBill);
+            $purchaseOrderBillData = PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->first();
+            $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder->id;
             if($request->has('images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
+                $sha1PurchaseOrderId = sha1($purchaseOrderId);
                 $sha1PurchaseOrderBillId = sha1($purchaseOrderBillId);
                 foreach($request['images'] as $key1 => $imageName){
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
-                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_IMAGE_UPLOAD').$sha1PurchaseOrderBillId;
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
                         if(!file_exists($imageUploadNewPath)) {
                             File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                         }
@@ -191,13 +193,17 @@ use PurchaseTrait;
                 $purchaseOrderBillListing[$iterator]['purchase_order_id'] = $purchaseOrderComponent->purchase_order_id;
                 $purchaseOrderBillListing[$iterator]['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSiteID,$purchaseOrderComponent['created_at'],$purchaseOrderComponent['serial_no']);
                 $purchaseOrderBillListing[$iterator]['purchase_order_bill_id'] = $purchaseOrderBill['id'];
-                $purchaseOrderBillListing[$iterator]['purchase_bill_grn'] = $purchaseOrderBill['grn'];
                 $purchaseOrderBillListing[$iterator]['date'] = date('l, d F Y',strtotime($purchaseOrderBill['created_at']));
                 $purchaseOrderBillListing[$iterator]['material_name'] = $purchaseRequestComponent->materialRequestComponent->name;
                 $purchaseOrderBillListing[$iterator]['material_quantity'] = $purchaseOrderBill['quantity'];
-                $purchaseOrderBillListing[$iterator]['bill_amount'] = $purchaseOrderBill['bill_amount'];
                 $purchaseOrderBillListing[$iterator]['unit_id'] = $purchaseOrderBill['unit_id'];
                 $purchaseOrderBillListing[$iterator]['unit_name'] = $purchaseOrderBill->unit->name;
+                $purchaseOrderBillListing[$iterator]['bill_number'] = $purchaseOrderBill['bill_number'];
+                $purchaseOrderBillListing[$iterator]['vehicle_number'] = $purchaseOrderBill['vehicle_number'];
+                $purchaseOrderBillListing[$iterator]['purchase_bill_grn'] = $purchaseOrderBill['grn'];
+                $purchaseOrderBillListing[$iterator]['in_time'] = $purchaseOrderBill['in_time'];
+                $purchaseOrderBillListing[$iterator]['out_time'] = $purchaseOrderBill['out_time'];
+                $purchaseOrderBillListing[$iterator]['bill_amount'] = $purchaseOrderBill['bill_amount'];
                 $purchaseOrderBillListing[$iterator]['vendor_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
                 if($purchaseOrderComponent['is_amendment'] == true){
                     $purchaseOrderBillListing[$iterator]['status'] = 'Amendment Pending';
@@ -244,7 +250,7 @@ use PurchaseTrait;
                 foreach($request['images'] as $key1 => $imageName){
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_PAYMENT_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
-                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'BILL_PAYMENT'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillPaymentId;
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-payment'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillPaymentId;
                         Log::info($imageUploadNewPath);
                         if(!file_exists($imageUploadNewPath)) {
                             File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
