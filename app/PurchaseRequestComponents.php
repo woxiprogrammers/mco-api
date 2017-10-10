@@ -11,7 +11,7 @@ class PurchaseRequestComponents extends Model
     protected $fillable = ['purchase_request_id','material_request_component_id'];
 
     public function purchaseRequest(){
-        return $this->belongsTo('App\PurchaseRequest','purchase_request_id');
+        return $this->belongsTo('App\PurchaseRequests','purchase_request_id');
     }
 
     public function materialRequestComponent(){
