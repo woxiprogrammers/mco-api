@@ -27,13 +27,24 @@ class ImageController extends BaseController{
         try{
             $user = Auth::user();
             $sha1UserId = sha1($user['id']);
-            if($request['image_for'] == 'material-request'){
-                $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
-                $tempImageUploadPath = $tempUploadPath.$sha1UserId;
-            }elseif($request['image_for'] == 'request-maintenance'){
-                $tempUploadPath = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD');
-                $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+            switch ($request['image_for']){
+                case 'material-request' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('MATERIAL_REQUEST_TEMP_IMAGE_UPLOAD');
+                    break;
+
+                case 'request-maintenance':
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD');
+                    break;
+
+                case 'bill_transaction' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD');
+                    break;
+
+                default :
+                    $tempUploadPath = '';
             }
+            $tempImageUploadPath = $tempUploadPath.$sha1UserId;
+
             if (!file_exists($tempImageUploadPath)) {
                 File::makeDirectory($tempImageUploadPath, $mode = 0777, true, true);
             }
@@ -45,8 +56,8 @@ class ImageController extends BaseController{
         }catch(\Exception $e){
             $data = [
                 'action' => 'Save Images',
-                'request' => $request->all(),
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
+                'request' => $request->all()
             ];
             $message = "Fail";
             $status = 500;

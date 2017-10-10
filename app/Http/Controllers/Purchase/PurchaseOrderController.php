@@ -10,7 +10,13 @@ namespace App\Http\Controllers\Purchase;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\MaterialRequestComponents;
 use App\PurchaseOrder;
+use App\PurchaseOrderBill;
+use App\PurchaseOrderBillImage;
+use App\PurchaseOrderComponent;
+use App\PurchaseRequestComponents;
 use App\PurchaseRequests;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -62,8 +68,8 @@ use PurchaseTrait;
             $status = 500;
             $data = [
                 'action' => 'Get Purchase Order Listing',
-                'params' => $request->all(),
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
             ];
             Log::critical(json_encode($data));
         }
@@ -81,6 +87,7 @@ use PurchaseTrait;
             $materialList = array();
             foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
             $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
+            $materialList[$iterator]['purchase_order_component_id'] = $purchaseOrderComponent['id'];
             $materialList[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
             $materialList[$iterator]['material_component_name'] = $materialRequestComponent['name'];
             $materialList[$iterator]['material_component_units'] = array();
@@ -98,14 +105,117 @@ use PurchaseTrait;
             $status = 500;
             $data = [
                 'action' => 'Get Purchase Order Material Listing',
-                'params' => $request->all(),
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
             ];
             Log::critical(json_encode($data));
         }
         $response = [
             'data' => $data,
             'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function createPurchaseOrderBillTransaction(Request $request){
+        try{
+            $purchaseOrderBill = array();
+            $purchaseOrderBill = $request->except('type','token','images');
+            switch($request['type']){
+                case 'upload_bill' :
+                    $purchaseOrderBill['is_amendment'] = false;
+                    break;
+
+                case 'create-amendment' :
+                    $purchaseOrderBill['is_amendment'] = true;
+                    break;
+            }
+            $purchaseOrderBill['is_paid'] = false;
+            $currentTimeStamp = Carbon::now();
+            $serialNoCount = PurchaseOrderBill::whereMonth('created_at',date_format($currentTimeStamp,'m'))->whereYear('created_at',date_format($currentTimeStamp,'Y'))->count();
+            $purchaseOrderBill['grn'] = "GRN".date_format($currentTimeStamp,'Y').date_format($currentTimeStamp,'m').($serialNoCount + 1);
+            $purchaseOrderBill['created_at'] = $currentTimeStamp;
+            $purchaseOrderBill['updated_at'] = $currentTimeStamp;
+            $purchaseOrderBillId = PurchaseOrderBill::insertGetId($purchaseOrderBill);
+            if($request->has('images')){
+                $user = Auth::user();
+                $sha1UserId = sha1($user['id']);
+                $sha1PurchaseOrderBillId = sha1($purchaseOrderBillId);
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_IMAGE_UPLOAD').$sha1PurchaseOrderBillId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::move($tempUploadFile,$imageUploadNewPath);
+                        PurchaseOrderBillImage::create(['name' => $imageName , 'purchase_order_bill_id' => $purchaseOrderBillId, 'is_payment_image' => false]);
+                    }
+                }
+            }
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Create Purchase Order Bill Transaction',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getPurchaseOrderBillTransactionListing(Request $request){
+        try{
+            $message = 'Success';
+            $status = 200;
+            $purchaseOrderComponentIDs = PurchaseOrderComponent::where('purchase_order_id',$request['purchase_order_id'])->pluck('id');
+            $purchaseOrderBillData = PurchaseOrderBill::whereIn('purchase_order_component_id',$purchaseOrderComponentIDs)->get();
+            $purchaseOrderBillListing = array();
+            $iterator = 0;
+            foreach($purchaseOrderBillData as $key => $purchaseOrderBill){
+                $purchaseOrderComponent = $purchaseOrderBill->purchaseOrderComponent;
+                $purchaseRequestComponent = $purchaseOrderComponent->purchaseRequestComponent;
+                $projectSiteID = $purchaseRequestComponent->purchaseRequest->project_site_id;
+                $purchaseOrderBillListing[$iterator]['purchase_request_id'] = $purchaseRequestComponent->purchase_request_id;
+                $purchaseOrderBillListing[$iterator]['purchase_request_format_id'] = $this->getPurchaseIDFormat('purchase-request',$projectSiteID,$purchaseRequestComponent['created_at'],$purchaseRequestComponent['serial_no']);
+                $purchaseOrderBillListing[$iterator]['purchase_order_id'] = $purchaseOrderComponent->purchase_order_id;
+                $purchaseOrderBillListing[$iterator]['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSiteID,$purchaseOrderComponent['created_at'],$purchaseOrderComponent['serial_no']);
+                $purchaseOrderBillListing[$iterator]['purchase_bill_grn'] = $purchaseOrderBill['grn'];
+                $purchaseOrderBillListing[$iterator]['date'] = date('l, d F Y',strtotime($purchaseOrderBill['created_at']));
+                $purchaseOrderBillListing[$iterator]['material_name'] = $purchaseRequestComponent->materialRequestComponent->name;
+                $purchaseOrderBillListing[$iterator]['material_quantity'] = $purchaseOrderBill['quantity'];
+                $purchaseOrderBillListing[$iterator]['unit_id'] = $purchaseOrderBill['unit_id'];
+                $purchaseOrderBillListing[$iterator]['unit_name'] = $purchaseOrderBill->unit->name;
+                $purchaseOrderBillListing[$iterator]['vendor_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
+                if($purchaseOrderComponent['is_amendment'] == true){
+                    $purchaseOrderBillListing[$iterator]['status'] = 'Amendment Pending';
+                }else{
+                    $purchaseOrderBillListing[$iterator]['status'] = ($purchaseOrderComponent['is_paid'] == true) ? 'Bill Paid' : 'Bill Pending';
+                }
+                $iterator++;
+            }
+            $data = $purchaseOrderBillListing;
+        }catch (\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Get Purchase Order Bill Transaction listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'bill_listing' => $data
         ];
         return response()->json($response,$status);
     }
