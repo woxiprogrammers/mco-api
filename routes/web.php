@@ -35,6 +35,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('create',array('uses' => 'Purchase\MaterialRequestController@createMaterialRequestData'));
         $app->post('change-status',array('uses' => 'Purchase\MaterialRequestController@changeStatus'));
         $app->post('listing',array('uses' => 'Purchase\MaterialRequestController@materialRequestListing'));
+        $app->post('check-available-quantity',array('uses' => 'Purchase\MaterialRequestController@checkAvailableQuantity'));
 
     });
     $app->group(['prefix' => 'purchase-request'],function () use ($app){
