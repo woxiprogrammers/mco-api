@@ -48,6 +48,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderBillTransaction'));
         $app->post('bill-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderBillTransactionListing'));
+        $app->post('bill-payment',array('uses' => 'Purchase\PurchaseOrderController@createBillPayment'));
     });
 
 });
