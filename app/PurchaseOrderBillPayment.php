@@ -13,4 +13,8 @@ class PurchaseOrderBillPayment extends Model
     public function purchaseOrderBill(){
         return $this->belongsTo('App\PurchaseOrderBill','purchase_order_bill_id');
     }
+
+    public function paymentType(){
+        return $this->belongsTo('App\PaymentType','payment_type_ids');
+    }
 }

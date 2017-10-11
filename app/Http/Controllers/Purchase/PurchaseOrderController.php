@@ -212,7 +212,7 @@ use PurchaseTrait;
                 }
                 $iterator++;
             }
-            $data = $purchaseOrderBillListing;
+            $data['purchase_order_bill_listing'] = $purchaseOrderBillListing;
         }catch (\Exception $e){
             $message = 'Fail';
             $status = 500;
@@ -224,8 +224,8 @@ use PurchaseTrait;
             Log::critical(json_encode($data));
         }
         $response = [
-            'message' => $message,
-            'bill_listing' => $data
+            'data' => $data,
+            'message' => $message
         ];
         return response()->json($response,$status);
     }
