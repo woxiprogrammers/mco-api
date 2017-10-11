@@ -241,16 +241,8 @@ use PurchaseTrait;
                     ->join('product_material_relation','quotation_products.product_version_id','=','product_material_relation.product_version_id')
                     ->whereIn('product_material_relation.material_version_id',$materialVersions)
                     ->sum(DB::raw('quotation_products.quantity * product_material_relation.material_quantity'));
-                if($material_quantity != 0){
-                    $allowedQuantity = $material_quantity - $usedQuantity;
-                    if((int)$materialRequestComponent['quantity'] < $allowedQuantity){
-                        $message = "No limitation on quantity";
-                    }else{
-                        $message = "Allowed quantity is ".$allowedQuantity;
-                    }
-                }else{
-                    $message = "No limitation on quantity";
-                }
+                $allowedQuantity = $material_quantity - $usedQuantity;
+                $message = "Success";
             }
             $status = 200;
         }catch(\Exception $e){
@@ -265,6 +257,7 @@ use PurchaseTrait;
         }
         $response = [
             'message' => $message,
+            'allowed_quantity' => $allowedQuantity
         ];
         return response()->json($response,$status);
     }
