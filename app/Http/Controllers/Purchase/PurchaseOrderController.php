@@ -138,8 +138,8 @@ use PurchaseTrait;
             $purchaseOrderBill['created_at'] = $currentTimeStamp;
             $purchaseOrderBill['updated_at'] = $currentTimeStamp;
             $purchaseOrderBillId = PurchaseOrderBill::insertGetId($purchaseOrderBill);
-            $purchaseOrderBillData = PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->first();
-            $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder->id;
+            $purchaseOrderBillData = PurchaseOrderBill::where('id',$purchaseOrderBillId)->first();
+            $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder['id'];
             if($request->has('images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
@@ -174,6 +174,71 @@ use PurchaseTrait;
             'message' => $message
         ];
         return response()->json($response,$status);
+    }
+
+    public function editPurchaseOrderBillTransaction(Request $request){
+        try{
+            $purchaseOrderBill = $request->except('purchase_order_bill_id','token','images');
+            PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->update($purchaseOrderBill);
+            $purchaseOrderBillData = PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->first();
+            $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder['id'];
+            if($request->has('images')){
+                $imagesAlreadyExist = PurchaseOrderBillImage::where('purchase_order_bill_id',$request['purchase_order_bill_id'])->get();
+                if(count($imagesAlreadyExist) > 0){
+                        $imageDelete = $this->deleteUploadedImages($purchaseOrderId,$request['purchase_order_bill_id']);
+                        if($imageDelete == true){
+                            PurchaseOrderBillImage::where('purchase_order_bill_id',$request['purchase_order_bill_id'])->delete();
+                            $message = "Edited Successfully";
+                        }else{
+                            $message = "Unable to delete images";
+                        }
+                }
+                $user = Auth::user();
+                $sha1UserId = sha1($user['id']);
+                $sha1PurchaseOrderId = sha1($purchaseOrderId);
+                $sha1PurchaseOrderBillId = sha1($request['purchase_order_bill_id']);
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::move($tempUploadFile,$imageUploadNewPath);
+                        PurchaseOrderBillImage::create(['name' => $imageName , 'purchase_order_bill_id' => $request['purchase_order_bill_id'], 'is_payment_image' => false]);
+                    }
+                }
+            }else{
+                $message = "Edited Successfully";
+            }
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Edit Purchase Order Bill Transaction',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function deleteUploadedImages($purchaseOrderId,$purchaseOrderBillId){
+        $sha1PurchaseOrderId = sha1($purchaseOrderId);
+        $sha1PurchaseOrderBillId = sha1($purchaseOrderBillId);
+        $imageUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
+        if(file_exists($imageUploadPath)){
+            File::deleteDirectory($imageUploadPath,true);
+            return true;
+        }else{
+            return false;
+        }
     }
 
     public function getPurchaseOrderBillTransactionListing(Request $request){
