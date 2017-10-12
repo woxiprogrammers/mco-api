@@ -343,6 +343,7 @@ use PurchaseTrait;
             $purchaseOrderBillPayment['payment_id'] = PaymentType::where('slug',$request['payment_slug'])->pluck('id')->first();
             $purchaseOrderBillPayment['amount'] = $request['amount'];
             $purchaseOrderBillPayment['reference_number'] = $request['reference_number'];
+            $purchaseOrderBillPayment['remark'] = $request['remark'];
             $purchaseOrderBillPayment['created_at'] = $purchaseOrderBillPayment['updated_at'] = Carbon::now();
             $purchaseOrderBillPaymentId = PurchaseOrderBillPayment::insertGetId($purchaseOrderBillPayment);
             PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->update(['is_paid' => true, 'is_amendment' => true]);
