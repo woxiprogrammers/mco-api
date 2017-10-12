@@ -37,7 +37,11 @@ class PurchaseController extends BaseController
                 $available_users[$i]['user_name'] = $user->first_name." ".$user->last_name;
                 $i++;
             }
-            $materialRequestAssigned = MaterialRequests::where('assigned_to',$authUser['id'])->get();
+            if($request['component_status_slug'] == 'in-indent'){
+                $materialRequestAssigned = MaterialRequests::get();
+            }else{
+                $materialRequestAssigned = MaterialRequests::where('assigned_to',$authUser['id'])->get();
+            }
             $materialRequestList = array();
             $requestedStatusId = PurchaseRequestComponentStatuses::where('slug',$request['component_status_slug'])->pluck('id')->first();
             $iterator = 0;

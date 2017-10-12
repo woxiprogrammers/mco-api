@@ -35,6 +35,7 @@ use PurchaseTrait;
 
     public function getPurchaseOrderListing(Request $request){
         try{
+            $pageId = $request->page;
             $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->get();
             $purchaseRequest = PurchaseRequests::where('id',$request['purchase_request_id'])->first();
             $purchaseOrderList = array();
@@ -61,7 +62,22 @@ use PurchaseTrait;
                     $iterator++;
                 }
             }
-            $data['purchase_order_list'] = $purchaseOrderList;
+            $displayLength = 10;
+            $start = ((int)$pageId) * $displayLength;
+            $totalSent = ($pageId + 1) * $displayLength;
+            $totalOrderCount = count($purchaseOrderList);
+            $remainingCount = $totalOrderCount - $totalSent;
+            $data['purchase_order_list'] = array();
+            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalOrderCount; $iterator++,$jIterator++){
+                $data['purchase_order_list'][] = $purchaseOrderList[$iterator];
+            }
+            if($remainingCount > 0 ){
+                $page_id = (string)($pageId + 1);
+                $next_url = "/purchase/purchase-order/listing";
+            }else{
+                $next_url = "";
+                $page_id = "";
+            }
             $message = "Success";
             $status = 200;
 
@@ -73,11 +89,15 @@ use PurchaseTrait;
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
+            $next_url = "";
+            $page_id = "";
             Log::critical(json_encode($data));
         }
         $response = [
             'data' => $data,
-            'message' => $message
+            'message' => $message,
+            "next_url" => $next_url,
+            "page_id" => $page_id
         ];
         return response()->json($response,$status);
     }
@@ -243,6 +263,7 @@ use PurchaseTrait;
 
     public function getPurchaseOrderBillTransactionListing(Request $request){
         try{
+            $pageId = $request->page;
             $message = 'Success';
             $status = 200;
             $purchaseOrderComponentIDs = PurchaseOrderComponent::where('purchase_order_id',$request['purchase_order_id'])->pluck('id');
@@ -277,7 +298,22 @@ use PurchaseTrait;
                 }
                 $iterator++;
             }
-            $data['purchase_order_bill_listing'] = $purchaseOrderBillListing;
+            $displayLength = 10;
+            $start = ((int)$pageId) * $displayLength;
+            $totalSent = ($pageId + 1) * $displayLength;
+            $totalBillCount = count($purchaseOrderBillListing);
+            $remainingCount = $totalBillCount - $totalSent;
+            $data['purchase_order_bill_listing'] = array();
+            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalBillCount; $iterator++,$jIterator++){
+                $data['purchase_order_bill_listing'][] = $purchaseOrderBillListing[$iterator];
+            }
+            if($remainingCount > 0 ){
+                $page_id = (string)($pageId + 1);
+                $next_url = "/purchase/purchase-order/bill-listing";
+            }else{
+                $next_url = "";
+                $page_id = "";
+            }
         }catch (\Exception $e){
             $message = 'Fail';
             $status = 500;
@@ -286,11 +322,15 @@ use PurchaseTrait;
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
+            $next_url = "";
+            $page_id = "";
             Log::critical(json_encode($data));
         }
         $response = [
             'data' => $data,
-            'message' => $message
+            'message' => $message,
+            "next_url" => $next_url,
+            "page_id" => $page_id
         ];
         return response()->json($response,$status);
     }
