@@ -305,6 +305,7 @@ use PurchaseTrait;
             $purchaseOrderBillPayment['reference_number'] = $request['reference_number'];
             $purchaseOrderBillPayment['created_at'] = $purchaseOrderBillPayment['updated_at'] = Carbon::now();
             $purchaseOrderBillPaymentId = PurchaseOrderBillPayment::insertGetId($purchaseOrderBillPayment);
+            PurchaseOrderBillPayment::where('id',$request['purchase_order_bill_id'])->update(['is_paid' => true, 'is_amendment' => true]);
             $purchaseOrderBill = PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->first();
             $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder->id;
             if($request->has('images')){
