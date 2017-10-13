@@ -304,7 +304,7 @@ use PurchaseTrait;
                         $jIterator++;
                     }
                 }
-                if($purchaseOrderComponent['is_amendment'] == true){
+                if($purchaseOrderBill['is_amendment'] == true){
                     $purchaseOrderBillListing[$iterator]['status'] = 'Amendment Pending';
                 }else{
                     $purchaseOrderBillListing[$iterator]['status'] = ($purchaseOrderBill['is_paid'] == true) ? 'Bill Paid' : 'Bill Pending';
