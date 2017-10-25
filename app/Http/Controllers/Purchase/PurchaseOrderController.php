@@ -290,11 +290,24 @@ use PurchaseTrait;
                 $purchaseOrderBillListing[$iterator]['in_time'] = $purchaseOrderBill['in_time'];
                 $purchaseOrderBillListing[$iterator]['out_time'] = $purchaseOrderBill['out_time'];
                 $purchaseOrderBillListing[$iterator]['bill_amount'] = $purchaseOrderBill['bill_amount'];
+                $purchaseOrderBillListing[$iterator]['remark'] = $purchaseOrderBill['remark'];
                 $purchaseOrderBillListing[$iterator]['vendor_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
-                if($purchaseOrderComponent['is_amendment'] == true){
+                $purchaseOrderBillImages = PurchaseOrderBillImage::where('purchase_order_bill_id',$purchaseOrderBill['id'])->where('is_payment_image',false)->get();
+                $purchaseOrderBillListing[$iterator]['images'] = array();
+                if(count($purchaseOrderBillImages) > 0){
+                    $jIterator = 0;
+                    $sha1PurchaseOrderId = sha1($purchaseOrderBillListing[$iterator]['purchase_order_id']);
+                    $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
+                    $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
+                    foreach($purchaseOrderBillImages as $index => $images){
+                        $purchaseOrderBillListing[$iterator]['images'][$jIterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$images['name'];
+                        $jIterator++;
+                    }
+                }
+                if($purchaseOrderBill['is_amendment'] == true){
                     $purchaseOrderBillListing[$iterator]['status'] = 'Amendment Pending';
                 }else{
-                    $purchaseOrderBillListing[$iterator]['status'] = ($purchaseOrderComponent['is_paid'] == true) ? 'Bill Paid' : 'Bill Pending';
+                    $purchaseOrderBillListing[$iterator]['status'] = ($purchaseOrderBill['is_paid'] == true) ? 'Bill Paid' : 'Bill Pending';
                 }
                 $iterator++;
             }
@@ -343,9 +356,10 @@ use PurchaseTrait;
             $purchaseOrderBillPayment['payment_id'] = PaymentType::where('slug',$request['payment_slug'])->pluck('id')->first();
             $purchaseOrderBillPayment['amount'] = $request['amount'];
             $purchaseOrderBillPayment['reference_number'] = $request['reference_number'];
+            $purchaseOrderBillPayment['remark'] = $request['remark'];
             $purchaseOrderBillPayment['created_at'] = $purchaseOrderBillPayment['updated_at'] = Carbon::now();
             $purchaseOrderBillPaymentId = PurchaseOrderBillPayment::insertGetId($purchaseOrderBillPayment);
-            PurchaseOrderBillPayment::where('id',$request['purchase_order_bill_id'])->update(['is_paid' => true, 'is_amendment' => true]);
+            PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->update(['is_paid' => true, 'is_amendment' => false]);
             $purchaseOrderBill = PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->first();
             $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder->id;
             if($request->has('images')){

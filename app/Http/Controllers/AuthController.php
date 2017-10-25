@@ -10,7 +10,10 @@ use App\Module;
 use App\ProductVersion;
 use App\Project;
 use App\ProjectSite;
+use App\Role;
+use App\User;
 use App\UserHasPermission;
+use App\UserHasRole;
 use App\UserProjectSiteRelation;
 use Carbon\Carbon;
 use Laravel\Lumen\Routing\Controller as BaseController;
@@ -181,17 +184,25 @@ class AuthController extends BaseController
                 $iterator++;
             }
             $user = $user->toArray();
+            $userRoleRelation = UserHasRole::where('user_id',$user['id'])->first();
+            $userRole = $userRoleRelation->role;
+            $userProjectSiteIds = UserProjectSiteRelation::where('user_id',$user['id'])->pluck('project_site_id');
             unset($user['created_at']);
             unset($user['updated_at']);
             unset($user['role_id']);
             $data = $user;
             $data['modules'] = $moduleResponse;
-            $userProjectSiteIds = UserProjectSiteRelation::where('user_id',$user['id'])->pluck('project_site_id');
-            $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
-                        ->where('projects.is_active',true)
-                        ->whereIn('project_sites.id',$userProjectSiteIds)->select('projects.id')->get();
-            $kIterator = 0;
+            if($userRole['slug'] == 'admin' || $userRole['slug'] == 'superadmin'){
+                $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)->select('projects.id')->get();
+            }else{
+                $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)
+                    ->whereIn('project_sites.id',$userProjectSiteIds)->select('projects.id')->get();
+            }
             $projectSites = ProjectSite::whereIn('project_id',$projectIds)->get();
+            $kIterator = 0;
+
             $projects = array();
             if($projectSites != null){
                 foreach ($projectSites as $key1 => $projectSite) {
