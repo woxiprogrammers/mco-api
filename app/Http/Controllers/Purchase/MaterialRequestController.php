@@ -334,7 +334,10 @@ use PurchaseTrait;
     public function materialRequestListing(Request $request){
         try{
             $user = Auth::user();
-            $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->get();
+            $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->where(function ($query) use ($user){
+                $query->where('user_id',$user['id'])
+                    ->Orwhere('assigned_to',$user['id']);
+            })->get();
             $materialRequestList = array();
             $iterator = 0;
             if(count($materialRequests) > 0){
@@ -353,6 +356,14 @@ use PurchaseTrait;
                         $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
                         $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->slug;
                         $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
+                        if($materialRequest['user_id'] == $user['id'] && $materialRequest['assigned_to'] == $user['id']){
+                            $materialRequestList[$iterator]['have_access'] = 'create-approve-material-request';
+                        }elseif($materialRequest['assigned_to'] == $user['id']){
+                            $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
+                        }else{
+                            $materialRequestList[$iterator]['have_access'] = 'create-material-request';
+                        }
+
                         $iterator++;
                     }
                 }

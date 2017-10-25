@@ -68,13 +68,13 @@ use PurchaseTrait;
             $totalOrderCount = count($purchaseOrderList);
             $remainingCount = $totalOrderCount - $totalSent;
             $data['purchase_order_list'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalOrderCount; $iterator++,$jIterator++) {
+            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalOrderCount; $iterator++,$jIterator++){
                 $data['purchase_order_list'][] = $purchaseOrderList[$iterator];
             }
-            if ($remainingCount > 0) {
+            if($remainingCount > 0 ){
                 $page_id = (string)($pageId + 1);
                 $next_url = "/purchase/purchase-order/listing";
-            } else {
+            }else{
                 $next_url = "";
                 $page_id = "";
             }
@@ -318,7 +318,7 @@ use PurchaseTrait;
             $remainingCount = $totalBillCount - $totalSent;
             $data['purchase_order_bill_listing'] = array();
             for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalBillCount; $iterator++,$jIterator++){
-               $data['purchase_order_bill_listing'][] = $purchaseOrderBillListing[$iterator];
+                $data['purchase_order_bill_listing'][] = $purchaseOrderBillListing[$iterator];
             }
             if($remainingCount > 0 ){
                 $page_id = (string)($pageId + 1);
