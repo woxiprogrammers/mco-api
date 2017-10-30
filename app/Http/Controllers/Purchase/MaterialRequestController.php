@@ -357,7 +357,7 @@ use PurchaseTrait;
                         $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->slug;
                         $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
                         if($materialRequest['user_id'] == $user['id'] && $materialRequest['assigned_to'] == $user['id']){
-                            $materialRequestList[$iterator]['have_access'] = 'create-approve-material-request';
+                            $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
                         }elseif($materialRequest['assigned_to'] == $user['id']){
                             $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
                         }else{
