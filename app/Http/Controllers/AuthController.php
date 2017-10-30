@@ -191,6 +191,7 @@ class AuthController extends BaseController
             unset($user['updated_at']);
             unset($user['role_id']);
             $data = $user;
+            $data['user_role'] = $userRole->name;
             $data['modules'] = $moduleResponse;
             if($userRole['slug'] == 'admin' || $userRole['slug'] == 'superadmin'){
                 $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
