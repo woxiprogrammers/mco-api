@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Peticash;
 
 use App\Employee;
+use App\PaymentType;
 use App\PeticashSalaryTransaction;
+use App\PeticashTransactionType;
+use App\Role;
+use App\UserProjectSiteRelation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Mockery\Exception;
+use Monolog\Handler\SyslogUdp\UdpSocket;
 
 class SalaryController extends BaseController{
     public function __construct(){
@@ -53,11 +58,15 @@ class SalaryController extends BaseController{
     public function createSalary(Request $request){
         try{
             $status = 200;
-            $message = "Success";
-            dd($request->all());
+            $message = "Salary transaction created successfully";
+            $salaryData = $request->except('token');
+            $salaryData['reference_user_id'] = ;
+            $salaryData['peticash_transaction_type_id'] = PeticashTransactionType::where('slug','ilike',$request['type'])->pluck('id')->first();
+            $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
+            PeticashSalaryTransaction::create($salaryData);
         }catch(\Exception $e){
             $status = 500;
-            $message = "Fail";
+            $message = /*"Fail"*/$e->getMessage();
             $data = [
                 'action' => 'Create Salary',
                 'exception' => $e->getMessage(),
@@ -67,7 +76,6 @@ class SalaryController extends BaseController{
         }
         $response = [
             'message' => $message,
-            'data' => 1
         ];
         return response()->json($response,$status);
     }
