@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Peticash;
 
 use App\Employee;
+use App\PeticashSalaryTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -30,7 +31,6 @@ class SalaryController extends BaseController{
                 $data[$iterator]['employee_name'] = $employeeDetail['name'];
                 $data[$iterator]['per_day_wages'] = $employeeDetail['per_day_wages'];
                 $data[$iterator]['employee_profile_picture'] = '/assets/global/img/logo.jpg';
-                $data[$iterator]['employee_balance'] = 1;
                 $iterator++;
             }
         }catch(Exception $e){
@@ -46,6 +46,28 @@ class SalaryController extends BaseController{
         $response = [
             "message" => $message,
             "data" => $data
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function createSalary(Request $request){
+        try{
+            $status = 200;
+            $message = "Success";
+            dd($request->all());
+        }catch(\Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $data = [
+                'action' => 'Create Salary',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => 1
         ];
         return response()->json($response,$status);
     }
