@@ -54,10 +54,15 @@ $app->group(['prefix' => 'purchase'],function () use($app){
     });
 
 });
+
 $app->post('auto-suggest',array('uses' => 'Purchase\MaterialRequestController@autoSuggest'));
 $app->group(['prefix' => 'users'], function () use($app){
     $app->group(['prefix' => 'purchase'], function () use($app){
             $app->post('purchase-request/approval-acl', array('uses' => 'User\PurchaseController@getPurchaseRequestApprovalACl'));
     });
 });
-
+$app->group(['prefix' => 'peticash'], function () use($app){
+    $app->group(['prefix' => 'employee-salary'], function () use($app){
+        $app->post('auto-suggest', array('uses' => 'Peticash\SalaryController@autoSuggest'));
+    });
+});
