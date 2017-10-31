@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Peticash;
 
 use App\Employee;
+use App\PeticashSalaryTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -30,7 +31,9 @@ class SalaryController extends BaseController{
                 $data[$iterator]['employee_name'] = $employeeDetail['name'];
                 $data[$iterator]['per_day_wages'] = $employeeDetail['per_day_wages'];
                 $data[$iterator]['employee_profile_picture'] = '/assets/global/img/logo.jpg';
-                $data[$iterator]['employee_balance'] = 1;
+                $salaryTransactions = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->select('amount')->get();
+                $data[$iterator]['total_amount_paid'] = $salaryTransactions->where('amount','>',0)->sum('amount');
+                $data[$iterator]['extra_amount_paid'] = $salaryTransactions->where('amount','<',0)->sum('amount');
                 $iterator++;
             }
         }catch(Exception $e){
