@@ -5,15 +5,13 @@ namespace App\Http\Controllers\Peticash;
 use App\Employee;
 use App\PaymentType;
 use App\PeticashSalaryTransaction;
+use App\PeticashStatus;
 use App\PeticashTransactionType;
-use App\Role;
-use App\UserProjectSiteRelation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Mockery\Exception;
-use Monolog\Handler\SyslogUdp\UdpSocket;
 
 class SalaryController extends BaseController{
     public function __construct(){
@@ -34,8 +32,11 @@ class SalaryController extends BaseController{
                 $data[$iterator]['employee_id'] = $employeeDetail['id'];
                 $data[$iterator]['format_employee_id'] = $employeeDetail['employee_id'];
                 $data[$iterator]['employee_name'] = $employeeDetail['name'];
-                $data[$iterator]['per_day_wages'] = $employeeDetail['per_day_wages'];
+                $data[$iterator]['per_day_wages'] = (int)$employeeDetail['per_day_wages'];
                 $data[$iterator]['employee_profile_picture'] = '/assets/global/img/logo.jpg';
+                $salaryTransactions = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->select('amount')->get();
+                $data[$iterator]['total_amount_paid'] = $salaryTransactions->where('amount','>',0)->sum('amount');
+                $data[$iterator]['extra_amount_paid'] = $salaryTransactions->where('amount','<',0)->sum('amount');
                 $iterator++;
             }
         }catch(Exception $e){
@@ -57,12 +58,14 @@ class SalaryController extends BaseController{
 
     public function createSalary(Request $request){
         try{
+            $user = Auth::user();
             $status = 200;
             $message = "Salary transaction created successfully";
             $salaryData = $request->except('token');
-            $salaryData['reference_user_id'] = ;
+            $salaryData['reference_user_id'] = $user['id'];
             $salaryData['peticash_transaction_type_id'] = PeticashTransactionType::where('slug','ilike',$request['type'])->pluck('id')->first();
             $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
+            $salaryData['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
             PeticashSalaryTransaction::create($salaryData);
         }catch(\Exception $e){
             $status = 500;
