@@ -104,4 +104,44 @@ class SalaryController extends BaseController{
         ];
         return response()->json($response,$status);
     }
+
+    public function getEmployeeDetails(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $data = array();
+            $employeeData = Employee::where('id',$request['employee_id'])->first();
+            $data['employee_id'] = $employeeData['id'];
+            $data['employee_name'] = $employeeData['name'];
+            $data['format_employee_id'] = $employeeData['employee_id'];
+            $employeeTransactionDetails = PeticashSalaryTransaction::where('employee_id',$request['employee_id'])->get();
+            $iterator = 0;
+            $transactions = array();
+            foreach ($employeeTransactionDetails as $key => $transactionDetail){
+                $transactions[$iterator]['amount'] = $transactionDetail['amount'];
+                $transactions[$iterator]['date'] = $transactionDetail['date'];
+                $transactions[$iterator]['type'] = $transactionDetail->peticashTransactionType->name;
+                $transactions[$iterator]['transaction_status_id'] = $transactionDetail['peticash_status_id'];
+                $transactions[$iterator]['transaction_status_name'] = $transactionDetail->peticashStatus->name;
+                $transactions[$iterator]['project_site_id'] = $transactionDetail['project_site_id'];
+                $transactions[$iterator]['project_site_name'] = $transactionDetail->projectSite->name;
+                $iterator++;
+            }
+            $data['employee_transactions'] = $transactions;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Employee Details',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message,
+            "data" => $data
+        ];
+        return response()->json($response,$status);
+    }
 }
