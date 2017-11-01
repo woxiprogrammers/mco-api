@@ -114,10 +114,11 @@ class SalaryController extends BaseController{
             $data['employee_id'] = $employeeData['id'];
             $data['employee_name'] = $employeeData['name'];
             $data['format_employee_id'] = $employeeData['employee_id'];
-            $employeeTransactionDetails = PeticashSalaryTransaction::where('employee_id',$request['employee_id'])->get();
+            $employeeTransactionDetails = PeticashSalaryTransaction::where('employee_id',$request['employee_id'])->orderBy('created_at','desc')->get();
             $iterator = 0;
             $transactions = array();
             foreach ($employeeTransactionDetails as $key => $transactionDetail){
+                $transactions[$iterator]['peticash_salary_transaction_id'] = $transactionDetail['id'];
                 $transactions[$iterator]['amount'] = $transactionDetail['amount'];
                 $transactions[$iterator]['date'] = $transactionDetail['date'];
                 $transactions[$iterator]['type'] = $transactionDetail->peticashTransactionType->name;
