@@ -68,3 +68,4 @@ $app->group(['prefix' => 'peticash'], function () use($app){
         $app->post('employee-detail', array('uses' => 'Peticash\SalaryController@getEmployeeDetails'));
     });
 });
+$app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));

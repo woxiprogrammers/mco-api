@@ -132,7 +132,7 @@ use PurchaseTrait;
         try{
             $user = Auth::user();
             $pageId = $request->page;
-            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->get();
+            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
             $purchaseRequestList = $data = array();
             $iterator = 0;
             if(count($purchaseRequests) > 0){
@@ -187,7 +187,6 @@ use PurchaseTrait;
 
     public function getDetailListing(Request $request){
         try{
-
             $iterator = 0;
             $material_list = array();
             $materialRequestComponentIds = PurchaseRequestComponents::where('purchase_request_id',$request['purchase_request_id'])->pluck('material_request_component_id');

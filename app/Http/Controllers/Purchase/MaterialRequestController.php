@@ -337,7 +337,7 @@ use PurchaseTrait;
             $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->where(function ($query) use ($user){
                 $query->where('user_id',$user['id'])
                     ->Orwhere('assigned_to',$user['id']);
-            })->get();
+            })->orderBy('created_at','desc')->get();
             $materialRequestList = array();
             $iterator = 0;
             if(count($materialRequests) > 0){
