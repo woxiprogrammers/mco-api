@@ -36,7 +36,7 @@ use PurchaseTrait;
     public function getPurchaseOrderListing(Request $request){
         try{
             $pageId = $request->page;
-            $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->get();
+            $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->orderBy('created_at','desc')->get();
             $purchaseRequest = PurchaseRequests::where('id',$request['purchase_request_id'])->first();
             $purchaseOrderList = array();
             $iterator = 0;
@@ -267,7 +267,7 @@ use PurchaseTrait;
             $message = 'Success';
             $status = 200;
             $purchaseOrderComponentIDs = PurchaseOrderComponent::where('purchase_order_id',$request['purchase_order_id'])->pluck('id');
-            $purchaseOrderBillData = PurchaseOrderBill::whereIn('purchase_order_component_id',$purchaseOrderComponentIDs)->get();
+            $purchaseOrderBillData = PurchaseOrderBill::whereIn('purchase_order_component_id',$purchaseOrderComponentIDs)->orderBy('created_at','desc')->get();
             $purchaseOrderBillListing = array();
             $iterator = 0;
             foreach($purchaseOrderBillData as $key => $purchaseOrderBill){

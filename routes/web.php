@@ -67,3 +67,4 @@ $app->group(['prefix' => 'peticash'], function () use($app){
         $app->post('create', array('uses' => 'Peticash\SalaryController@createSalary'));
     });
 });
+$app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
