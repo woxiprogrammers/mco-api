@@ -163,4 +163,60 @@ class SalaryController extends BaseController{
         ];
         return response()->json($response,$status);
     }
+
+    public function getSalaryListing(Request $request){
+        try{
+            $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+            $dataWiseSalaryTransactionData = $salaryTransactionData->groupBy('date');
+            $listingData = array();
+            $iterator = 0;
+            foreach($dataWiseSalaryTransactionData as $date => $salaryTransactionData){
+                $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                $listingData[$iterator]['transaction_list'] = array();
+                $jIterator = 0;
+                foreach($salaryTransactionData as $transactionData){
+                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_id'] = $transactionData['id'];
+                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
+                    $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData->employee->name;
+                    $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
+                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_amount'] = $transactionData['amount'];
+                    $jIterator++;
+                }
+                $iterator++;
+            }
+            $pageId = $request['page'];
+            $displayLength = 10;
+            $start = ((int)$pageId) * $displayLength;
+            $totalSent = ($pageId + 1) * $displayLength;
+            $totalTransactionCount = count($listingData);
+            $remainingCount = $totalTransactionCount - $totalSent;
+            $data['transaction_list'] = array();
+            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalTransactionCount; $iterator++,$jIterator++){
+                $data['transaction_list'][] = $listingData[$iterator];
+            }
+            if($remainingCount > 0 ){
+                $page_id = (string)($pageId + 1);
+            }else{
+                $page_id = "";
+            }
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $page_id = '';
+            $data = [
+                'action' => 'Get Salary Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data,
+            'page_id' => $page_id
+        ];
+        return response()->json($response,$status);
+    }
 }
