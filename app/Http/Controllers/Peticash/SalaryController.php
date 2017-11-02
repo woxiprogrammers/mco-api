@@ -40,12 +40,15 @@ class SalaryController extends BaseController{
                 $peticashStatus = PeticashStatus::whereIn('slug',['approved','pending'])->select('id','slug')->get();
                 $transactionPendingCount = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','pending')->pluck('id')->first())->count();
                 $data[$iterator]['is_transaction_pending'] = ($transactionPendingCount > 0) ? true : false;
-                $salaryTransactions = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('amount','payable_amount','peticash_transaction_type_id')->get();
+                $salaryTransactions = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('id','amount','payable_amount','peticash_transaction_type_id','created_at')->get();
                 $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
                 $advanceSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount');
                 $actualSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount');
                 $payableSalaryTotal = $salaryTransactions->sum('payable_amount');
                 $data[$iterator]['balance'] = $actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal;
+                $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
+                $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
+                $data[$iterator]['advance_after_last_salary'] = $advanceAfterLastSalary;
                 $iterator++;
             }
         }catch(Exception $e){
