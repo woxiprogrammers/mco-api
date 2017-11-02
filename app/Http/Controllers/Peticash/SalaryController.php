@@ -37,10 +37,18 @@ class SalaryController extends BaseController{
                 $data[$iterator]['employee_name'] = $employeeDetail['name'];
                 $data[$iterator]['per_day_wages'] = (int)$employeeDetail['per_day_wages'];
                 $data[$iterator]['employee_profile_picture'] = '/assets/global/img/logo.jpg';
-                $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
-                $salaryTransactions = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$approvedPeticashStatusId)->select('amount')->get();
-                $data[$iterator]['total_amount_paid'] = $salaryTransactions->where('amount','>',0)->sum('amount');
-                $data[$iterator]['extra_amount_paid'] = $salaryTransactions->where('amount','<',0)->sum('amount');
+                $peticashStatus = PeticashStatus::whereIn('slug',['approved','pending'])->select('id','slug')->get();
+                $transactionPendingCount = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','pending')->pluck('id')->first())->count();
+                $data[$iterator]['is_transaction_pending'] = ($transactionPendingCount > 0) ? true : false;
+                $salaryTransactions = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('id','amount','payable_amount','peticash_transaction_type_id','created_at')->get();
+                $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
+                $advanceSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount');
+                $actualSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount');
+                $payableSalaryTotal = $salaryTransactions->sum('payable_amount');
+                $data[$iterator]['balance'] = $actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal;
+                $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
+                $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
+                $data[$iterator]['advance_after_last_salary'] = $advanceAfterLastSalary;
                 $iterator++;
             }
         }catch(Exception $e){
@@ -115,11 +123,21 @@ class SalaryController extends BaseController{
             $data['employee_name'] = $employeeData['name'];
             $data['format_employee_id'] = $employeeData['employee_id'];
             $employeeTransactionDetails = PeticashSalaryTransaction::where('employee_id',$request['employee_id'])->orderBy('created_at','desc')->get();
+            $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
+            $advancePaymentTypeId = $paymentSlug->where('slug','advance')->pluck('id')->first();
             $iterator = 0;
             $transactions = array();
             foreach ($employeeTransactionDetails as $key => $transactionDetail){
                 $transactions[$iterator]['peticash_salary_transaction_id'] = $transactionDetail['id'];
-                $transactions[$iterator]['amount'] = $transactionDetail['amount'];
+                if($transactionDetail['peticash_transaction_type_id'] == $advancePaymentTypeId){
+                    $transactions[$iterator]['advance_amount'] = (int)$transactionDetail['amount'];
+                    $transactions[$iterator]['salary_amount'] = 0;
+                    $transactions[$iterator]['payable_amount'] = 0;
+                }else{
+                    $transactions[$iterator]['advance_amount'] = 0;
+                    $transactions[$iterator]['salary_amount'] = (int)$transactionDetail['amount'];
+                    $transactions[$iterator]['payable_amount'] = (int)$transactionDetail['payable_amount'];
+                }
                 $transactions[$iterator]['date'] = $transactionDetail['date'];
                 $transactions[$iterator]['type'] = $transactionDetail->peticashTransactionType->name;
                 $transactions[$iterator]['transaction_status_id'] = $transactionDetail['peticash_status_id'];

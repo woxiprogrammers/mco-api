@@ -9,7 +9,7 @@ class PeticashSalaryTransaction extends Model
     protected $table = 'peticash_salary_transactions';
 
     protected $fillable = ['reference_user_id','employee_id','project_site_id',
-        'peticash_transaction_type_id','amount','date','days','peticash_status_id','remark',
+        'peticash_transaction_type_id','amount','date','days','peticash_status_id','remark','payable_amount',
         'admin_remark','payment_type_id'];
 
     public function referenceUser(){
