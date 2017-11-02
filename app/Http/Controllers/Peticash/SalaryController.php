@@ -160,4 +160,28 @@ class SalaryController extends BaseController{
         ];
         return response()->json($response,$status);
     }
+
+    public function getSalaryListing(Request $request){
+        try{
+            //dd($request->all());
+            $salaryData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->get();
+            dd($salaryData);
+            $status = 200;
+            $data = array();
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Salary Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
 }
