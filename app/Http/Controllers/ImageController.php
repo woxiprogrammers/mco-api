@@ -48,6 +48,10 @@ class ImageController extends BaseController{
                     $tempUploadPath = env('WEB_PUBLIC_PATH').env('PETICASH_SALARY_TRANSACTION_TEMP_IMAGE_UPLOAD');
                     break;
 
+                case 'peticash_purchase_transaction' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('PETICASH_PURCHASE_TRANSACTION_TEMP_IMAGE_UPLOAD');
+                    break;
+
                 default :
                     $tempUploadPath = '';
             }

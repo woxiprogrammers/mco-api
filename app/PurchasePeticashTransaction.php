@@ -4,7 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PurcahsePeticashTransaction extends Model
+class PurchasePeticashTransaction extends Model
 {
     protected $table = 'purchase_peticash_transactions';
 
