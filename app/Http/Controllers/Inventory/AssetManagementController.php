@@ -91,14 +91,14 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
                             $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
                             $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
-                            $inventoryListingData[$iterator]['available'] = $availableQuantity;
+                            $inventoryListingData[$iterator]['available'] = (integer)$availableQuantity;
                         }else{
                             $inventoryListingData[$iterator]['assets_units'] = '';
                             $inventoryListingData[$iterator]['total_work_hour'] = '';
                             $inventoryListingData[$iterator]['total_diesel_consume'] = '';
                             $inventoryListingData[$iterator]['litre_per_unit'] = '';
                             $inventoryListingData[$iterator]['electricity_per_unit'] = '';
-                            $inventoryListingData[$iterator]['slug'] = '';
+                            $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = '';
                             $inventoryListingData[$iterator]['in'] = '';
                             $inventoryListingData[$iterator]['out'] = '';
@@ -241,8 +241,13 @@ class AssetManagementController extends BaseController
             $message = "Asset Reading added successfully !!";
             $status = 200;
             $data = $request->except(['token']);
-            $fuelReading = FuelAssetReading::create($data);
-            dd(FuelAssetReading::findOrFail($fuelReading->id));
+            $todayDate = date('Y-m-d');
+            $data['start_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['start_time']);
+            $data['stop_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['stop_time']);
+            if(array_key_exists('top_up_time',$data)){
+                $data['top_up_time'] =  Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['top_up_time']);
+            }
+            FuelAssetReading::create($data);
         }catch(\Exception $e){
             $status = 500;
             $message = "Fail";
