@@ -34,7 +34,6 @@ trait InventoryTrait{
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
                         $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
-                            Log::info($imageUploadNewPath);
                         if(!file_exists($imageUploadNewPath)) {
                             File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                         }
