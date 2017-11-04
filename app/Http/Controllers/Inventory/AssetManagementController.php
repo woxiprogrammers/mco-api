@@ -264,9 +264,64 @@ class AssetManagementController extends BaseController
         return response()->json($response,$status);
     }
 
-    public function fuelReadingListing(Request $request){
+    public function readingListing(Request $request){
         try{
-
+            $status = 200;
+            $message = "Readings Listing successful";
+            $data = array();
+            if($request->has('date')){
+                $readingsData = FuelAssetReading::where('inventory_component_id',$request->inventory_component_id)->whereDate('created_at',$request->date)->select('id','start_reading','stop_reading','start_time','stop_time','top_up_time','top_up','electricity_per_unit','fuel_per_unit')->orderBy('id','desc')->get();
+                foreach($readingsData as $reading){
+                    $reading = $reading->toArray();
+                    $reading['start_time'] = date('H:i',strtotime($reading['start_time']));
+                    $reading['stop_time'] = date('H:i',strtotime($reading['stop_time']));
+                    if($reading['top_up_time'] != null){
+                        $reading['top_up_time'] = date('H:i',strtotime($reading['top_up_time']));
+                    }
+                    $data[] = $reading;
+                }
+            }elseif($request->has('year') && $request->has('month')){
+                $readingsData = FuelAssetReading::where('inventory_component_id',$request->inventory_component_id)->whereYear('created_at',$request->year)->whereMonth('created_at',$request->month)->orderBy('id','desc')->select('id','created_at')->get();
+                foreach($readingsData as $reading){
+                    $readingDate = date('Y-m-d',strtotime($reading->created_at));
+                    if(!array_key_exists($readingDate,$data)){
+                        $data[$readingDate] = [
+                            'date' => $readingDate,
+                            'total_working_hours' => 0,
+                            'fuel_used' => -1,
+                            'electricity_used' => -1,
+                            'units_used' => 0,
+                            'total_top_up' => -1
+                        ];
+                        $dayWiseReadingsData = FuelAssetReading::where('inventory_component_id',$request->inventory_component_id)->whereDate('created_at',$readingDate)->select('id','start_reading','stop_reading','start_time','stop_time','top_up_time','top_up','electricity_per_unit','fuel_per_unit')->orderBy('id','desc')->get();
+                        foreach($dayWiseReadingsData as $dayWisereading){
+                            $startTime = Carbon::parse($dayWisereading->start_time);
+                            $stopTime = Carbon::parse($dayWisereading->stop_time);
+                            $unitsWorked = (float)$dayWisereading['stop_reading'] - $dayWisereading['start_reading'];
+                            $data[$readingDate]['total_working_hours'] += (float)$stopTime->diffInHours($startTime);
+                            $data[$readingDate]['units_used'] += (float)$unitsWorked;
+                            if($reading['electricity_per_unit'] != null){
+                                if($data[$readingDate]['electricity_used'] == -1){
+                                    $data[$readingDate]['electricity_used'] = 0;
+                                }
+                                $data[$readingDate]['electricity_used'] += (float)$dayWisereading['electricity_per_unit'] * $unitsWorked;
+                            }
+                            if($reading['fuel_per_unit'] != null){
+                                if($data[$readingDate]['fuel_used'] == -1){
+                                    $data[$readingDate]['fuel_used'] = 0;
+                                }
+                                $data[$readingDate]['fuel_used'] += (float)$dayWisereading['fuel_per_unit'] * $unitsWorked;
+                            }
+                            if($reading['top_up'] != null){
+                                if($data[$readingDate]['total_top_up'] == -1){
+                                    $data[$readingDate]['total_top_up'] = 0;
+                                }
+                                $data[$readingDate]['total_top_up'] += (float)$dayWisereading['top_up'];
+                            }
+                        }
+                    }
+                }
+            }
         }catch(\Exception $e){
             $status = 500;
             $message = "Fail";
@@ -278,7 +333,9 @@ class AssetManagementController extends BaseController
             Log::critical(json_encode($data));
         }
         $response = [
-            "message" => $message
+            "message" => $message,
+            "inventory_component_id" => (integer)$request->inventory_component_id,
+            "data" => array_values($data)
         ];
         return response()->json($response,$status);
     }

@@ -29,7 +29,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
         $app->post('request-maintenance', array('uses' => 'Inventory\AssetManagementController@createRequestMaintenance'));
         $app->group(['prefix' => 'readings'],function() use($app){
             $app->post('add',array('uses' => 'Inventory\AssetManagementController@addReadings'));
-            $app->post('add',array('uses' => 'Inventory\AssetManagementController@addReadings'));
+            $app->post('listing',array('uses' => 'Inventory\AssetManagementController@readingListing'));
         });
     });
 });
