@@ -296,6 +296,12 @@ class SalaryController extends BaseController{
             $data['peticash_transaction_type'] = $salaryTransactionData->peticashTransactionType->name;
             $data['peticash_status_name'] = $salaryTransactionData->peticashStatus->name;
             $data['payment_type'] = $salaryTransactionData->paymentType->name;
+            $transactionImages = PeticashSalaryTransactionImages::where('peticash_salary_transaction_id',$request['peticash_transaction_id'])->get();
+            if(count($transactionImages) > 0){
+                $data['list_of_images'] = $this->getUploadedImages($transactionImages,$request['peticash_transaction_id']);
+            }else{
+                $data['list_of_images'][0]['image_url'] = null;
+            }
             $message = "Success";
             $status = 200;
         }catch(\Exception $e){
@@ -313,5 +319,17 @@ class SalaryController extends BaseController{
             'data' => $data
         ];
         return response()->json($response,$status);
+    }
+
+    public function getUploadedImages($transactionImages,$transactionId){
+        $iterator = 0;
+        $images = array();
+        $sha1SalaryTransactionId = sha1($transactionId);
+        $imageUploadPath = env('PETICASH_SALARY_TRANSACTION_IMAGE_UPLOAD').$sha1SalaryTransactionId;
+        foreach($transactionImages as $index => $image){
+            $images[$iterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image->name;
+            $iterator++;
+        }
+        return $images;
     }
 }
