@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Peticash;
 use App\Asset;
+use App\GRNCount;
 use App\Material;
 use App\MaterialRequestComponentTypes;
 use App\PaymentType;
@@ -44,12 +45,24 @@ class PurchaseController extends BaseController{
                     break;
             }
             $purchaseTransaction['reference_id'] = $user['id'];
-            $purchaseTransaction['grn'] = 1;
+            $currentDate = Carbon::now();
+            $monthlyGrnGeneratedCount = GRNCount::where('month',$currentDate->month)->where('year',$currentDate->year)->pluck('count')->first();
+            if($monthlyGrnGeneratedCount != null){
+                $serialNumber = $monthlyGrnGeneratedCount + 1;
+            }else{
+                $serialNumber = 1;
+            }
+            $purchaseTransaction['grn'] = "GRN".date('Ym').($serialNumber);
             $purchaseTransaction['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $purchaseTransaction['peticash_transaction_type_id']= PeticashTransactionType::where('slug',$request['source_slug'])->where('type','PURCHASE')->pluck('id')->first();
             $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
             $purchaseTransaction['created_at'] = $purchaseTransaction['updated_at'] = Carbon::now();
             $purchaseTransactionId = PurchasePeticashTransaction::insertGetId($purchaseTransaction);
+            if($monthlyGrnGeneratedCount != null) {
+                GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
+            }else{
+                GRNCount::create(['month'=> $currentDate->month, 'year'=> $currentDate->year,'count' => $serialNumber]);
+            }
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
@@ -85,6 +98,7 @@ class PurchaseController extends BaseController{
         }
         $response = [
             'message' => $message,
+            'data' => $data
         ];
         return response()->json($response,$status);
     }
@@ -95,6 +109,7 @@ class PurchaseController extends BaseController{
             $data['peticash_transaction_id'] = $purchaseTransactionData->id;
             $data['name'] = $purchaseTransactionData->name;
             $data['project_site_name'] = $purchaseTransactionData->projectSite->name;
+
             $data['grn'] = $purchaseTransactionData->grn;
             $data['date'] = date('l, d F Y',strtotime($purchaseTransactionData->date));
             $data['source_name'] = $purchaseTransactionData->source_name;

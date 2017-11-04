@@ -7,6 +7,7 @@
 
 namespace App\Http\Controllers\Purchase;
 
+use App\GRNCount;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\MaterialRequestComponents;
 use App\PaymentType;
@@ -153,11 +154,22 @@ use PurchaseTrait;
             }
             $purchaseOrderBill['is_paid'] = false;
             $currentTimeStamp = Carbon::now();
-            $serialNoCount = PurchaseOrderBill::whereMonth('created_at',date_format($currentTimeStamp,'m'))->whereYear('created_at',date_format($currentTimeStamp,'Y'))->count();
-            $purchaseOrderBill['grn'] = "GRN".date_format($currentTimeStamp,'Y').date_format($currentTimeStamp,'m').($serialNoCount + 1);
+            $currentDate = Carbon::now();
+            $monthlyGrnGeneratedCount = GRNCount::where('month',$currentDate->month)->where('year',$currentDate->year)->pluck('count')->first();
+            if($monthlyGrnGeneratedCount != null){
+                $serialNumber = $monthlyGrnGeneratedCount + 1;
+            }else{
+                $serialNumber = 1;
+            }
+            $purchaseOrderBill['grn'] = "GRN".date('Ym').($serialNumber);
             $purchaseOrderBill['created_at'] = $currentTimeStamp;
             $purchaseOrderBill['updated_at'] = $currentTimeStamp;
             $purchaseOrderBillId = PurchaseOrderBill::insertGetId($purchaseOrderBill);
+            if($monthlyGrnGeneratedCount != null) {
+                GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
+            }else{
+                GRNCount::create(['month'=> $currentDate->month, 'year'=> $currentDate->year,'count' => $serialNumber]);
+            }
             $purchaseOrderBillData = PurchaseOrderBill::where('id',$purchaseOrderBillId)->first();
             $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder['id'];
             if($request->has('images')){
