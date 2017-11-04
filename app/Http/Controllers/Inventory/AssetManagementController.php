@@ -41,7 +41,7 @@ class AssetManagementController extends BaseController
                 $outQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
                 $inQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
                 $availableQuantity = $inQuantity - $outQuantity;
-                if($availableQuantity > 0){
+                if($availableQuantity > 0 || true){
                     $inventoryListingData[$iterator]['assets_name'] = $inventoryComponent['name'];
                     $inventoryListingData[$iterator]['inventory_component_id'] = $inventoryComponent['id'];
                     if($inventoryComponent['reference_id'] == null || $inventoryComponent['reference_id'] == ''){
@@ -248,6 +248,25 @@ class AssetManagementController extends BaseController
                 $data['top_up_time'] =  Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['top_up_time']);
             }
             FuelAssetReading::create($data);
+        }catch(\Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $data = [
+                'action' => 'Add asset Readings',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function fuelReadingListing(Request $request){
+        try{
+
         }catch(\Exception $e){
             $status = 500;
             $message = "Fail";
