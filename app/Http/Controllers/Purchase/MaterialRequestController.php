@@ -147,6 +147,7 @@ use PurchaseTrait;
                         $assetList[$iterator]['asset_unit_id'] = $assetUnit['id'];
                         $assetList[$iterator]['material_request_component_type_slug'] = $systemAssetStatus->slug;
                         $assetList[$iterator]['material_request_component_type_id'] = $systemAssetStatus->id;
+                        $assetList[$iterator]['asset_type_slug'] = $asset->assetTypes->slug;
                         $iterator++;
                     }
                     if(count($assetList) == 0){
@@ -157,6 +158,7 @@ use PurchaseTrait;
                         $newAssetSlug = MaterialRequestComponentTypes::where('slug','new-asset')->first();
                         $assetList[$iterator]['material_request_component_type_slug'] = $newAssetSlug->slug;
                         $assetList[$iterator]['material_request_component_type_id'] = $newAssetSlug->id;
+                        $assetList[$iterator]['asset_type_slug'] = null;
                     }
                     $data['asset_list'] = $assetList;
                 break;
