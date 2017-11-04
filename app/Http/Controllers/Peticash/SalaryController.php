@@ -8,6 +8,7 @@ use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
+use App\PurcahsePeticashTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -166,24 +167,83 @@ class SalaryController extends BaseController{
 
     public function getSalaryListing(Request $request){
         try{
-            $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
-            $dataWiseSalaryTransactionData = $salaryTransactionData->groupBy('date');
             $listingData = array();
-            $iterator = 0;
-            foreach($dataWiseSalaryTransactionData as $date => $salaryTransactionData){
-                $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
-                $listingData[$iterator]['transaction_list'] = array();
-                $jIterator = 0;
-                foreach($salaryTransactionData as $transactionData){
-                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_id'] = $transactionData['id'];
-                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
-                    $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData->employee->name;
-                    $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_amount'] = $transactionData['amount'];
-                    $jIterator++;
-                }
-                $iterator++;
+            switch ($request['type']){
+                case 'both' :
+                    $purchaseTrasactionData = PurcahsePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $transactionsData = $purchaseTrasactionData->merge($salaryTransactionData);
+                    $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy('date');
+                    $iterator = 0;
+                    $purchaseTransactionTypeIds = PeticashTransactionType::where('type','PURCHASE')->pluck('id')->toArray();
+                    foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
+                        $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                        $listingData[$iterator]['transaction_list'] = array();
+                        $jIterator = 0;
+                        foreach($dateWiseTransactionData as $transactionData){
+                            if(in_array($transactionData->peticash_transaction_type_id,$purchaseTransactionTypeIds)){
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['id'];
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['bill_amount'];
+                            }else{
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['id'];
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->employee->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
+                            }
+
+                            $jIterator++;
+                        }
+                        $iterator++;
+                    }
+                    break;
+
+                case 'salary' :
+                    $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $dataWiseSalaryTransactionData = $salaryTransactionData->groupBy('date');
+                    $iterator = 0;
+                    foreach($dataWiseSalaryTransactionData as $date => $salaryTransactionData){
+                        $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                        $listingData[$iterator]['transaction_list'] = array();
+                        $jIterator = 0;
+                        foreach($salaryTransactionData as $transactionData){
+                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_id'] = $transactionData['id'];
+                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
+                            $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData->employee->name;
+                            $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
+                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_amount'] = $transactionData['amount'];
+                            $jIterator++;
+                        }
+                        $iterator++;
+                    }
+                    break;
+
+                case 'purchase' :
+                    $purchaseTrasactionData = PurcahsePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $dataWiseTransactionsData = $purchaseTrasactionData->groupBy('date');
+                    $iterator = 0;
+                    foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
+                        $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                        $listingData[$iterator]['transaction_list'] = array();
+                        $jIterator = 0;
+                        foreach($dateWiseTransactionData as $transactionData){
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['id'];
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['bill_amount'];
+                            $jIterator++;
+                        }
+                        $iterator++;
+                    }
+                    break;
             }
+
+
+
             $pageId = $request['page'];
             $displayLength = 10;
             $start = ((int)$pageId) * $displayLength;
@@ -218,5 +278,58 @@ class SalaryController extends BaseController{
             'page_id' => $page_id
         ];
         return response()->json($response,$status);
+    }
+
+    public function getTransactionDetails(Request $request){
+        try{
+            $salaryTransactionData = PeticashSalaryTransaction::where('id',$request['peticash_transaction_id'])->first();
+            $data['peticash_transaction_id'] = $salaryTransactionData->id;
+            $data['employee_name'] = $salaryTransactionData->employee->name;
+            $data['project_site_name'] = $salaryTransactionData->projectSite->name;
+            $data['amount'] = $salaryTransactionData->amount;
+            $data['payable_amount'] = $salaryTransactionData->payable_amount;
+            $data['reference_user_name'] = $salaryTransactionData->referenceUser->first_name.' '.$salaryTransactionData->referenceUser->last_name;
+            $data['date'] = date('l, d F Y',strtotime($salaryTransactionData->date));
+            $data['days'] = $salaryTransactionData->days;
+            $data['remark'] = $salaryTransactionData->remark;
+            $data['admin_remark'] = ($salaryTransactionData->admin_remark == null) ? '' : $salaryTransactionData->admin_remark;
+            $data['peticash_transaction_type'] = $salaryTransactionData->peticashTransactionType->name;
+            $data['peticash_status_name'] = $salaryTransactionData->peticashStatus->name;
+            $data['payment_type'] = $salaryTransactionData->paymentType->name;
+            $transactionImages = PeticashSalaryTransactionImages::where('peticash_salary_transaction_id',$request['peticash_transaction_id'])->get();
+            if(count($transactionImages) > 0){
+                $data['list_of_images'] = $this->getUploadedImages($transactionImages,$request['peticash_transaction_id']);
+            }else{
+                $data['list_of_images'][0]['image_url'] = null;
+            }
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = $e->getMessage();
+            $status = 500;
+            $data = [
+                'action' => 'Get Transaction Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::crtical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getUploadedImages($transactionImages,$transactionId){
+        $iterator = 0;
+        $images = array();
+        $sha1SalaryTransactionId = sha1($transactionId);
+        $imageUploadPath = env('PETICASH_SALARY_TRANSACTION_IMAGE_UPLOAD').$sha1SalaryTransactionId;
+        foreach($transactionImages as $index => $image){
+            $images[$iterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image->name;
+            $iterator++;
+        }
+        return $images;
     }
 }

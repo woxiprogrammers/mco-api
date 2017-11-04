@@ -27,6 +27,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\AssetManagementController@getAssetListing'));
         $app->post('summary-listing', array('uses' => 'Inventory\AssetManagementController@getSummaryAssetListing'));
         $app->post('request-maintenance', array('uses' => 'Inventory\AssetManagementController@createRequestMaintenance'));
+        $app->post('add-readings',array('uses' => 'Inventory\AssetManagementController@addReadings'));
     });
 });
 $app->group(['prefix' => 'purchase'],function () use($app){
@@ -62,11 +63,12 @@ $app->group(['prefix' => 'users'], function () use($app){
     });
 });
 $app->group(['prefix' => 'peticash'], function () use($app){
+    $app->post('transaction/listing', array('uses' => 'Peticash\SalaryController@getSalaryListing'));
     $app->group(['prefix' => 'employee-salary'], function () use($app){
         $app->post('auto-suggest', array('uses' => 'Peticash\SalaryController@autoSuggest'));
         $app->post('create', array('uses' => 'Peticash\SalaryController@createSalary'));
         $app->post('employee-detail', array('uses' => 'Peticash\SalaryController@getEmployeeDetails'));
-        $app->post('listing', array('uses' => 'Peticash\SalaryController@getSalaryListing'));
+        $app->post('transaction-detail', array('uses' => 'Peticash\SalaryController@getTransactionDetails'));
     });
     $app->group(['prefix' => 'purchase'], function () use($app){
         $app->post('create', array('uses' => 'Peticash\PurchaseController@createPurchase'));
