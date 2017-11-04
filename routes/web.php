@@ -67,6 +67,7 @@ $app->group(['prefix' => 'peticash'], function () use($app){
         $app->post('auto-suggest', array('uses' => 'Peticash\SalaryController@autoSuggest'));
         $app->post('create', array('uses' => 'Peticash\SalaryController@createSalary'));
         $app->post('employee-detail', array('uses' => 'Peticash\SalaryController@getEmployeeDetails'));
+        $app->post('transaction-detail', array('uses' => 'Peticash\SalaryController@getTransactionDetails'));
     });
 });
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));

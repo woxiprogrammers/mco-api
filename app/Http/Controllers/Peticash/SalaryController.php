@@ -279,4 +279,39 @@ class SalaryController extends BaseController{
         ];
         return response()->json($response,$status);
     }
+
+    public function getTransactionDetails(Request $request){
+        try{
+            $salaryTransactionData = PeticashSalaryTransaction::where('id',$request['peticash_transaction_id'])->first();
+            $data['peticash_transaction_id'] = $salaryTransactionData->id;
+            $data['employee_name'] = $salaryTransactionData->employee->name;
+            $data['project_site_name'] = $salaryTransactionData->projectSite->name;
+            $data['amount'] = $salaryTransactionData->amount;
+            $data['payable_amount'] = $salaryTransactionData->payable_amount;
+            $data['reference_user_name'] = $salaryTransactionData->referenceUser->first_name.' '.$salaryTransactionData->referenceUser->last_name;
+            $data['date'] = date('l, d F Y',strtotime($salaryTransactionData->date));
+            $data['days'] = $salaryTransactionData->days;
+            $data['remark'] = $salaryTransactionData->remark;
+            $data['admin_remark'] = ($salaryTransactionData->admin_remark == null) ? '' : $salaryTransactionData->admin_remark;
+            $data['peticash_transaction_type'] = $salaryTransactionData->peticashTransactionType->name;
+            $data['peticash_status_name'] = $salaryTransactionData->peticashStatus->name;
+            $data['payment_type'] = $salaryTransactionData->paymentType->name;
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = $e->getMessage();
+            $status = 500;
+            $data = [
+                'action' => 'Get Transaction Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::crtical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
 }
