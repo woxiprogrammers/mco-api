@@ -89,9 +89,9 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['electricity_per_unit'] = (float)$inventoryComponent->asset->electricity_per_unit;
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
-                            $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
-                            $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
-                            $inventoryListingData[$iterator]['available'] = (integer)$availableQuantity;
+                            $inventoryListingData[$iterator]['in'] = '';
+                            $inventoryListingData[$iterator]['out'] = '';
+                            $inventoryListingData[$iterator]['available'] = '';
                         }else{
                             $inventoryListingData[$iterator]['assets_units'] = '';
                             $inventoryListingData[$iterator]['total_work_hour'] = '';
@@ -100,9 +100,9 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['electricity_per_unit'] = '';
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = '';
-                            $inventoryListingData[$iterator]['in'] = '';
-                            $inventoryListingData[$iterator]['out'] = '';
-                            $inventoryListingData[$iterator]['available'] = '';
+                            $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
+                            $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
+                            $inventoryListingData[$iterator]['available'] = (integer)$availableQuantity;
                         }
                     }
                     $iterator++;
