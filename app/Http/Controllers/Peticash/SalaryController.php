@@ -9,6 +9,7 @@ use App\PeticashSalaryTransactionImages;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
 use App\PurcahsePeticashTransaction;
+use App\PurchasePeticashTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -170,7 +171,7 @@ class SalaryController extends BaseController{
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
-                    $purchaseTrasactionData = PurcahsePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $purchaseTrasactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
                     $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
                     $transactionsData = $purchaseTrasactionData->merge($salaryTransactionData);
                     $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy('date');

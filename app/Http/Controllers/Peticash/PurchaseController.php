@@ -88,4 +88,64 @@ class PurchaseController extends BaseController{
         ];
         return response()->json($response,$status);
     }
+
+    public function getTransactionDetails(Request $request){
+        try{
+            $purchaseTransactionData = PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->first();
+            $data['peticash_transaction_id'] = $purchaseTransactionData->id;
+            $data['name'] = $purchaseTransactionData->name;
+            $data['project_site_name'] = $purchaseTransactionData->projectSite->name;
+            $data['grn'] = $purchaseTransactionData->grn;
+            $data['date'] = date('l, d F Y',strtotime($purchaseTransactionData->date));
+            $data['source_name'] = $purchaseTransactionData->source_name;
+            $data['peticash_transaction_type'] = $purchaseTransactionData->peticashTransactionType->name;
+            $data['component_type'] = $purchaseTransactionData->componentType->name;
+            $data['quantity'] = $purchaseTransactionData->quantity;
+            $data['unit_name'] = $purchaseTransactionData->unit->name;
+            $data['bill_number'] = ($purchaseTransactionData->bill_number != null) ? $purchaseTransactionData->bill_number : '';
+            $data['bill_amount'] = ($purchaseTransactionData->bill_amount != null) ? $purchaseTransactionData->bill_amount : '';
+            $data['vehicle_number'] = ($purchaseTransactionData->vehicle_number != null) ? $purchaseTransactionData->vehicle_number : '';
+            $data['in_time'] = ($purchaseTransactionData->in_time != null) ? $purchaseTransactionData->in_time : '';
+            $data['out_time'] = ($purchaseTransactionData->out_time) ? $purchaseTransactionData->out_time : '';
+            $data['reference_number'] = ($purchaseTransactionData->reference_number != null) ? $purchaseTransactionData->reference_number : '';
+            $data['payment_type'] = $purchaseTransactionData->paymentType->name;
+            $data['peticash_status_name'] = $purchaseTransactionData->peticashStatus->name;
+            $data['remark'] = ($purchaseTransactionData->remark != null) ? $purchaseTransactionData->remark : '' ;
+            $data['admin_remark'] = ($purchaseTransactionData->admin_remark == null) ? '' : $purchaseTransactionData->admin_remark;
+            $transactionImages = PurchasePeticashTransactionImage::where('purchase_peticash_transaction_id',$purchaseTransactionData->id)->get();
+            if(count($transactionImages) > 0){
+                $data['list_of_images'] = $this->getUploadedImages($transactionImages,$purchaseTransactionData->id);
+            }else{
+                $data['list_of_images'][0]['image_url'] = null;
+            }
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = $e->getMessage();
+            $status = 500;
+            $data = [
+                'action' => 'Get Transaction Detail',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::crtical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getUploadedImages($transactionImages,$transactionId){
+        $iterator = 0;
+        $images = array();
+        $sha1PurchaseTransactionId = sha1($transactionId);
+        $imageUploadPath = env('PETICASH_PURCHASE_TRANSACTION_IMAGE_UPLOAD').$sha1PurchaseTransactionId;
+        foreach($transactionImages as $index => $image){
+            $images[$iterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image->name;
+            $iterator++;
+        }
+        return $images;
+    }
 }
