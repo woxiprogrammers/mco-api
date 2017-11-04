@@ -46,16 +46,16 @@ class AssetManagementController extends BaseController
                     $inventoryListingData[$iterator]['inventory_component_id'] = $inventoryComponent['id'];
                     if($inventoryComponent['reference_id'] == null || $inventoryComponent['reference_id'] == ''){
                         $inventoryListingData[$iterator]['model_number'] = '';
-                        $inventoryListingData[$iterator]['assets_units'] = '';
-                        $inventoryListingData[$iterator]['total_work_hour'] = '';
-                        $inventoryListingData[$iterator]['total_diesel_consume'] = '';
-                        $inventoryListingData[$iterator]['litre_per_unit'] = '';
-                        $inventoryListingData[$iterator]['electricity_per_unit'] = '';
+                        $inventoryListingData[$iterator]['assets_units'] = -1;
+                        $inventoryListingData[$iterator]['total_work_hour'] = -1;
+                        $inventoryListingData[$iterator]['total_diesel_consume'] = -1;
+                        $inventoryListingData[$iterator]['litre_per_unit'] = -1;
+                        $inventoryListingData[$iterator]['electricity_per_unit'] = -1;
                         $inventoryListingData[$iterator]['slug'] = '';
-                        $inventoryListingData[$iterator]['total_electricity_consumed'] = '';
-                        $inventoryListingData[$iterator]['in'] = '';
-                        $inventoryListingData[$iterator]['out'] = '';
-                        $inventoryListingData[$iterator]['available'] = '';
+                        $inventoryListingData[$iterator]['total_electricity_consumed'] = -1;
+                        $inventoryListingData[$iterator]['in'] = -1;
+                        $inventoryListingData[$iterator]['out'] = -1;
+                        $inventoryListingData[$iterator]['available'] = -1;
                     }else{
                         $inventoryListingData[$iterator]['model_number'] = $inventoryComponent->asset->model_number;
                         if($inventoryComponent->asset->assetTypes->slug != 'other'){
@@ -89,17 +89,17 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['electricity_per_unit'] = (float)$inventoryComponent->asset->electricity_per_unit;
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
-                            $inventoryListingData[$iterator]['in'] = '';
-                            $inventoryListingData[$iterator]['out'] = '';
-                            $inventoryListingData[$iterator]['available'] = '';
+                            $inventoryListingData[$iterator]['in'] = -1;
+                            $inventoryListingData[$iterator]['out'] = -1;
+                            $inventoryListingData[$iterator]['available'] = -1;
                         }else{
-                            $inventoryListingData[$iterator]['assets_units'] = '';
-                            $inventoryListingData[$iterator]['total_work_hour'] = '';
-                            $inventoryListingData[$iterator]['total_diesel_consume'] = '';
-                            $inventoryListingData[$iterator]['litre_per_unit'] = '';
-                            $inventoryListingData[$iterator]['electricity_per_unit'] = '';
+                            $inventoryListingData[$iterator]['assets_units'] = -1;
+                            $inventoryListingData[$iterator]['total_work_hour'] = -1;
+                            $inventoryListingData[$iterator]['total_diesel_consume'] = -1;
+                            $inventoryListingData[$iterator]['litre_per_unit'] = -1;
+                            $inventoryListingData[$iterator]['electricity_per_unit'] = -1;
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
-                            $inventoryListingData[$iterator]['total_electricity_consumed'] = '';
+                            $inventoryListingData[$iterator]['total_electricity_consumed'] = -1;
                             $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
                             $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
                             $inventoryListingData[$iterator]['available'] = (integer)$availableQuantity;
