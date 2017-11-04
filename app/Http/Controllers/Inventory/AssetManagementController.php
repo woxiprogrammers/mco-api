@@ -32,47 +32,77 @@ class AssetManagementController extends BaseController
             $status = 200;
             $pageId = $request->page;
             $projectSiteId = $request->project_site_id;
-            $inventoryComponents = InventoryComponent::where('is_material',((boolean)false))->where('project_site_id',$projectSiteId)->get()->toArray();
+            $inventoryComponents = InventoryComponent::where('is_material',((boolean)false))->where('project_site_id',$projectSiteId)->get();
             $inventoryListingData = array();
             $iterator = 0;
             $inTransferIds = InventoryTransferTypes::where('type','ilike','in')->pluck('id')->toArray();
             $outTransferIds = InventoryTransferTypes::where('type','ilike','out')->pluck('id')->toArray();
             foreach($inventoryComponents as $key => $inventoryComponent){
-                $lastOutTransfer = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$outTransferIds)->orderBy('created_at','desc')->first();
-                $currentInComponent = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$inTransferIds)->where('created_at','>',$lastOutTransfer['created_at'])->first();
-                if($currentInComponent != null){
+                $outQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
+                $inQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
+                $availableQuantity = $inQuantity - $outQuantity;
+                if($availableQuantity > 0){
                     $inventoryListingData[$iterator]['assets_name'] = $inventoryComponent['name'];
                     $inventoryListingData[$iterator]['inventory_component_id'] = $inventoryComponent['id'];
                     if($inventoryComponent['reference_id'] == null || $inventoryComponent['reference_id'] == ''){
-                        $inventoryListingData[$iterator]['model_number'] = '-';
-                        $inventoryListingData[$iterator]['assets_units'] = '-';
-                        $inventoryListingData[$iterator]['total_work_hour'] = '-';
-                        $inventoryListingData[$iterator]['total_diesel_consume'] = '-';
-                        $inventoryListingData[$iterator]['is_diesel'] = false;
+                        $inventoryListingData[$iterator]['model_number'] = '';
+                        $inventoryListingData[$iterator]['assets_units'] = '';
+                        $inventoryListingData[$iterator]['total_work_hour'] = '';
+                        $inventoryListingData[$iterator]['total_diesel_consume'] = '';
+                        $inventoryListingData[$iterator]['litre_per_unit'] = '';
+                        $inventoryListingData[$iterator]['electricity_per_unit'] = '';
+                        $inventoryListingData[$iterator]['slug'] = '';
+                        $inventoryListingData[$iterator]['total_electricity_consumed'] = '';
+                        $inventoryListingData[$iterator]['in'] = '';
+                        $inventoryListingData[$iterator]['out'] = '';
+                        $inventoryListingData[$iterator]['available'] = '';
                     }else{
-                        $asset = Asset::where('id',$inventoryComponent['reference_id'])->first();
-                        $inventoryListingData[$iterator]['model_number'] = $asset->model_number;
-                        if($asset['is_fuel_dependent'] == true){
+                        $inventoryListingData[$iterator]['model_number'] = $inventoryComponent->asset->model_number;
+                        if($inventoryComponent->asset->assetTypes->slug != 'other'){
                             $readingInfo = FuelAssetReading::where('inventory_component_id',$inventoryComponent['id'])->get();
                             $assetUnits = 0;
                             $totalWorkHour = 0;
-                            $totalDieselConsume = 0;
+                            $totalDieselConsume = null;
+                            $totalElectricityConsumed = null;
                             foreach ($readingInfo as $reading){
                                 $assetUnits += (((int)$reading['stop_reading']) - ((int)$reading['start_reading']));
                                 $startTime = Carbon::parse($reading['start_time']);
                                 $endTime = Carbon::parse($reading['stop_time']);
                                 $totalWorkHour += $endTime->diffInHours($startTime);
-                                $totalDieselConsume += ($asset['litre_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
+                                if($reading['litre_per_unit'] != null){
+                                    if($totalDieselConsume == null){
+                                        $totalDieselConsume = 0;
+                                    }
+                                    $totalDieselConsume += ($reading['litre_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
+                                }
+                                if($reading['electricity_per_unit'] != null){
+                                    if($totalElectricityConsumed == null){
+                                        $totalElectricityConsumed = 0;
+                                    }
+                                    $totalElectricityConsumed += ($reading['electricity_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
+                                }
                             }
-                            $inventoryListingData[$iterator]['assets_units'] = (string)$assetUnits;
-                            $inventoryListingData[$iterator]['total_work_hour'] = (string)$totalWorkHour;
-                            $inventoryListingData[$iterator]['total_diesel_consume'] = (string)$totalDieselConsume;
-                            $inventoryListingData[$iterator]['is_diesel'] = true;
+                            $inventoryListingData[$iterator]['assets_units'] = (float)$assetUnits;
+                            $inventoryListingData[$iterator]['total_work_hour'] = (float)$totalWorkHour;
+                            $inventoryListingData[$iterator]['total_diesel_consume'] = (float)$totalDieselConsume;
+                            $inventoryListingData[$iterator]['litre_per_unit'] = (float)$inventoryComponent->asset->litre_per_unit;
+                            $inventoryListingData[$iterator]['electricity_per_unit'] = (float)$inventoryComponent->asset->electricity_per_unit;
+                            $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
+                            $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
+                            $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
+                            $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
+                            $inventoryListingData[$iterator]['available'] = $availableQuantity;
                         }else{
-                            $inventoryListingData[$iterator]['assets_units'] = '-';
-                            $inventoryListingData[$iterator]['total_work_hour'] = '-';
-                            $inventoryListingData[$iterator]['total_diesel_consume'] = '-';
-                            $inventoryListingData[$iterator]['is_diesel'] = false;
+                            $inventoryListingData[$iterator]['assets_units'] = '';
+                            $inventoryListingData[$iterator]['total_work_hour'] = '';
+                            $inventoryListingData[$iterator]['total_diesel_consume'] = '';
+                            $inventoryListingData[$iterator]['litre_per_unit'] = '';
+                            $inventoryListingData[$iterator]['electricity_per_unit'] = '';
+                            $inventoryListingData[$iterator]['slug'] = '';
+                            $inventoryListingData[$iterator]['total_electricity_consumed'] = '';
+                            $inventoryListingData[$iterator]['in'] = '';
+                            $inventoryListingData[$iterator]['out'] = '';
+                            $inventoryListingData[$iterator]['available'] = '';
                         }
                     }
                     $iterator++;
