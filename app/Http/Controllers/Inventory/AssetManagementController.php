@@ -82,16 +82,16 @@ class AssetManagementController extends BaseController
                                     $totalElectricityConsumed += ($reading['electricity_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
                                 }
                             }
-                            $inventoryListingData[$iterator]['assets_units'] = (string)$assetUnits;
-                            $inventoryListingData[$iterator]['total_work_hour'] = (string)$totalWorkHour;
-                            $inventoryListingData[$iterator]['total_diesel_consume'] = (string)$totalDieselConsume;
-                            $inventoryListingData[$iterator]['litre_per_unit'] = '';
-                            $inventoryListingData[$iterator]['electricity_per_unit'] = '';
-                            $inventoryListingData[$iterator]['slug'] = '';
-                            $inventoryListingData[$iterator]['total_electricity_consumed'] = (string)$totalElectricityConsumed;
-                            $inventoryListingData[$iterator]['in'] = '';
-                            $inventoryListingData[$iterator]['out'] = '';
-                            $inventoryListingData[$iterator]['available'] = '';
+                            $inventoryListingData[$iterator]['assets_units'] = (float)$assetUnits;
+                            $inventoryListingData[$iterator]['total_work_hour'] = (float)$totalWorkHour;
+                            $inventoryListingData[$iterator]['total_diesel_consume'] = (float)$totalDieselConsume;
+                            $inventoryListingData[$iterator]['litre_per_unit'] = (float)$inventoryComponent->asset->litre_per_unit;
+                            $inventoryListingData[$iterator]['electricity_per_unit'] = (float)$inventoryComponent->asset->electricity_per_unit;
+                            $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
+                            $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
+                            $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
+                            $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
+                            $inventoryListingData[$iterator]['available'] = $availableQuantity;
                         }else{
                             $inventoryListingData[$iterator]['assets_units'] = '';
                             $inventoryListingData[$iterator]['total_work_hour'] = '';
