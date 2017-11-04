@@ -9,6 +9,7 @@ use App\PeticashSalaryTransactionImages;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
 use App\PurcahsePeticashTransaction;
+use App\PurchasePeticashTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -165,12 +166,12 @@ class SalaryController extends BaseController{
         return response()->json($response,$status);
     }
 
-    public function getSalaryListing(Request $request){
+    public function getTransactionListing(Request $request){
         try{
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
-                    $purchaseTrasactionData = PurcahsePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $purchaseTrasactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
                     $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
                     $transactionsData = $purchaseTrasactionData->merge($salaryTransactionData);
                     $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy('date');
@@ -222,7 +223,7 @@ class SalaryController extends BaseController{
                     break;
 
                 case 'purchase' :
-                    $purchaseTrasactionData = PurcahsePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $purchaseTrasactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
                     $dataWiseTransactionsData = $purchaseTrasactionData->groupBy('date');
                     $iterator = 0;
                     foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
@@ -259,12 +260,14 @@ class SalaryController extends BaseController{
             }else{
                 $page_id = "";
             }
+            $date = date('d M Y',strtotime(Carbon::now()));
             $message = "Success";
             $status = 200;
         }catch(\Exception $e){
             $message = "Fail";
             $status = 500;
             $page_id = '';
+            $date = date('d M Y',strtotime(Carbon::now()));
             $data = [
                 'action' => 'Get Salary Listing',
                 'exception' => $e->getMessage(),
@@ -275,6 +278,7 @@ class SalaryController extends BaseController{
         $response = [
             'message' => $message,
             'data' => $data,
+            'date' => $date,
             'page_id' => $page_id
         ];
         return response()->json($response,$status);

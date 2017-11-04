@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CustomTraits;
 
+use App\GRNCount;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
@@ -17,14 +18,21 @@ trait InventoryTrait{
             $inventoryComponentTransferData = $request->except('name','type','token','images');
             $selectedTransferType = InventoryTransferTypes::where('slug',$request['name'])->where('type',$request['type'])->first();
             $inventoryComponentTransferData['transfer_type_id'] = $selectedTransferType->id;
-            $currentYearMonthStartFormat = date('Y-m').'-01 00:00:00';
-            $currentYearMonthEndFormat = date('Y-m-t',strtotime($currentYearMonthStartFormat)).' 23:59:59';
-            $count = InventoryComponentTransfers::where('created_at','>=',$currentYearMonthStartFormat)
-                ->where('created_at','<=',$currentYearMonthEndFormat)
-                ->count();
-            $inventoryComponentTransferData['grn'] = "GRN".date('Ym').($count+1);
+            $currentDate = Carbon::now();
+            $monthlyGrnGeneratedCount = GRNCount::where('month',$currentDate->month)->where('year',$currentDate->year)->pluck('count')->first();
+            if($monthlyGrnGeneratedCount != null){
+                $serialNumber = $monthlyGrnGeneratedCount + 1;
+            }else{
+                $serialNumber = 1;
+            }
+            $inventoryComponentTransferData['grn'] = "GRN".date('Ym').($serialNumber);
             $inventoryComponentTransferData['created_at'] = $inventoryComponentTransferData['updated_at'] = Carbon::now();
             $inventoryComponentTransferDataId = InventoryComponentTransfers::insertGetId($inventoryComponentTransferData);
+            if($monthlyGrnGeneratedCount != null) {
+                GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
+            }else{
+                GRNCount::create(['month'=> $currentDate->month, 'year'=> $currentDate->year,'count' => $serialNumber]);
+            }
             if($request->has('images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
