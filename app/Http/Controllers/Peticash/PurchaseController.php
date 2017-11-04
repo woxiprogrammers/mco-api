@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Peticash;
 use App\Asset;
 use App\Material;
 use App\MaterialRequestComponentTypes;
+use App\PaymentType;
+use App\PeticashStatus;
 use App\PeticashTransactionType;
 use App\PurchasePeticashTransaction;
 use App\PurchasePeticashTransactionImage;
 use App\Quotation;
 use App\QuotationMaterial;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,9 +29,7 @@ class PurchaseController extends BaseController{
     public function createPurchase(Request $request){
         try{
             $user = Auth::user();
-            $message = "Success";
-            $status = 200;
-            $purchaseTransaction = $request->except('source_slug','token');
+            $purchaseTransaction = $request->except('source_slug','token','images');
             $purchaseTransaction['reference_user_id'] = $user['id'];
             $componentTypeSlug = MaterialRequestComponentTypes::where('id',$request['component_type_id'])->pluck('slug')->first();
             $materialId = Material::where('name',$request['name'])->pluck('id')->first();
@@ -38,17 +39,17 @@ class PurchaseController extends BaseController{
                         $purchaseTransaction['reference_id'] = QuotationMaterial::where('quotation_id',$quotationId)->where('material_id',$materialId)->pluck('id')->first();
                     break;
 
-                case 'structure-material':
-                        $purchaseTransaction['reference_id'] = $materialId;
-                    break;
-
                 case 'system-asset':
                     $purchaseTransaction['reference_id'] = Asset::where('name',$request['name'])->pluck('id')->first();
                     break;
             }
             $purchaseTransaction['reference_id'] = $user['id'];
+            $purchaseTransaction['grn'] = 1;
+            $purchaseTransaction['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $purchaseTransaction['peticash_transaction_type_id']= PeticashTransactionType::where('slug',$request['source_slug'])->where('type','PURCHASE')->pluck('id')->first();
-            $purchaseTransactionId = PurchasePeticashTransaction::create($purchaseTransaction);
+            $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
+            $purchaseTransaction['created_at'] = $purchaseTransaction['updated_at'] = Carbon::now();
+            $purchaseTransactionId = PurchasePeticashTransaction::insertGetId($purchaseTransaction);
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
@@ -67,11 +68,16 @@ class PurchaseController extends BaseController{
                 }
             }
             $data = array();
+            $data['payable_amount'] = $request['bill_amount'];
+            $data['peticash_transaction_id'] = $purchaseTransactionId;
+            $data['grn'] = $purchaseTransaction['grn'];
+            $message = "Purchase Peticash created Successfully";
+            $status = 200;
         }catch (\Exception $e){
             $message = $e->getMessage();
             $status = 500;
             $data = [
-                'action' => 'Create Purchase',
+                'action' => 'Create Purchase Peticash',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
@@ -79,7 +85,6 @@ class PurchaseController extends BaseController{
         }
         $response = [
             'message' => $message,
-            'data' => $data
         ];
         return response()->json($response,$status);
     }
