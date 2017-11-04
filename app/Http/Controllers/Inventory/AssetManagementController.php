@@ -205,4 +205,27 @@ class AssetManagementController extends BaseController
         ];
         return response()->json($response,$status);
     }
+
+    public function addReadings(Request $request){
+        try{
+            $message = "Asset Reading added successfully !!";
+            $status = 200;
+            $data = $request->except(['token']);
+            $fuelReading = FuelAssetReading::create($data);
+            dd(FuelAssetReading::findOrFail($fuelReading->id));
+        }catch(\Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $data = [
+                'action' => 'Add asset Readings',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message
+        ];
+        return response()->json($response,$status);
+    }
 }
