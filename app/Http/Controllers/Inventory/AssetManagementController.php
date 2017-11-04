@@ -100,9 +100,9 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['electricity_per_unit'] = -1;
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = -1;
-                            $inventoryListingData[$iterator]['in'] = (integer)$inQuantity;
-                            $inventoryListingData[$iterator]['out'] = (integer)$outQuantity;
-                            $inventoryListingData[$iterator]['available'] = (integer)$availableQuantity;
+                            $inventoryListingData[$iterator]['in'] = (float)$inQuantity;
+                            $inventoryListingData[$iterator]['out'] = (float)$outQuantity;
+                            $inventoryListingData[$iterator]['available'] = (float)$availableQuantity;
                         }
                     }
                     $iterator++;
