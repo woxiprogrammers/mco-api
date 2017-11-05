@@ -7,9 +7,16 @@
 
 namespace App\Http\Controllers\Purchase;
 
+use App\Asset;
 use App\GRNCount;
+use App\Http\Controllers\CustomTraits\InventoryTrait;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
+use App\InventoryComponent;
+use App\InventoryComponentTransferImage;
+use App\InventoryTransferTypes;
+use App\Material;
 use App\MaterialRequestComponents;
+use App\MaterialRequestComponentTypes;
 use App\PaymentType;
 use App\PurchaseOrder;
 use App\PurchaseOrderBill;
@@ -27,6 +34,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 
 class PurchaseOrderController extends BaseController{
 use PurchaseTrait;
+use InventoryTrait;
     public function __construct(){
         $this->middleware('jwt.auth');
         if(!Auth::guest()){
@@ -147,6 +155,7 @@ use PurchaseTrait;
 
     public function createPurchaseOrderBillTransaction(Request $request){
         try{
+            $user = Auth::user();
             $purchaseOrderBill = $request->except('type','token','images');
             switch($request['type']){
                 case 'upload_bill' :
@@ -194,6 +203,60 @@ use PurchaseTrait;
                         PurchaseOrderBillImage::create(['name' => $imageName , 'purchase_order_bill_id' => $purchaseOrderBillId, 'is_payment_image' => false]);
                     }
                 }
+            }
+            $purchaseOrderComponent = PurchaseOrderComponent::where('id',$request['purchase_order_component_id'])->first();
+            $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
+            $project_site_id = $materialRequestComponent->materialRequest->project_site_id;
+            $materialComponentSlug = $materialRequestComponent->materialRequestComponentTypes->slug;
+            $alreadyPresent = InventoryComponent::where('name',$materialRequestComponent->name)->where('project_site_id',$project_site_id)->first();
+            if($alreadyPresent != null){
+                $inventoryComponentId = $alreadyPresent['id'];
+            }else{
+                if($materialComponentSlug == 'quotation-material' || $materialComponentSlug == 'new-material' || $materialComponentSlug == 'structure-material'){
+                    $inventoryData['is_material'] = true;
+                    $inventoryData['reference_id']  = Material::where('name',$materialRequestComponent->name)->pluck('id')->first();
+                }else{
+                    $inventoryData['is_material'] = false;
+                    $inventoryData['reference_id']  =  Asset::where('name',$materialRequestComponent->name)->pluck('id')->first();
+                }
+                $inventoryData['name'] = $materialRequestComponent->name;
+                $inventoryData['project_site_id'] = $project_site_id;
+                $inventoryData['purchase_order_component_id'] = $purchaseOrderComponent->id;
+                $inventoryData['opening_stock'] = 0;
+                $inventoryComponentId = InventoryComponent::insertGetId($inventoryData);
+            }
+
+            $transferData['inventory_component_id'] = $inventoryComponentId;
+            $name = 'supplier';
+            $type = 'IN';
+            $transferData['quantity'] = $purchaseOrderComponent['quantity'];
+            $transferData['unit_id'] = $purchaseOrderComponent['unit_id'];
+            $transferData['date'] = $purchaseOrderBillData['created_at'];
+            $transferData['in_time'] = $purchaseOrderBillData['in_time'];
+            $transferData['out_time'] = $purchaseOrderBillData['out_time'];
+            $transferData['vehicle_number'] = $purchaseOrderBillData['vehicle_number'];
+            $transferData['bill_number'] = $purchaseOrderBillData['bill_number'];
+            $transferData['bill_amount'] = $purchaseOrderBillData['bill_amount'];
+            $transferData['remark'] = $purchaseOrderBillData['remark'];
+            $transferData['source_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
+            $transferData['grn'] = $purchaseOrderBillData['grn'];
+            $transferData['user_id'] = $user['id'];
+            $createdTransferId = $this->create($transferData,$name,$type,'from-purchase');
+            $transferData['images'] = array();
+            $purchaseOrderBillImages = PurchaseOrderBillImage::where('purchase_order_bill_id',$purchaseOrderBillId)->where('is_payment_image', false)->get();
+            $sha1InventoryComponentId = sha1($inventoryComponentId);
+            $sha1InventoryTransferId = sha1($createdTransferId);
+            $sha1PurchaseOrderId = sha1($purchaseOrderId);
+            $sha1PurchaseOrderBillId = sha1($purchaseOrderBillId);
+            foreach ($purchaseOrderBillImages as $key => $image){
+                $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId.DIRECTORY_SEPARATOR.$image['name'];
+                    $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
+                    if(!file_exists($imageUploadNewPath)) {
+                        File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                    }
+                    $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
+                    File::copy($tempUploadFile,$imageUploadNewPath);
+                    InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
             }
             $message = "Success";
             $status = 200;
