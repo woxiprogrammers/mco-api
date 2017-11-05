@@ -5,6 +5,7 @@ use App\MaterialRequests;
 use App\Module;
 use App\Permission;
 use App\PurchaseRequestComponentStatuses;
+use App\Role;
 use App\User;
 use App\UserHasPermission;
 use Illuminate\Http\Request;
@@ -28,7 +29,13 @@ class PurchaseController extends BaseController
             $status = 200;
             $message = "Success";
             $approvalAclPermission = Permission::where('name',$request['can_access'])->first();
-            $userIds = UserHasPermission::where('permission_id',$approvalAclPermission->id)->pluck('user_id');
+            $adminUserIds = Role::join('user_has_roles','user_has_roles.role_id','=','roles.id')
+                ->whereIn('roles.slug',['admin','superadmin'])->pluck('user_has_roles.user_id');
+            $userIds = UserHasPermission::join('user_project_site_relation','user_project_site_relation.user_id','=','user_has_permissions.user_id')
+                ->where('user_project_site_relation.project_site_id','=',$request['project_site_id'])
+                ->where('user_has_permissions.permission_id',$approvalAclPermission->id)
+                ->whereNotIn('user_has_permissions.user_id',$adminUserIds)->pluck('user_has_permissions.user_id');
+            $userIds = array_merge($adminUserIds->toArray(),$userIds->toArray());
             $users = User::whereIn('id',$userIds)->get();
             $i = 0;
             $available_users = array();

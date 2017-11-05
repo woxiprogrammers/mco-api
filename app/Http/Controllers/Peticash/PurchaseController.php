@@ -55,7 +55,7 @@ class PurchaseController extends BaseController{
             $purchaseTransaction['grn'] = "GRN".date('Ym').($serialNumber);
             $purchaseTransaction['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $purchaseTransaction['peticash_transaction_type_id']= PeticashTransactionType::where('slug',$request['source_slug'])->where('type','PURCHASE')->pluck('id')->first();
-            $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
+            $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','grn-generated')->pluck('id')->first();
             $purchaseTransaction['created_at'] = $purchaseTransaction['updated_at'] = Carbon::now();
             $purchaseTransactionId = PurchasePeticashTransaction::insertGetId($purchaseTransaction);
             if($monthlyGrnGeneratedCount != null) {
