@@ -37,7 +37,12 @@ use PurchaseTrait;
     public function getPurchaseOrderListing(Request $request){
         try{
             $pageId = $request->page;
-            $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->orderBy('created_at','desc')->get();
+            if($request->has('purchase_request_id')){
+                $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->orderBy('created_at','desc')->get();
+            }else{
+                $purchaseRequestIds = PurchaseRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
+                $purchaseOrderDetail = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->orderBy('created_at','desc')->get();
+            }
             $purchaseRequest = PurchaseRequests::where('id',$request['purchase_request_id'])->first();
             $purchaseOrderList = array();
             $iterator = 0;
@@ -278,7 +283,13 @@ use PurchaseTrait;
             $pageId = $request->page;
             $message = 'Success';
             $status = 200;
-            $purchaseOrderComponentIDs = PurchaseOrderComponent::where('purchase_order_id',$request['purchase_order_id'])->pluck('id');
+            if($request->has('purchase_order_id')){
+                $purchaseOrderComponentIDs = PurchaseOrderComponent::where('purchase_order_id',$request['purchase_order_id'])->pluck('id');
+            }else{
+                $purchaseRequestIds = PurchaseRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
+                $purchaseOrderIds = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->pluck('id');
+                $purchaseOrderComponentIDs = PurchaseOrderComponent::whereIn('purchase_order_id',$purchaseOrderIds)->pluck('id');
+            }
             $purchaseOrderBillData = PurchaseOrderBill::whereIn('purchase_order_component_id',$purchaseOrderComponentIDs)->orderBy('created_at','desc')->get();
             $purchaseOrderBillListing = array();
             $iterator = 0;
