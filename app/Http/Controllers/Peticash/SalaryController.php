@@ -31,7 +31,7 @@ class SalaryController extends BaseController{
             $status = 200;
             $message = "Success";
             $iterator = 0;
-            $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->where('project_site_id',$request['project_site_id'])->get()->toArray();
+            $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->where('project_site_id',$request['project_site_id'])->where('is_active',true)->get()->toArray();
             $data = array();
             foreach($employeeDetails as $key => $employeeDetail){
                 $data[$iterator]['employee_id'] = $employeeDetail['id'];

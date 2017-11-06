@@ -79,3 +79,4 @@ $app->group(['prefix' => 'peticash'], function () use($app){
     });
 });
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
+$app->get('system-project-sites' , array('uses' => 'ProjectSiteController@getAllProjectSites'));
