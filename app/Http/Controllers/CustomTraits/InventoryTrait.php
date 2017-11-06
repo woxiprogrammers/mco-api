@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Mockery\Exception;
 
 trait InventoryTrait{
     public function createInventoryTransfer(Request $request){
@@ -79,7 +78,7 @@ trait InventoryTrait{
                     }
                 }
             }
-        }catch (Exception $e){
+        }catch (\Exception $e){
             $message = "Fail";
             $status = 500;
             $data = [
