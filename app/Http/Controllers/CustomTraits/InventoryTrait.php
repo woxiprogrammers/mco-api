@@ -38,7 +38,7 @@ trait InventoryTrait{
     public function create($request,$name,$type,$slug,$images=null){
         try{
             $inventoryComponentTransferData = $request;
-            $selectedTransferType = InventoryTransferTypes::where('slug',$name)->where('type',$type)->first();
+            $selectedTransferType = InventoryTransferTypes::where('slug',$name)->where('type','ilike',$type)->first();
             $inventoryComponentTransferData['transfer_type_id'] = $selectedTransferType->id;
             if($slug == 'from-api'){
                 $currentDate = Carbon::now();
