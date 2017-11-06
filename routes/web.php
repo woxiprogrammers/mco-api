@@ -75,6 +75,7 @@ $app->group(['prefix' => 'peticash'], function () use($app){
     });
     $app->group(['prefix' => 'purchase'], function () use($app){
         $app->post('create', array('uses' => 'Peticash\PurchaseController@createPurchase'));
+        $app->post('bill-payment', array('uses' => 'Peticash\PurchaseController@createBillPayment'));
         $app->post('transaction-detail', array('uses' => 'Peticash\PurchaseController@getTransactionDetails'));
     });
 });

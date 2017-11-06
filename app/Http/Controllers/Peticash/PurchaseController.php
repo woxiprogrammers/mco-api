@@ -163,4 +163,44 @@ class PurchaseController extends BaseController{
         }
         return $images;
     }
+
+    public function createBillPayment(Request $request){
+        try{
+            if($request->has('reference_number')){
+                PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->update(['reference_number' => $request['reference_number']]);
+            }
+            if(array_has($request,'images')){
+                $user = Auth::user();
+                $sha1UserId = sha1($user['id']);
+                $sha1PurchaseTransactionId = sha1($request['peticash_transaction_id']);
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PETICASH_PURCHASE_PAYMENT_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PETICASH_PURCHASE_TRANSACTION_IMAGE_UPLOAD').$sha1PurchaseTransactionId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::move($tempUploadFile,$imageUploadNewPath);
+                        PurchasePeticashTransactionImage::create(['name' => $imageName,'purchase_peticash_transaction_id' => $request['peticash_transaction_id'],'type' => 'payment']);
+                    }
+                }
+            }
+            $message = 'Data updated successfully';
+            $status = 200;
+        }catch (\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Create Bill payment',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
 }
