@@ -27,7 +27,10 @@ $app->group(['prefix' => 'inventory'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\AssetManagementController@getAssetListing'));
         $app->post('summary-listing', array('uses' => 'Inventory\AssetManagementController@getSummaryAssetListing'));
         $app->post('request-maintenance', array('uses' => 'Inventory\AssetManagementController@createRequestMaintenance'));
-        $app->post('add-readings',array('uses' => 'Inventory\AssetManagementController@addReadings'));
+        $app->group(['prefix' => 'readings'],function() use($app){
+            $app->post('add',array('uses' => 'Inventory\AssetManagementController@addReadings'));
+            $app->post('listing',array('uses' => 'Inventory\AssetManagementController@readingListing'));
+        });
     });
 });
 $app->group(['prefix' => 'purchase'],function () use($app){
