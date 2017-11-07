@@ -289,6 +289,7 @@ class SalaryController extends BaseController{
             $salaryTransactionData = PeticashSalaryTransaction::where('id',$request['peticash_transaction_id'])->first();
             $data['peticash_transaction_id'] = $salaryTransactionData->id;
             $data['employee_name'] = $salaryTransactionData->employee->name;
+            $data['per_day_wages'] = $salaryTransactionData->employee->per_day_wages;
             $data['project_site_name'] = $salaryTransactionData->projectSite->name;
             $data['amount'] = $salaryTransactionData->amount;
             $data['payable_amount'] = $salaryTransactionData->payable_amount;
