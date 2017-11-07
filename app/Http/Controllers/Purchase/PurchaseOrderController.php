@@ -23,6 +23,7 @@ use App\PurchaseOrderBill;
 use App\PurchaseOrderBillImage;
 use App\PurchaseOrderBillPayment;
 use App\PurchaseOrderComponent;
+use App\PurchaseOrderComponentImage;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequests;
 use Carbon\Carbon;
@@ -130,7 +131,18 @@ use InventoryTrait;
             $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
             $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
             $materialList[$iterator]['material_component_images'][0]['image_id'] = 1;
-            $materialList[$iterator]['material_component_images'][0]['image_url'] = '/assets/global/img/logo.jpg';
+            $images = PurchaseOrderComponentImage::where('purchase_order_component_id',$purchaseOrderComponent['id'])->get();
+            if(count($images) > 0){
+                $jIterator = 0;
+                foreach($images as $key1 => $image){
+                    $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
+                    $sha1PurchaseOrderComponentId = sha1($purchaseOrderComponent['id']);
+                    $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
+                    $materialList[$iterator]['material_component_images'][$jIterator]['image_url'] = $imageUploadPath;
+                    $jIterator++;
+                }
+            }
+
             $iterator++;
            }
            $data['material_list'] = $materialList;
