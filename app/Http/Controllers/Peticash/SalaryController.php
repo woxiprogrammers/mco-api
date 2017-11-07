@@ -6,6 +6,7 @@ use App\Employee;
 use App\PaymentType;
 use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
+use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
 use App\PurcahsePeticashTransaction;
@@ -289,6 +290,7 @@ class SalaryController extends BaseController{
             $salaryTransactionData = PeticashSalaryTransaction::where('id',$request['peticash_transaction_id'])->first();
             $data['peticash_transaction_id'] = $salaryTransactionData->id;
             $data['employee_name'] = $salaryTransactionData->employee->name;
+            $data['per_day_wages'] = $salaryTransactionData->employee->per_day_wages;
             $data['project_site_name'] = $salaryTransactionData->projectSite->name;
             $data['amount'] = $salaryTransactionData->amount;
             $data['payable_amount'] = $salaryTransactionData->payable_amount;
@@ -335,5 +337,41 @@ class SalaryController extends BaseController{
             $iterator++;
         }
         return $images;
+    }
+
+    public function getStatistics(Request $request){
+        try{
+            $message = 'Success';
+            $status = 200;
+            $data = array();
+            $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
+                $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
+                $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id'))
+                                                ->where('project_site_id',$request['project_site_id'])
+                                                ->where('peticash_status_id',$approvedPeticashStatusId)
+                                                ->sum('payable_amount');
+                $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id'))
+                                                    ->where('project_site_id',$request['project_site_id'])
+                                                    ->where('peticash_status_id',$approvedPeticashStatusId)
+                                                    ->sum('amount');
+                $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','=','PURCHASE')->pluck('id'))
+                                                    ->where('project_site_id',$request['project_site_id'])
+                                                    ->where('peticash_status_id',$approvedPeticashStatusId)
+                                                    ->sum('bill_amount');
+                $data['remaining_amount'] = $data['allocated_amount'] - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount']);
+        }catch(\Exception $e){
+            $message = $e->getMessage();
+            $status = 500;
+            $data =[
+                'message' => 'Get Peticash Statistics',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
     }
 }
