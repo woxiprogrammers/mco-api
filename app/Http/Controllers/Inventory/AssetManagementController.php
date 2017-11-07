@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Inventory;
 use App\Asset;
 use App\FuelAssetReading;
+use App\Http\Controllers\CustomTraits\InventoryTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
+use App\Unit;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +28,7 @@ class AssetManagementController extends BaseController
         }
     }
 
+    use InventoryTrait;
     public function getAssetListing(Request $request){
         try{
             $message = "Success";
@@ -238,16 +241,52 @@ class AssetManagementController extends BaseController
 
     public function addReadings(Request $request){
         try{
+            $user = Auth::user();
             $message = "Asset Reading added successfully !!";
             $status = 200;
             $data = $request->except(['token']);
             $todayDate = date('Y-m-d');
+            $inventoryComponent = InventoryComponent::findOrFail($data['inventory_component_id']);
             $data['start_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['start_time']);
             $data['stop_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['stop_time']);
             if(array_key_exists('top_up_time',$data)){
                 $data['top_up_time'] =  Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['top_up_time']);
             }
-            FuelAssetReading::create($data);
+            if(array_key_exists('top_up',$data) && $data['top_up'] != null && $data['top_up'] != ''){
+                $inTransferIds = InventoryTransferTypes::where('type','ilike','IN')->pluck('id')->toArray();
+                $outTransferIds = InventoryTransferTypes::where('type','ilike','OUT')->pluck('id')->toArray();
+                $dieselcomponentId = InventoryComponent::join('materials','materials.id','=','inventory_components.reference_id')
+                    ->where('inventory_components.project_site_id',$inventoryComponent->project_site_id)
+                    ->where('materials.slug','diesel')
+                    ->pluck('inventory_components.id')
+                    ->first();
+                if($dieselcomponentId == null){
+                    $response = [
+                        "message" => 'Diesel is not assigned to this site. Please add diesel in inventory first.'
+                    ];
+                    return response()->json($response,203);
+                }
+                $inQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
+                $outQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
+                $availableQuantity = $inQuantity - $outQuantity;
+                if($availableQuantity < $data['top_up']){
+                    $response = [
+                        "message" => 'Diesel Top-up quantity is more than available quantity. Available diesel is '.$availableQuantity.' litre.'
+                    ];
+                    return response()->json($response,203);
+                }
+            }
+            $fuelAssetReading = FuelAssetReading::create($data);
+            if(array_key_exists('top_up',$data)  && $data['top_up'] != null && $data['top_up'] != ''){
+                $inventoryTransferData = [
+                    'inventory_component_id' => $dieselcomponentId,
+                    'quantity' => $data['top_up'],
+                    'unit_id' => Unit::where('slug','litre')->pluck('id')->first(),
+                    'source_name' => $user->first_name.' '.$user->last_name,
+                    'user_id' => $user->id
+                ];
+                $this->create($inventoryTransferData,'labour','OUT','from-purchase');
+            }
         }catch(\Exception $e){
             $status = 500;
             $message = "Fail";
