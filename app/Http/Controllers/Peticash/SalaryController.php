@@ -293,7 +293,7 @@ class SalaryController extends BaseController{
             $data['per_day_wages'] = $salaryTransactionData->employee->per_day_wages;
             $data['project_site_name'] = $salaryTransactionData->projectSite->name;
             $data['amount'] = $salaryTransactionData->amount;
-            $data['payable_amount'] = $salaryTransactionData->payable_amount;
+            $data['payable_amount'] = ($salaryTransactionData->payable_amount) ? $salaryTransactionData->payable_amount : '';
             $data['reference_user_name'] = $salaryTransactionData->referenceUser->first_name.' '.$salaryTransactionData->referenceUser->last_name;
             $data['date'] = date('l, d F Y',strtotime($salaryTransactionData->date));
             $data['days'] = $salaryTransactionData->days;
@@ -318,7 +318,7 @@ class SalaryController extends BaseController{
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
-            Log::crtical(json_encode($data));
+            Log::critical(json_encode($data));
         }
         $response = [
             'message' => $message,
