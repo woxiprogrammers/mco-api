@@ -262,7 +262,8 @@ class AssetManagementController extends BaseController
                     ->first();
                 if($dieselcomponentId == null){
                     $response = [
-                        "message" => 'Diesel is not assigned to this site. Please add diesel in inventory first.'
+                        "message" => 'Diesel is not assigned to this site. Please add diesel in inventory first.',
+                        "is_fuel_limit_exceeded" => true
                     ];
                     return response()->json($response,203);
                 }
@@ -271,7 +272,8 @@ class AssetManagementController extends BaseController
                 $availableQuantity = $inQuantity - $outQuantity;
                 if($availableQuantity < $data['top_up']){
                     $response = [
-                        "message" => 'Diesel Top-up quantity is more than available quantity. Available diesel is '.$availableQuantity.' litre.'
+                        "message" => 'Diesel Top-up quantity is more than available quantity. Available diesel is '.$availableQuantity.' litre.',
+                        "is_fuel_limit_exceeded" => true
                     ];
                     return response()->json($response,203);
                 }
@@ -298,7 +300,8 @@ class AssetManagementController extends BaseController
             Log::critical(json_encode($data));
         }
         $response = [
-            "message" => $message
+            "message" => $message,
+            "is_fuel_limit_exceeded" => false
         ];
         return response()->json($response,$status);
     }
