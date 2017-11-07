@@ -17,7 +17,7 @@ trait InventoryTrait{
         try{
             $requestData = $request->except('name','type','token','images');
             $selectedTransferType = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
-            $message = "Inventory Component moved ".strtolower($selectedTransferType->type)." successfully";
+            $message = "Inventory Component moved ".strtolower($selectedTransferType)." successfully";
             $status = 200;
         }catch(\Exception $e){
             $message = "Fail";
@@ -83,12 +83,11 @@ trait InventoryTrait{
             $status = 500;
             $data = [
                 'action' => 'Create',
-                'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
             Log::critical(json_encode($data));
         }
-        if($slug == null){
+        if($slug == 'from-api'){
             return $selectedTransferType->type;
         }else{
             return $inventoryComponentTransferDataId;
