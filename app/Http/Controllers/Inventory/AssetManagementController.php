@@ -249,8 +249,10 @@ class AssetManagementController extends BaseController
             $inventoryComponent = InventoryComponent::findOrFail($data['inventory_component_id']);
             $data['start_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['start_time']);
             $data['stop_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['stop_time']);
-            if(array_key_exists('top_up_time',$data)){
+            if(array_key_exists('top_up_time',$data && $data['top_up_time'] != null && $data['top_up_time'] != '')){
                 $data['top_up_time'] =  Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['top_up_time']);
+            }else{
+                $data['top_up_time'] = null;
             }
             if(array_key_exists('top_up',$data) && $data['top_up'] != null && $data['top_up'] != ''){
                 $inTransferIds = InventoryTransferTypes::where('type','ilike','IN')->pluck('id')->toArray();
@@ -277,6 +279,8 @@ class AssetManagementController extends BaseController
                     ];
                     return response()->json($response,203);
                 }
+            }else{
+                $data['top_up'] = null;
             }
             $fuelAssetReading = FuelAssetReading::create($data);
             if(array_key_exists('top_up',$data)  && $data['top_up'] != null && $data['top_up'] != ''){
