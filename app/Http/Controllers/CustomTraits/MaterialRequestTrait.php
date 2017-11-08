@@ -25,7 +25,11 @@ trait MaterialRequestTrait{
         $materialRequest['project_site_id'] = $data['project_site_id'];
         $materialRequest['user_id'] = $user['id'];
         $materialRequest['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
-        $materialRequest['assigned_to'] = $user['id'];
+        if($is_purchase_request == true){
+            $materialRequest['assigned_to'] = $user['id'];
+        }else{
+            $materialRequest['assigned_to'] = $data['assigned_to'];
+        }
         $materialRequest['serial_no'] = $materialRequestSerialNoCount + 1;
         $materialRequest = MaterialRequests::create($materialRequest);
         $iterator = 0;
