@@ -61,6 +61,7 @@ use PurchaseTrait;
             $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
             $serialNoCount = PurchaseRequests::whereDate('created_at',Carbon::now())->count();
             $purchaseRequest['serial_no']  = $serialNoCount + 1;
+            $purchaseRequest['format_id'] = $this->getPurchaseIDFormat('purchase-request',$request['project_site_id'],Carbon::now(),$purchaseRequest['serial_no']);
             $purchaseRequest = PurchaseRequests::create($purchaseRequest);
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);

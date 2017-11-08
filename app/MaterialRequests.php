@@ -8,7 +8,7 @@ class MaterialRequests extends Model
 {
     protected $table = 'material_requests';
 
-    protected $fillable = ['project_site_id','quotation_id','user_id','assigned_to','serial_no'];
+    protected $fillable = ['project_site_id','quotation_id','user_id','assigned_to','serial_no','format_id'];
 
     public function projectSite(){
         return $this->belongsTo('App\ProjectSite','project_site_id');

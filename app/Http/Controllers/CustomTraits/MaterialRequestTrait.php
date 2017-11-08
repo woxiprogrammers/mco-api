@@ -31,6 +31,7 @@ trait MaterialRequestTrait{
             $materialRequest['assigned_to'] = $data['assigned_to'];
         }
         $materialRequest['serial_no'] = $materialRequestSerialNoCount + 1;
+        $materialRequest['format_id'] =  $this->getPurchaseIDFormat('material-request',$data['project_site_id'],Carbon::now(),$materialRequest['serial_no']);
         $materialRequest = MaterialRequests::create($materialRequest);
         $iterator = 0;
         $materialRequestComponent = array();
@@ -53,6 +54,7 @@ trait MaterialRequestTrait{
             $materialRequestComponentData['serial_no'] = $materialRequestComponentSerialNo + 1;
             $materialRequestComponentData['created_at'] = Carbon::now();
             $materialRequestComponentData['updated_at'] = Carbon::now();
+            $materialRequestComponentData['format_id'] =  $this->getPurchaseIDFormat('material-request-component',$data['project_site_id'],$materialRequestComponentData['created_at'],$materialRequestComponentData['serial_no']);
             $materialRequestComponent[$iterator] = MaterialRequestComponents::insertGetId($materialRequestComponentData);
             $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponent[$iterator];
             MaterialRequestComponentHistory::create($materialComponentHistoryData);
