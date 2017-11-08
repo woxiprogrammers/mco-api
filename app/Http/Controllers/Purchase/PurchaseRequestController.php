@@ -56,6 +56,7 @@ use PurchaseTrait;
             }
             $purchaseRequest['project_site_id'] = $request['project_site_id'];
             $purchaseRequest['user_id'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
+            $purchaseRequest['assigned_to'] = $request['assigned_to'];
             $purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','purchase-requested')->first();
             $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
             $serialNoCount = PurchaseRequests::whereDate('created_at',Carbon::now())->count();
@@ -132,7 +133,13 @@ use PurchaseTrait;
         try{
             $user = Auth::user();
             $pageId = $request->page;
-            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
+            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
+                                ->where(function ($query) use ($user){
+                                        $query->where('user_id',$user['id'])
+                                        ->Orwhere('assigned_to',$user['id']);
+                                })
+                                ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
+                                ->orderBy('created_at','desc')->get();
             $purchaseRequestList = $data = array();
             $iterator = 0;
             if(count($purchaseRequests) > 0){
@@ -143,6 +150,13 @@ use PurchaseTrait;
                     $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
                     $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
                     $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->slug;
+                    if($purchaseRequest['user_id'] == $user['id'] && $purchaseRequest['assigned_to'] == $user['id']){
+                        $purchaseRequestList[$iterator]['have_access'] = 'approve-purchase-request';
+                    }elseif($purchaseRequest['assigned_to'] == $user['id']){
+                        $purchaseRequestList[$iterator]['have_access'] = 'approve-purchase-request';
+                    }else{
+                        $purchaseRequestList[$iterator]['have_access'] = 'create-purchase-request';
+                    }
                     $iterator++;
                 }
             }
