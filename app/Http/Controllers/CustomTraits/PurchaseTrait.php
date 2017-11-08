@@ -20,7 +20,7 @@ trait PurchaseTrait{
                     break;
 
                 case 'material-request-component' :
-                    $format = "MRM".$project_site_id.date_format($created_at,'Y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
+                    $format = "M".$project_site_id.date_format($created_at,'Y').date_format($created_at,'m').date_format($created_at,'d').$serial_no;
                     break;
 
                 case 'purchase-request' :

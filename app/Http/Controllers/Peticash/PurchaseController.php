@@ -45,6 +45,11 @@ class PurchaseController extends BaseController{
                     $purchaseTransaction['reference_id'] = Asset::where('name',$request['name'])->pluck('id')->first();
                     $purchaseTransaction['unit_id'] = Unit::where('slug','nos')->pluck('id')->first();
                     break;
+
+                case 'new-asset' :
+                    $purchaseTransaction['unit_id'] = Unit::where('slug','nos')->pluck('id')->first();
+                    break;
+
             }
             $purchaseTransaction['reference_id'] = $user['id'];
             $currentDate = Carbon::now();
