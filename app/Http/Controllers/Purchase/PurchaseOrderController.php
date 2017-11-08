@@ -226,10 +226,10 @@ use InventoryTrait;
             }else{
                 if($materialComponentSlug == 'quotation-material' || $materialComponentSlug == 'new-material' || $materialComponentSlug == 'structure-material'){
                     $inventoryData['is_material'] = true;
-                    $inventoryData['reference_id']  = Material::where('name',$materialRequestComponent->name)->pluck('id')->first();
+                    $inventoryData['reference_id']  = Material::where('name','ilike',$materialRequestComponent->name)->pluck('id')->first();
                 }else{
                     $inventoryData['is_material'] = false;
-                    $inventoryData['reference_id']  =  Asset::where('name',$materialRequestComponent->name)->pluck('id')->first();
+                    $inventoryData['reference_id']  =  Asset::where('name','ilike',$materialRequestComponent->name)->pluck('id')->first();
                 }
                 $inventoryData['name'] = $materialRequestComponent->name;
                 $inventoryData['project_site_id'] = $project_site_id;
