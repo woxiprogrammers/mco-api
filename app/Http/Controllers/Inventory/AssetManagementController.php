@@ -317,6 +317,7 @@ class AssetManagementController extends BaseController
                     $reading = $reading->toArray();
                     $reading['start_time'] = date('H:i',strtotime($reading['start_time']));
                     $reading['stop_time'] = date('H:i',strtotime($reading['stop_time']));
+                    $reading['date'] = $request->date;
                     if($reading['top_up_time'] != null){
                         $reading['top_up_time'] = date('H:i',strtotime($reading['top_up_time']));
                     }
