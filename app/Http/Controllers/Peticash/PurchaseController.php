@@ -12,6 +12,7 @@ use App\PurchasePeticashTransaction;
 use App\PurchasePeticashTransactionImage;
 use App\Quotation;
 use App\QuotationMaterial;
+use App\Unit;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
@@ -42,6 +43,7 @@ class PurchaseController extends BaseController{
 
                 case 'system-asset':
                     $purchaseTransaction['reference_id'] = Asset::where('name',$request['name'])->pluck('id')->first();
+                    $purchaseTransaction['unit_id'] = Unit::where('slug','nos')->pluck('id')->first();
                     break;
             }
             $purchaseTransaction['reference_id'] = $user['id'];
@@ -143,7 +145,7 @@ class PurchaseController extends BaseController{
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
-            Log::crtical(json_encode($data));
+            Log::critical(json_encode($data));
         }
         $response = [
             'message' => $message,
