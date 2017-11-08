@@ -167,8 +167,10 @@ class PurchaseController extends BaseController{
     public function createBillPayment(Request $request){
         try{
             if($request->has('reference_number')){
-                PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->update(['reference_number' => $request['reference_number']]);
+                $transactionData['reference_number'] = $request['reference_number'];
             }
+            $transactionData['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
+            PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->update($transactionData);
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);

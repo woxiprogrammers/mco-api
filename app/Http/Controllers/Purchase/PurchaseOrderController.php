@@ -137,7 +137,7 @@ use InventoryTrait;
                 foreach($images as $key1 => $image){
                     $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
                     $sha1PurchaseOrderComponentId = sha1($purchaseOrderComponent['id']);
-                    $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
+                    $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
                     $materialList[$iterator]['material_component_images'][$jIterator]['image_url'] = $imageUploadPath;
                     $jIterator++;
                 }
