@@ -22,6 +22,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
     $app->post('create-transfer', array('uses' => 'Inventory\InventoryManageController@createInventoryTransfer'));
     $app->group(['prefix' => 'material'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));
+        $app->post('check-availability', array('uses' => 'Inventory\InventoryManageController@checkAvailableQuantity'));
     });
     $app->group(['prefix' => 'asset'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\AssetManagementController@getAssetListing'));

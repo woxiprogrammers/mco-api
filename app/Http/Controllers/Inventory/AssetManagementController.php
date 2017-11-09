@@ -249,7 +249,7 @@ class AssetManagementController extends BaseController
             $inventoryComponent = InventoryComponent::findOrFail($data['inventory_component_id']);
             $data['start_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['start_time']);
             $data['stop_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['stop_time']);
-            if(array_key_exists('top_up_time',$data && $data['top_up_time'] != null && $data['top_up_time'] != '')){
+            if(array_key_exists('top_up_time',$data) && $data['top_up_time'] != null && $data['top_up_time'] != ''){
                 $data['top_up_time'] =  Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['top_up_time']);
             }else{
                 $data['top_up_time'] = null;
@@ -347,19 +347,19 @@ class AssetManagementController extends BaseController
                             $unitsWorked = (float)$dayWisereading['stop_reading'] - $dayWisereading['start_reading'];
                             $data[$readingDate]['total_working_hours'] += (float)$stopTime->diffInHours($startTime);
                             $data[$readingDate]['units_used'] += (float)$unitsWorked;
-                            if($reading['electricity_per_unit'] != null){
+                            if($dayWisereading['electricity_per_unit'] != null && $dayWisereading['electricity_per_unit'] != ''){
                                 if($data[$readingDate]['electricity_used'] == -1){
                                     $data[$readingDate]['electricity_used'] = 0;
                                 }
                                 $data[$readingDate]['electricity_used'] += (float)$dayWisereading['electricity_per_unit'] * $unitsWorked;
                             }
-                            if($reading['fuel_per_unit'] != null){
+                            if($dayWisereading['fuel_per_unit'] != null && $dayWisereading['fuel_per_unit'] != ''){
                                 if($data[$readingDate]['fuel_used'] == -1){
                                     $data[$readingDate]['fuel_used'] = 0;
                                 }
                                 $data[$readingDate]['fuel_used'] += (float)$dayWisereading['fuel_per_unit'] * $unitsWorked;
                             }
-                            if($reading['top_up'] != null){
+                            if($dayWisereading['top_up'] != null && $dayWisereading['top_up'] != ''){
                                 if($data[$readingDate]['total_top_up'] == -1){
                                     $data[$readingDate]['total_top_up'] = 0;
                                 }
