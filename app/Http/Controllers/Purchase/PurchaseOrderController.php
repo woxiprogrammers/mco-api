@@ -77,7 +77,7 @@ use InventoryTrait;
                     $iterator++;
                 }
             }
-            $displayLength = 10;
+            $displayLength = 30;
             $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalOrderCount = count($purchaseOrderList);
@@ -409,7 +409,7 @@ use InventoryTrait;
                 }
                 $iterator++;
             }
-            $displayLength = 10;
+            $displayLength = 30;
             $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalBillCount = count($purchaseOrderBillListing);
