@@ -50,7 +50,6 @@ trait InventoryTrait{
                 }
                 $inventoryComponentTransferData['grn'] = "GRN".date('Ym').($serialNumber);
             }
-
             $inventoryComponentTransferData['created_at'] = $inventoryComponentTransferData['updated_at'] = Carbon::now();
             $inventoryComponentTransferDataId = InventoryComponentTransfers::insertGetId($inventoryComponentTransferData);
             if($slug == 'from-api') {

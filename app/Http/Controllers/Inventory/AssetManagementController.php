@@ -291,7 +291,7 @@ class AssetManagementController extends BaseController
                     'source_name' => $user->first_name.' '.$user->last_name,
                     'user_id' => $user->id
                 ];
-                $this->create($inventoryTransferData,'labour','OUT','from-purchase');
+                $this->create($inventoryTransferData,'labour','OUT','from-api');
             }
         }catch(\Exception $e){
             $status = 500;
