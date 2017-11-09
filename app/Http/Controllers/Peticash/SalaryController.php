@@ -13,6 +13,7 @@ use App\PurcahsePeticashTransaction;
 use App\PurchasePeticashTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -172,9 +173,25 @@ class SalaryController extends BaseController{
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
-                    $purchaseTrasactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
-                    $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
-                    $transactionsData = $purchaseTrasactionData->merge($salaryTransactionData);
+                    $purchaseTrasactionData = PurchasePeticashTransaction::
+                                                where('project_site_id',$request['project_site_id'])
+                                                ->whereMonth('date', $request['month'])
+                                                ->whereYear('date', $request['year'])
+                                                ->orderBy('date','desc')
+                                                ->select('id as purchase_id','name','project_site_id','component_type_id','payment_type_id','peticash_transaction_type_id','bill_amount','date','peticash_status_id','created_at')
+                                                ->get();
+                    $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])
+                                            ->whereMonth('date', $request['month'])->whereYear('date', $request['year'])
+                                            ->orderBy('date','desc')
+                                            ->select('id as salary_id','employee_id','project_site_id','peticash_transaction_type_id','amount','date','peticash_status_id','payment_type_id','created_at')
+                                            ->get();
+                    $transactionsData = new Collection();
+                    foreach($purchaseTrasactionData as $collection) {
+                        $transactionsData->push($collection);
+                    }
+                    foreach($salaryTransactionData as $collection) {
+                        $transactionsData->push($collection);
+                    }
                     $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy('date');
                     $iterator = 0;
                     $purchaseTransactionTypeIds = PeticashTransactionType::where('type','PURCHASE')->pluck('id')->toArray();
@@ -184,13 +201,13 @@ class SalaryController extends BaseController{
                         $jIterator = 0;
                         foreach($dateWiseTransactionData as $transactionData){
                             if(in_array($transactionData->peticash_transaction_type_id,$purchaseTransactionTypeIds)){
-                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['id'];
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['purchase_id'];
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['bill_amount'];
                             }else{
-                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['id'];
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['salary_id'];
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->employee->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
