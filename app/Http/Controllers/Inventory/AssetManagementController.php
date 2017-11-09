@@ -249,7 +249,7 @@ class AssetManagementController extends BaseController
             $inventoryComponent = InventoryComponent::findOrFail($data['inventory_component_id']);
             $data['start_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['start_time']);
             $data['stop_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['stop_time']);
-            if(array_key_exists('top_up_time',$data && $data['top_up_time'] != null && $data['top_up_time'] != '')){
+            if(array_key_exists('top_up_time',$data) && $data['top_up_time'] != null && $data['top_up_time'] != '')){
                 $data['top_up_time'] =  Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['top_up_time']);
             }else{
                 $data['top_up_time'] = null;
