@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomTraits\InventoryTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
+use App\Material;
 use App\MaterialVersion;
 use App\ProductMaterialRelation;
 use App\Quotation;
@@ -115,4 +116,42 @@ use InventoryTrait;
         ];
         return response()->json($response,$status);
     }
+
+    public function checkAvailableQuantity(Request $request){
+        try{
+            $units = array();
+            $inventoryComponentMaterialId = InventoryComponent::where('id',$request['inventory_component_id'])->pluck('reference_id')->first();
+            $materialUnitId = Material::where('id',$inventoryComponentMaterialId)->pluck('unit_id')->first();
+            $unitConversionIds1 = UnitConversion::where('unit_1_id',$materialUnitId)->pluck('unit_2_id');
+            $unitConversionIds2 = UnitConversion::where('unit_2_id',$materialUnitId)->pluck('unit_1_id');
+            $unitConversionNeededIds = array_merge($unitConversionIds1->toArray(),$unitConversionIds2->toArray());
+            $unitConversionNeededIds[] = $materialUnitId;
+            $iterator = 0;
+            foreach ($unitConversionNeededIds as $key => $unitId){
+                $unit = Unit::where('id',$unitId)->first();
+                $units[$iterator]['quantity'] = 0.0;
+                $units[$iterator]['unit_id'] = $unit->id;
+                $units[$iterator]['unit_name'] = $unit->name;
+                $iterator++;
+            }
+            $data['allowed_quantity_unit'] = $units;
+            $status = 200;
+            $message= 'Success';
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Check Available Quantity for Inventory Material',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
+
 }
