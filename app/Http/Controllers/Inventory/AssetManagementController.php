@@ -112,7 +112,7 @@ class AssetManagementController extends BaseController
                 }
             }
             $data['assets_list'] = array();
-            $displayLength = 10;
+            $displayLength = 30;
             $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = count($inventoryListingData);
