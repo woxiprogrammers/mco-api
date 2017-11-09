@@ -9,7 +9,6 @@ use App\PeticashSalaryTransactionImages;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
-use App\PurcahsePeticashTransaction;
 use App\PurchasePeticashTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -264,7 +263,7 @@ class SalaryController extends BaseController{
 
 
             $pageId = $request['page'];
-            $displayLength = 10;
+            $displayLength = 30;
             $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalTransactionCount = count($listingData);

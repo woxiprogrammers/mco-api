@@ -35,7 +35,7 @@ use InventoryTrait;
         try{
             $message = "Success";
             $status = 200;
-            $displayLength = 10;
+            $displayLength = 30;
             $pageId = $request->page_id;
             $totalRecords = $pageId * $displayLength;
             $inventoryComponents = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->skip($totalRecords)->take($displayLength)->get();
@@ -73,10 +73,12 @@ use InventoryTrait;
                 $inventoryListingData[$iterator]['units'] = $units;
                 $inventoryListingData[$iterator]['quantity_in'] = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
+                                                                    ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
                                                                     ->where('inventory_transfer_types.type','IN')
                                                                     ->sum('inventory_component_transfers.quantity');
                 $inventoryListingData[$iterator]['quantity_out'] = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
+                                                                    ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
                                                                     ->where('inventory_transfer_types.type','OUT')
                                                                     ->sum('inventory_component_transfers.quantity');
                 $inventoryListingData[$iterator]['quantity_available'] = (string)($inventoryListingData[$iterator]['quantity_in'] - $inventoryListingData[$iterator]['quantity_out']);
