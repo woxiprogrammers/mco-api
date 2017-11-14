@@ -17,6 +17,7 @@ use App\QuotationMaterial;
 use App\QuotationProduct;
 use App\Unit;
 use App\UnitConversion;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -371,6 +372,13 @@ use PurchaseTrait;
                             $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
                         }else{
                             $materialRequestList[$iterator]['have_access'] = 'create-material-request';
+                        }
+                        if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved'){
+                            $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponents->id)->where('component_status_id',$materialRequestList[$iterator]['component_status_id'])->pluck('user_id')->first();
+                            $user = User::where('id',$userId)->select('first_name','last_name')->first();
+                            $materialRequestList[$iterator]['approved_by'] = $user->first_name.' '.$user->last_name;
+                        }else{
+                            $materialRequestList[$iterator]['approved_by'] = '';
                         }
 
                         $iterator++;

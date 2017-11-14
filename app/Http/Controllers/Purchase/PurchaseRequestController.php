@@ -56,7 +56,6 @@ use PurchaseTrait;
             }
             $purchaseRequest['project_site_id'] = $request['project_site_id'];
             $purchaseRequest['user_id'] = $purchaseRequest['behalf_of_user_id'] = $user['id'];
-            $purchaseRequest['assigned_to'] = $request['assigned_to'];
             $purchaseRequestedStatus = PurchaseRequestComponentStatuses::where('slug','purchase-requested')->first();
             $purchaseRequest['purchase_component_status_id'] = $purchaseRequestedStatus->id;
             $serialNoCount = PurchaseRequests::whereDate('created_at',Carbon::now())->count();
