@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\UnitTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
@@ -23,6 +24,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 class InventoryManageController extends BaseController
 {
 use InventoryTrait;
+use UnitTrait;
     public function __construct()
     {
         $this->middleware('jwt.auth');
@@ -71,17 +73,40 @@ use InventoryTrait;
                 $inventoryListingData[$iterator]['material_name'] = $inventoryComponent['name'];
                 $inventoryListingData[$iterator]['id'] = $inventoryComponent['id'];
                 $inventoryListingData[$iterator]['units'] = $units;
-                $inventoryListingData[$iterator]['quantity_in'] = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
+                $inventoryComponentInData = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
                                                                     ->where('inventory_transfer_types.type','IN')
-                                                                    ->sum('inventory_component_transfers.quantity');
-                $inventoryListingData[$iterator]['quantity_out'] = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
+                                                                    ->select('inventory_component_transfers.id','inventory_component_transfers.quantity','inventory_component_transfers.unit_id')->orderBy('inventory_component_transfers.id')->get()->toArray();
+                $unitId = Material::where('id',$inventoryComponent['reference_id'])->pluck('unit_id')->first();
+                $totalIN = 0;
+                foreach($inventoryComponentInData as $key1 => $inventoryComponentINTransfer){
+                    if($inventoryComponentINTransfer['unit_id'] == $unitId){
+                        $totalIN += $inventoryComponentINTransfer['quantity'];
+                    }else{
+                        $conversionData = $this->unitConversion($inventoryComponentINTransfer['unit_id'],$unitId,$inventoryComponentINTransfer['quantity']);
+                        $totalIN += $conversionData['quantity_to'];
+                    }
+                }
+                $inventoryListingData[$iterator]['quantity_in'] = $totalIN;
+                $inventoryComponentOutData = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
                                                                     ->where('inventory_transfer_types.type','OUT')
-                                                                    ->sum('inventory_component_transfers.quantity');
+                                                                    ->select('inventory_component_transfers.id','inventory_component_transfers.quantity','inventory_component_transfers.unit_id')->orderBy('inventory_component_transfers.id')->get()->toArray();
+                $totalOUT = 0;
+                foreach($inventoryComponentOutData as $key1 => $inventoryComponentOUTTransfer){
+                    if($inventoryComponentOUTTransfer['unit_id'] == $unitId){
+                        $totalOUT += $inventoryComponentOUTTransfer['quantity'];
+                    }else{
+                        $conversionData = $this->unitConversion($inventoryComponentOUTTransfer['unit_id'],$unitId,$inventoryComponentOUTTransfer['quantity']);
+                        $totalOUT += $conversionData['quantity_to'];
+                    }
+                }
+                $inventoryListingData[$iterator]['quantity_out'] = $totalOUT;
                 $inventoryListingData[$iterator]['quantity_available'] = (string)($inventoryListingData[$iterator]['quantity_in'] - $inventoryListingData[$iterator]['quantity_out']);
+                $inventoryListingData[$iterator]['unit_id'] = $unitId;
+                $inventoryListingData[$iterator]['unit_name'] = Unit::where('id',$unitId)->pluck('name')->first();
                 $iterator++;
             }
 
