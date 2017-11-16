@@ -51,7 +51,8 @@ trait InventoryTrait{
                 $inventoryComponentTransferData['grn'] = "GRN".date('Ym').($serialNumber);
             }
             $inventoryComponentTransferData['created_at'] = $inventoryComponentTransferData['updated_at'] = Carbon::now();
-            $inventoryComponentTransferDataId = InventoryComponentTransfers::insertGetId($inventoryComponentTransferData);
+            $inventoryComponentTransfer = InventoryComponentTransfers::create($inventoryComponentTransferData);
+            $inventoryComponentTransferDataId = $inventoryComponentTransfer->id;
             if($slug == 'from-api') {
                 if ($monthlyGrnGeneratedCount != null) {
                     GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);

@@ -131,7 +131,6 @@ use InventoryTrait;
             $materialList[$iterator]['material_component_units'] = array();
             $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
             $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
-            $materialList[$iterator]['material_component_images'][0]['image_id'] = 1;
             $images = PurchaseOrderComponentImage::where('purchase_order_component_id',$purchaseOrderComponent['id'])->get();
             if(count($images) > 0){
                 $jIterator = 0;
@@ -181,6 +180,8 @@ use InventoryTrait;
             $purchaseOrderBill['grn'] = "GRN".date('Ym').($serialNumber);
             $purchaseOrderBill['created_at'] = $currentTimeStamp;
             $purchaseOrderBill['updated_at'] = $currentTimeStamp;
+            $user = Auth::user();
+            $sha1UserId = sha1($user['id']);
             foreach($request['item_list'] as $key => $material){
                 $purchaseOrderBill['purchase_order_component_id'] = $material['purchase_order_component_id'];
                 $purchaseOrderBill['quantity'] = $material['quantity'];
@@ -189,8 +190,6 @@ use InventoryTrait;
                 $purchaseOrderBillData = PurchaseOrderBill::where('id',$purchaseOrderBillId)->first();
                 $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder['id'];
                 if($request->has('images')){
-                    $user = Auth::user();
-                    $sha1UserId = sha1($user['id']);
                     $sha1PurchaseOrderId = sha1($purchaseOrderId);
                     $sha1PurchaseOrderBillId = sha1($purchaseOrderBillId);
                     foreach($request['images'] as $key1 => $imageName){
@@ -201,12 +200,21 @@ use InventoryTrait;
                                 File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                             }
                             $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
-                            File::move($tempUploadFile,$imageUploadNewPath);
+                            File::copy($tempUploadFile,$imageUploadNewPath);
                             PurchaseOrderBillImage::create(['name' => $imageName , 'purchase_order_bill_id' => $purchaseOrderBillId, 'is_payment_image' => false]);
                         }
                     }
                 }
             }
+            if($request->has('images')){
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        File::delete($tempUploadFile);
+                    }
+                }
+            }
+
             if($monthlyGrnGeneratedCount != null) {
                 GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
             }else{
@@ -217,7 +225,7 @@ use InventoryTrait;
             $message = 'Fail';
             $status = 500;
             $data = [
-                'action' => 'Genarate GRN for Bill transaction',
+                'action' => 'Generate GRN for Bill transaction',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
@@ -250,7 +258,7 @@ use InventoryTrait;
                 $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
                 $project_site_id = $materialRequestComponent->materialRequest->project_site_id;
                 $materialComponentSlug = $materialRequestComponent->materialRequestComponentTypes->slug;
-                $alreadyPresent = InventoryComponent::where('name',$materialRequestComponent->name)->where('project_site_id',$project_site_id)->first();
+                $alreadyPresent = InventoryComponent::where('name','ilike',$materialRequestComponent->name)->where('project_site_id',$project_site_id)->first();
                 if($alreadyPresent != null){
                     $inventoryComponentId = $alreadyPresent['id'];
                 }else{
@@ -265,7 +273,9 @@ use InventoryTrait;
                     $inventoryData['project_site_id'] = $project_site_id;
                     $inventoryData['purchase_order_component_id'] = $purchaseOrderComponent->id;
                     $inventoryData['opening_stock'] = 0;
-                    $inventoryComponentId = InventoryComponent::insertGetId($inventoryData);
+                    $inventoryData['created_at'] = $inventoryData['updated_at'] = Carbon::now();
+                    $inventoryComponent = InventoryComponent::create($inventoryData);
+                    $inventoryComponentId = $inventoryComponent->id;
                 }
 
                 $transferData['inventory_component_id'] = $inventoryComponentId;
@@ -285,22 +295,25 @@ use InventoryTrait;
                 $transferData['user_id'] = $user['id'];
                 $createdTransferId = $this->create($transferData,$name,$type,'from-purchase');
                 $transferData['images'] = array();
-                $purchaseOrderBillImages = PurchaseOrderBillImage::where('purchase_order_bill_id',$purchaseOrderBill['purchase_order_component_id'])->where('is_payment_image', false)->get();
-                $sha1InventoryComponentId = sha1($inventoryComponentId);
-                $sha1InventoryTransferId = sha1($createdTransferId);
-                $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder['id'];
-                $sha1PurchaseOrderId = sha1($purchaseOrderId);
-                $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
-                foreach ($purchaseOrderBillImages as $key => $image){
-                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId.DIRECTORY_SEPARATOR.$image['name'];
-                    $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
-                    if(!file_exists($imageUploadNewPath)) {
-                        File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                $purchaseOrderBillImages = PurchaseOrderBillImage::where('purchase_order_bill_id',$purchaseOrderBill['id'])->where('is_payment_image', (boolean)false)->get();
+                if(count($purchaseOrderBillImages) > 0){
+                    $sha1InventoryComponentId = sha1($inventoryComponentId);
+                    $sha1InventoryTransferId = sha1($createdTransferId);
+                    $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder['id'];
+                    $sha1PurchaseOrderId = sha1($purchaseOrderId);
+                    $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
+                    foreach ($purchaseOrderBillImages as $key => $image){
+                        $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId.DIRECTORY_SEPARATOR.$image['name'];
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
+                        File::copy($tempUploadFile,$imageUploadNewPath);
+                        InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
                     }
-                    $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
-                    File::copy($tempUploadFile,$imageUploadNewPath);
-                    InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
                 }
+
             }
             $message = "Success";
             $status = 200;
@@ -523,7 +536,7 @@ use InventoryTrait;
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
-            Log::crtical(json_encode($data));
+            Log::critical(json_encode($data));
         }
         $response = [
             'message' => $message,
