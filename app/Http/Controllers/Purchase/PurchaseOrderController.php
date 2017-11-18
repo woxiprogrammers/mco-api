@@ -118,6 +118,75 @@ use InventoryTrait;
         return response()->json($response,$status);
     }
 
+    public function getPurchaseOrderDetail(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $purchaseOrder = PurchaseOrder::where('id',$request['purchase_order_id'])->first();
+            $purchaseOrderList['purchase_order_id'] = $purchaseOrder['id'];
+            $projectSite = $purchaseOrder->purchaseRequest->projectSite;
+            $purchaseOrderList['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSite['id'],$purchaseOrder['created_at'],$purchaseOrder['serial_no']);
+            $purchaseOrderList['vendor_id'] = $purchaseOrder['vendor_id'];
+            $vendor = $purchaseOrder->vendor;
+            $purchaseOrderList['vendor_name'] = $vendor->name;
+            $purchaseOrderList['vendor_mobile'] = $vendor->mobile;
+            $purchaseOrderList['date'] = date($purchaseOrder['created_at']);
+            $iterator = 0;
+            foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
+                $purchaseOrderList['materials'][$iterator]['name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
+                $purchaseOrderList['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
+                $purchaseOrderList['materials'][$iterator]['unit_id'] = $purchaseOrderComponent['unit_id'];
+                $purchaseOrderList['materials'][$iterator]['unit_name'] = $purchaseOrderComponent->unit->name;
+                $purchaseOrderList['materials'][$iterator]['quotation_images'] = array();
+                $purchaseOrderList['materials'][$iterator]['client_approval_images'] = array();
+                $images = PurchaseOrderComponentImage::where('purchase_order_component_id',$purchaseOrderComponent['id'])->get();
+                if(count($images) > 0){
+                    $vendorQuotationImages = $images->where('is_vendor_approval',true);
+                    $clientApprovalImages = $images->where('is_vendor_approval',false);
+                    if(count($vendorQuotationImages) > 0){
+                        $jIterator = 0;
+                        foreach($vendorQuotationImages as $key1 => $image){
+                            $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
+                            $sha1PurchaseOrderComponentId = sha1($purchaseOrderComponent['id']);
+                            $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
+                            $purchaseOrderList['materials'][$iterator]['quotation_images'][$jIterator]['image_url'] = $imageUploadPath;
+                            $jIterator++;
+                        }
+                    }
+
+                    if(count($clientApprovalImages) > 0){
+                        $jIterator = 0;
+                        foreach($clientApprovalImages as $key1 => $image){
+                            $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
+                            $sha1PurchaseOrderComponentId = sha1($purchaseOrderComponent['id']);
+                            $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'client_approval_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
+                            $purchaseOrderList['materials'][$iterator]['client_approval_images'][$jIterator]['image_url'] = $imageUploadPath;
+                            $jIterator++;
+                        }
+                    }
+
+                }
+                $iterator++;
+            }
+
+            $data = $purchaseOrderList;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get PO Detail',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
     public function getPurchaseOrderMaterialListing(Request $request){
         try{
             $purchaseOrder = PurchaseOrder::where('id',$request['purchase_order_id'])->first();
