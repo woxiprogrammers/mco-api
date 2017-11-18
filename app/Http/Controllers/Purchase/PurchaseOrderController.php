@@ -255,6 +255,7 @@ use InventoryTrait;
                 $purchaseOrderBill['purchase_order_component_id'] = $material['purchase_order_component_id'];
                 $purchaseOrderBill['quantity'] = $material['quantity'];
                 $purchaseOrderBill['unit_id'] = $material['unit_id'];
+                $purchaseOrderBill['purchase_order_bill_status_id'] = PurchaseOrderBillStatus::where('slug','grn-generated')->pluck('id')->first();
                 $purchaseOrderBillId = PurchaseOrderBill::insertGetId($purchaseOrderBill);
                 $purchaseOrderBillData = PurchaseOrderBill::where('id',$purchaseOrderBillId)->first();
                 $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder['id'];
@@ -504,47 +505,61 @@ use InventoryTrait;
                 $purchaseOrderIds = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->pluck('id');
                 $purchaseOrderComponentIDs = PurchaseOrderComponent::whereIn('purchase_order_id',$purchaseOrderIds)->pluck('id');
             }
-            $purchaseOrderBillData = PurchaseOrderBill::whereIn('purchase_order_component_id',$purchaseOrderComponentIDs)->orderBy('created_at','desc')->get();
+            $purchaseOrderBills = PurchaseOrderBill::whereIn('purchase_order_component_id',$purchaseOrderComponentIDs)->orderBy('created_at','desc')->get();
+            $purchaseOrderBillData = $purchaseOrderBills->groupBy('grn');
             $purchaseOrderBillListing = array();
             $iterator = 0;
-            foreach($purchaseOrderBillData as $key => $purchaseOrderBill){
-                $purchaseOrderComponent = $purchaseOrderBill->purchaseOrderComponent;
-                $purchaseRequestComponent = $purchaseOrderComponent->purchaseRequestComponent;
-                $projectSiteID = $purchaseRequestComponent->purchaseRequest->project_site_id;
-                $purchaseOrderBillListing[$iterator]['purchase_request_id'] = $purchaseRequestComponent->purchase_request_id;
-                $purchaseOrderBillListing[$iterator]['purchase_request_format_id'] = $this->getPurchaseIDFormat('purchase-request',$projectSiteID,$purchaseRequestComponent['created_at'],$purchaseRequestComponent['serial_no']);
-                $purchaseOrderBillListing[$iterator]['purchase_order_id'] = $purchaseOrderComponent->purchase_order_id;
-                $purchaseOrderBillListing[$iterator]['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSiteID,$purchaseOrderComponent['created_at'],$purchaseOrderComponent['serial_no']);
-                $purchaseOrderBillListing[$iterator]['purchase_order_bill_id'] = $purchaseOrderBill['id'];
-                $purchaseOrderBillListing[$iterator]['date'] = date('l, d F Y',strtotime($purchaseOrderBill['created_at']));
-                $purchaseOrderBillListing[$iterator]['material_name'] = $purchaseRequestComponent->materialRequestComponent->name;
-                $purchaseOrderBillListing[$iterator]['material_quantity'] = $purchaseOrderBill['quantity'];
-                $purchaseOrderBillListing[$iterator]['unit_id'] = $purchaseOrderBill['unit_id'];
-                $purchaseOrderBillListing[$iterator]['unit_name'] = $purchaseOrderBill->unit->name;
-                $purchaseOrderBillListing[$iterator]['bill_number'] = $purchaseOrderBill['bill_number'];
-                $purchaseOrderBillListing[$iterator]['vehicle_number'] = $purchaseOrderBill['vehicle_number'];
-                $purchaseOrderBillListing[$iterator]['purchase_bill_grn'] = $purchaseOrderBill['grn'];
-                $purchaseOrderBillListing[$iterator]['in_time'] = $purchaseOrderBill['in_time'];
-                $purchaseOrderBillListing[$iterator]['out_time'] = $purchaseOrderBill['out_time'];
-                $purchaseOrderBillListing[$iterator]['bill_amount'] = $purchaseOrderBill['bill_amount'];
-                $purchaseOrderBillListing[$iterator]['remark'] = $purchaseOrderBill['remark'];
-                $purchaseOrderBillListing[$iterator]['vendor_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
-                $purchaseOrderBillImages = PurchaseOrderBillImage::where('purchase_order_bill_id',$purchaseOrderBill['id'])->where('is_payment_image',false)->get();
-                $purchaseOrderBillListing[$iterator]['images'] = array();
-                if(count($purchaseOrderBillImages) > 0){
-                    $jIterator = 0;
-                    $sha1PurchaseOrderId = sha1($purchaseOrderBillListing[$iterator]['purchase_order_id']);
-                    $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
-                    $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
-                    foreach($purchaseOrderBillImages as $index => $images){
-                        $purchaseOrderBillListing[$iterator]['images'][$jIterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$images['name'];
-                        $jIterator++;
+            foreach ($purchaseOrderBillData as $grn => $purchaseOrderBillArray){
+                $jIterator = 0;
+                $materialCount = count($purchaseOrderBillArray);
+                $material_names = array();
+                foreach ($purchaseOrderBillArray as $purchaseOrderBill){
+                    $purchaseOrderComponent = $purchaseOrderBill->purchaseOrderComponent;
+                    $purchaseRequestComponent = $purchaseOrderComponent->purchaseRequestComponent;
+                    $projectSiteID = $purchaseRequestComponent->purchaseRequest->project_site_id;
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['id'] = $purchaseOrderBill['id'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_order_component_id'] = $purchaseOrderBill['purchase_order_component_id'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_request_id'] = $purchaseRequestComponent->purchase_request_id;
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_request_format_id'] = $this->getPurchaseIDFormat('purchase-request',$projectSiteID,$purchaseRequestComponent['created_at'],$purchaseRequestComponent['serial_no']);
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_order_id'] = $purchaseOrderComponent->purchase_order_id;
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSiteID,$purchaseOrderComponent['created_at'],$purchaseOrderComponent['serial_no']);
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_order_bill_id'] = $purchaseOrderBill['id'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['date'] = date('l, d F Y',strtotime($purchaseOrderBill['created_at']));
+                    $material_name = $purchaseRequestComponent->materialRequestComponent->name;
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['material_name'] = $material_name;
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['material_quantity'] = $purchaseOrderBill['quantity'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['unit_id'] = $purchaseOrderBill['unit_id'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['unit_name'] = $purchaseOrderBill->unit->name;
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['bill_number'] = $purchaseOrderBill['bill_number'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['vehicle_number'] = $purchaseOrderBill['vehicle_number'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_bill_grn'] = $purchaseOrderBill['grn'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['in_time'] = $purchaseOrderBill['in_time'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['out_time'] = $purchaseOrderBill['out_time'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['bill_amount'] = $purchaseOrderBill['bill_amount'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['remark'] = $purchaseOrderBill['remark'];
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['vendor_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
+                    if($purchaseOrderBill['purchase_order_bill_status_id'] != null){
+                        $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['status'] = $purchaseOrderBill->purchaseOrderBillStatuses->name;
+                    }else{
+                        $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['status'] = '';
                     }
+                    $purchaseOrderBillImages = PurchaseOrderBillImage::where('purchase_order_bill_id',$purchaseOrderBill['id'])->where('is_payment_image',false)->get();
+                    $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['images'] = array();
+                    if(count($purchaseOrderBillImages) > 0){
+                        $kIterator = 0;
+                        $sha1PurchaseOrderId = sha1($purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['purchase_order_id']);
+                        $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
+                        $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
+                        foreach($purchaseOrderBillImages as $index => $images){
+                            $purchaseOrderBillListing[$iterator]['bill_data'][$jIterator]['images'][$kIterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$images['name'];
+                            $kIterator++;
+                        }
+                    }
+                    array_push($material_names,$material_name);
+                    $jIterator++;
                 }
-                if($purchaseOrderBill['purchase_order_bill_status_id'] != null){
-                    $purchaseOrderBillListing[$iterator]['status'] = $purchaseOrderBill->purchaseOrderBillStatuses->name;
-                }else{
-                    $purchaseOrderBillListing[$iterator]['status'] = '';
+                if($materialCount == $jIterator){
+                    $purchaseOrderBillListing[$iterator]['material_name'] = implode(', ', $material_names);
                 }
                 $iterator++;
             }
