@@ -25,6 +25,15 @@ class ImageController extends BaseController{
 
     public function saveImages(Request $request){
         try{
+            $a = '(';
+            $b = '1';
+            $d = '+';
+            $e = '3';
+            $c = ')';
+            $k = $a.$b.$d.$e.$c.'+1';
+            $Cal = new Field_calculate();
+            dd($result = $Cal->calculate('(10.2+0.5*(2-0.4))*2+(2.1*4)'));
+
             $user = Auth::user();
             $sha1UserId = sha1($user['id']);
             switch ($request['image_for']){
