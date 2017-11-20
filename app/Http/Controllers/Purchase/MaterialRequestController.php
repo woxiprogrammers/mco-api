@@ -10,6 +10,7 @@ use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
 use App\MaterialRequests;
 use App\MaterialVersion;
+use App\Permission;
 use App\ProjectSite;
 use App\PurchaseRequestComponentStatuses;
 use App\Quotation;
@@ -344,10 +345,15 @@ use PurchaseTrait;
     public function materialRequestListing(Request $request){
         try{
             $user = Auth::user();
-            $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->where(function ($query) use ($user){
-                $query->where('user_id',$user['id'])
-                    ->Orwhere('assigned_to',$user['id']);
-            })->orderBy('created_at','desc')->get();
+            $approvalAclPermissionCount = Permission::join('user_has_permissions','permissions.id','=','user_has_permissions.permission_id')
+                                        ->where('permissions.name','approve-material-request')
+                                        ->where('user_has_permissions.user_id',$user['id'])
+                                        ->count();
+            if($approvalAclPermissionCount > 0){
+                $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->orderBy('created_at','desc')->get();
+            }else{
+                $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->where('user_id',$user['id'])->orderBy('created_at','desc')->get();
+            }
             $materialRequestList = array();
             $iterator = 0;
             if(count($materialRequests) > 0){
@@ -366,13 +372,18 @@ use PurchaseTrait;
                         $materialRequestList[$iterator]['component_status_id'] = $materialRequestComponents->component_status_id;
                         $materialRequestList[$iterator]['component_status'] = $materialRequestComponents->purchaseRequestComponentStatuses->slug;
                         $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
-                        if($materialRequest['user_id'] == $user['id'] && $materialRequest['assigned_to'] == $user['id']){
+                        if($approvalAclPermissionCount > 0){
+                            $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
+                        }else{
+                            $materialRequestList[$iterator]['have_access'] = 'create-material-request';
+                        }
+                        /*if($materialRequest['user_id'] == $user['id'] && $materialRequest['assigned_to'] == $user['id']){
                             $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
                         }elseif($materialRequest['assigned_to'] == $user['id']){
                             $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
                         }else{
                             $materialRequestList[$iterator]['have_access'] = 'create-material-request';
-                        }
+                        }*/
                         if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved'){
                             $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponents->id)->where('component_status_id',$materialRequestList[$iterator]['component_status_id'])->pluck('user_id')->first();
                             $user = User::where('id',$userId)->select('first_name','last_name')->first();
