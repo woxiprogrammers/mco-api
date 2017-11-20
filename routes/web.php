@@ -51,6 +51,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
     });
     $app->group(['prefix' => 'purchase-order'], function () use ($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderListing'));
+        $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('generate-grn',array('uses' => 'Purchase\PurchaseOrderController@generateGRN'));
         $app->post('bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderBillTransaction'));

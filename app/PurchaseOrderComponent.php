@@ -17,4 +17,9 @@ class PurchaseOrderComponent extends Model
     public function purchaseOrder(){
         return $this->belongsTo('App\PurchaseOrder','purchase_order_id');
     }
+
+    public function unit(){
+        return $this->belongsTo('App\Unit','unit_id');
+    }
+
 }
