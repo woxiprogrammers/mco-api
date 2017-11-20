@@ -557,11 +557,13 @@ use InventoryTrait;
                             $kIterator++;
                         }
                     }
+                    $grn = $purchaseOrderBill['grn'];
                     array_push($material_names,$material_name);
                     $jIterator++;
                 }
                 if($materialCount == $jIterator){
                     $purchaseOrderBillListing[$iterator]['material_name'] = implode(', ', $material_names);
+                    $purchaseOrderBillListing[$iterator]['grn'] = $grn;
                 }
                 $iterator++;
             }
