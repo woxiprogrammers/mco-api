@@ -89,3 +89,7 @@ $app->group(['prefix' => 'checklist'], function () use($app){
 
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
 $app->get('system-project-sites' , array('uses' => 'ProjectSiteController@getAllProjectSites'));
+$app->group(['prefix' => 'awareness'], function () use($app){
+    $app->post('get-main-categories', array('uses' => 'Awareness\AwarenessManagementController@getMainCategories'));
+    $app->post('get-sub-categories', array('uses' => 'Awareness\AwarenessManagementController@getSubCategories'));
+});
