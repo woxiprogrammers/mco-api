@@ -16,6 +16,7 @@ use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequests;
 use App\Quotation;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -148,13 +149,6 @@ use PurchaseTrait;
                     ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
                     ->orderBy('created_at','desc')->get();
             }
-/*            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
-                                ->where(function ($query) use ($user){
-                                        $query->where('user_id',$user['id'])
-                                        ->Orwhere('assigned_to',$user['id']);
-                                })
-                                ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
-                                ->orderBy('created_at','desc')->get();*/
             $purchaseRequestList = $data = array();
             $iterator = 0;
             if(count($purchaseRequests) > 0){
@@ -165,18 +159,20 @@ use PurchaseTrait;
                     $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
                     $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
                     $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->slug;
+                    $purchase_component_status_id = $purchaseRequest['purchase_component_status_id'];
                     if($approvalAclPermissionCount > 0){
                         $purchaseRequestList[$iterator]['have_access'] = 'approve-purchase-request';
                     }else{
                         $purchaseRequestList[$iterator]['have_access'] = 'create-purchase-request';
                     }
-                   /* if($purchaseRequest['user_id'] == $user['id'] && $purchaseRequest['assigned_to'] == $user['id']){
-                        $purchaseRequestList[$iterator]['have_access'] = 'approve-purchase-request';
-                    }elseif($purchaseRequest['assigned_to'] == $user['id']){
-                        $purchaseRequestList[$iterator]['have_access'] = 'approve-purchase-request';
+                    if($purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-disapproved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-disapproved'){
+                        $materialRequestComponentId = $purchaseRequest->purchaseRequestComponents->pluck('material_request_component_id')->first();
+                        $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponentId)->where('component_status_id',$purchase_component_status_id)->pluck('user_id')->first();
+                        $user = User::where('id',$userId)->select('first_name','last_name')->first();
+                        $purchaseRequestList[$iterator]['approved_by'] = $user['first_name'].' '.$user['last_name'];
                     }else{
-                        $purchaseRequestList[$iterator]['have_access'] = 'create-purchase-request';
-                    }*/
+                        $purchaseRequestList[$iterator]['approved_by'] = '';
+                    }
                     $iterator++;
                 }
             }

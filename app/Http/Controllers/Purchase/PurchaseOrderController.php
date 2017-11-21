@@ -316,7 +316,7 @@ use InventoryTrait;
             $sha1UserId = sha1($user['id']);
             $updatePurchaseOrderBill = $request->except('type','token','grn');
             switch($request['type']){
-                case 'upload_bill' :
+                case 'upload-bill' :
                     $updatePurchaseOrderBill['purchase_order_bill_status_id'] = PurchaseOrderBillStatus::where('slug','bill-pending')->pluck('id')->first();;
                     break;
 
