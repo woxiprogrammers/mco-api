@@ -83,6 +83,10 @@ $app->group(['prefix' => 'peticash'], function () use($app){
         $app->post('transaction-detail', array('uses' => 'Peticash\PurchaseController@getTransactionDetails'));
     });
 });
+$app->group(['prefix' => 'checklist'], function () use($app){
+    $app->post('category', array('uses' => 'Checklist\ChecklistController@getCategoryListing'));
+});
+
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
 $app->get('system-project-sites' , array('uses' => 'ProjectSiteController@getAllProjectSites'));
 $app->group(['prefix' => 'awareness'], function () use($app){
