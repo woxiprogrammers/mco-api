@@ -6,6 +6,7 @@
      * Time: 11:35 AM
      */
     namespace App\Http\Controllers\Awareness;
+    use App\AwarenessFiles;
     use App\AwarenessMainCategory;
     use App\AwarenessSubCategory;
     use Illuminate\Http\Request;
@@ -98,6 +99,41 @@
                 "page_id" => $pageId,
                 "message" => $message,
 
+            ];
+            return response()->json($response,$status);
+        }
+        public function listing(Request $request){
+            try{
+                 $message = "Success";
+                 $status = 200;
+                 $main_category_id = AwarenessSubCategory::where('id',$request->sub_category_id)->pluck('awareness_main_category_id')->first();
+                 $path = env('AWARENESS_FILE_PATH').DIRECTORY_SEPARATOR.$main_category_id.DIRECTORY_SEPARATOR.$request->sub_category_id;
+                 $files = AwarenessFiles::where('awareness_main_category_id',$main_category_id)->where('awareness_sub_category_id',$request->sub_category_id)->select('file_name')->get();
+                 $awareness_files = array();
+                 $iterator = 0;
+                 foreach ($files as $file){
+                     $awareness_files[$iterator]['name'] = $file['file_name'];
+                     $awareness_files[$iterator]['extension']  = pathinfo($file['file_name'],PATHINFO_EXTENSION);
+                     $iterator++;
+                 }
+                 $data = [
+                   'file_details' => $awareness_files,
+                   'path' => $path
+                 ];
+            }catch (Exception $e){
+                 $status = 500;
+                 $message = "Fail";
+                 $data = [
+                    'action' => 'Get Main Categories',
+                    'params' => $request->all(),
+                    'exception' => $e->getMessage()
+                 ];
+                $page_id = "";
+                Log::critical(json_encode($data));
+            }
+            $response = [
+                "data" => $data,
+                "message" => $message,
             ];
             return response()->json($response,$status);
         }
