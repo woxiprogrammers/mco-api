@@ -307,8 +307,7 @@ use PurchaseTrait;
             $user = Auth::user();
             $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component_id'])->first();
             $materialComponentHistoryData = array();
-            $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
-            $materialComponentHistoryData['component_status_id'] = $adminApproveComponentStatusId;
+            $materialComponentHistoryData['component_status_id'] = $request['change_component_status_id_to'];
             $materialComponentHistoryData['user_id'] = $user['id'];
             $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponent['id'];
             $materialComponentHistoryData['remark'] = $request['remark'];
@@ -380,7 +379,7 @@ use PurchaseTrait;
                         if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-disapproved' || $materialRequestList[$iterator]['component_status'] == 'purchase-requested'){
                             $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponents->id)->where('component_status_id',$materialRequestList[$iterator]['component_status_id'])->pluck('user_id')->first();
                             $user = User::where('id',$userId)->select('first_name','last_name')->first();
-                            $materialRequestList[$iterator]['approved_by'] = $user->first_name.' '.$user->last_name;
+                            $materialRequestList[$iterator]['approved_by'] = $user['first_name'].' '.$user['last_name'];
                         }else{
                             $materialRequestList[$iterator]['approved_by'] = '';
                         }
