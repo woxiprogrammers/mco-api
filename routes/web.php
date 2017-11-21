@@ -85,6 +85,8 @@ $app->group(['prefix' => 'peticash'], function () use($app){
 });
 $app->group(['prefix' => 'checklist'], function () use($app){
     $app->post('category', array('uses' => 'Checklist\ChecklistController@getCategoryListing'));
+    $app->post('floor', array('uses' => 'Checklist\ChecklistController@getFloorListing'));
+    $app->post('title', array('uses' => 'Checklist\ChecklistController@getTitleListing'));
 });
 
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));

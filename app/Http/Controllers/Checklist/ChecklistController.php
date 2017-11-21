@@ -67,4 +67,54 @@ class ChecklistController extends BaseController
         ];
         return response($response,$status);
     }
+
+    public function getFloorListing(Request $request){
+        try{
+            $floorList = ProjectSiteChecklist::join('quotation_floors','quotation_floors.id','=','project_site_checklists.quotation_floor_id')
+                                    ->where('project_site_checklists.project_site_id',$request['project_site_id'])->distinct('project_site_checklists.quotation_floor_id')
+                                    ->select('project_site_checklists.quotation_floor_id','quotation_floors.name as quotation_floor_name')->get();
+            $data['floor_list'] = $floorList;
+            $status = 200;
+            $message = "Success";
+        }catch(\Exception $e){
+            $data = [
+                'action' => 'Get Floor and title name',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            $status = 500;
+            $message = "Fail";
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getTitleListing(Request $request){
+        try{
+            $titleList = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])
+                            ->where('quotation_floor_id',$request['quotation_floor_id'])
+                            ->select('id as project_site_checklist_id','title','detail')
+                            ->get();
+            $data['title_list'] = $titleList;
+            $status = 200;
+            $message = "Success";
+
+        }catch(\Exception $e){
+            $data = [
+                'action' => 'Get Title Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            $status = 500;
+            $message = "Fail";
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
 }
