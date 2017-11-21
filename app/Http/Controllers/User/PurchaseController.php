@@ -45,7 +45,7 @@ class PurchaseController extends BaseController
                 $i++;
             }
             if($request['component_status_slug'] == 'in-indent'){
-                $materialRequestAssigned = MaterialRequests::get();
+                $materialRequestAssigned = MaterialRequests::where('project_site_id',$request['project_site_id'])->get();
             }else{
                 $materialRequestAssigned = MaterialRequests::where('assigned_to',$authUser['id'])->get();
             }

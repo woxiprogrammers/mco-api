@@ -377,14 +377,7 @@ use PurchaseTrait;
                         }else{
                             $materialRequestList[$iterator]['have_access'] = 'create-material-request';
                         }
-                        /*if($materialRequest['user_id'] == $user['id'] && $materialRequest['assigned_to'] == $user['id']){
-                            $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
-                        }elseif($materialRequest['assigned_to'] == $user['id']){
-                            $materialRequestList[$iterator]['have_access'] = 'approve-material-request';
-                        }else{
-                            $materialRequestList[$iterator]['have_access'] = 'create-material-request';
-                        }*/
-                        if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved'){
+                        if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-disapproved' || $materialRequestList[$iterator]['component_status'] == 'purchase-requested'){
                             $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponents->id)->where('component_status_id',$materialRequestList[$iterator]['component_status_id'])->pluck('user_id')->first();
                             $user = User::where('id',$userId)->select('first_name','last_name')->first();
                             $materialRequestList[$iterator]['approved_by'] = $user->first_name.' '.$user->last_name;
