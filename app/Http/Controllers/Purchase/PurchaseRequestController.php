@@ -139,7 +139,7 @@ use PurchaseTrait;
                 ->where('user_has_permissions.user_id',$user['id'])
                 ->count();
             if($approvalAclPermissionCount > 0){
-                $purchaseRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])
+                $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
                                     ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
                                     ->orderBy('created_at','desc')->get();
             }else{
