@@ -7,8 +7,11 @@
      */
 namespace App\Http\Controllers\Checklist;
 use App\ChecklistCategory;
+use App\ChecklistStatus;
 use App\ProjectSiteChecklist;
 use App\ProjectSiteChecklistCheckpoint;
+use App\ProjectSiteUserChecklistAssignment;
+use App\ProjectSiteUserCheckpoint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -26,10 +29,7 @@ class ChecklistController extends BaseController
 
     public function getCategoryListing(Request $request){
         try{
-            $subCategoryIds = ProjectSiteChecklistCheckpoint::join('project_site_checklists','project_site_checklist_checkpoints.project_site_checklist_id','=','project_site_checklists.id')
-                                                            ->where('project_site_checklists.project_site_id',$request['project_site_id'])
-                                                            ->distinct('project_site_checklist_checkpoints.checklist_category_id')
-                                                            ->pluck('project_site_checklist_checkpoints.checklist_category_id');
+            $subCategoryIds = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])->distinct('checklist_category_id')->pluck('checklist_category_id');
             $categoryIDs = ChecklistCategory::whereIn('id',$subCategoryIds)->pluck('category_id');
             $categories = ChecklistCategory::whereIn('id',$categoryIDs)->get();
             $iterator = 0;
@@ -110,6 +110,110 @@ class ChecklistController extends BaseController
             ];
             $status = 500;
             $message = "Fail";
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    /*public function getDescriptionListing(Request $request){
+        try{
+            $user = Auth::user();
+            $message = "Success";
+            $status = 200;
+            $projectSiteChecklistCheckpoints = ProjectSiteUserCheckpoint::where('')
+            $projectSiteChecklistCheckpoints = ProjectSiteChecklistCheckpoint::where('project_site_checklist_id',$request['project_site_checklist_id'])
+                                                ->select('id as project_site_checklist_id','description')->get();
+            $data['project_site_checklist_checkpoints'] = $projectSiteChecklistCheckpoints;
+        }catch(\Exception $e){
+            $message = "Fai;";
+            $status = 500;
+            $data = [
+                'action' => 'Get Description',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }*/
+
+    public function createUserAssignment(Request $request){
+        try{
+            $user = Auth::user();
+            $project_site_user_checklist_assignment['project_site_checklist_id'] = $request['project_site_checklist_id'];
+            $project_site_user_checklist_assignment['checklist_status_id'] = ChecklistStatus::where('slug','assigned')->pluck('id')->first();
+            $project_site_user_checklist_assignment['assigned_by'] = $user['id'];
+            foreach ($request['assigned_to'] as $key => $assignedUserId) {
+                $project_site_user_checklist_assignment['assigned_to'] = $assignedUserId;
+                ProjectSiteUserChecklistAssignment::create($project_site_user_checklist_assignment);
+            }
+            $message = "Checklist Assigned Successfully";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Create User Assignment',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message'  => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getChecklistListing(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $data = array();
+            $user = Auth::user();
+            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
+                    ->where('project_site_checklists.project_site_id',$request['project_site_id'])
+                    ->where('project_site_user_checklist_assignments.assigned_by',$user['id'])->get();
+            $iterator = 0;
+            $checklistListing = array();
+            foreach($projectSiteUserChecklists as $key => $projectSiteUserChecklist) {
+                $checklistListing[$iterator]['project_site_user_checklist_assignment_id'] = $projectSiteUserChecklist['id'];
+                $projectSiteChecklist = $projectSiteUserChecklist->projectSiteChecklist;
+                $checklistListing[$iterator]['project_site_checklist_id'] = $projectSiteChecklist['id'];
+                $checklistListing[$iterator]['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
+                $assignedToUser = $projectSiteUserChecklist->assignedToUser;
+                $checklistListing[$iterator]['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
+                $checklistListing[$iterator]['assigned_on'] =date('l, d F Y',strtotime($projectSiteUserChecklist['created_at']));
+                $subcategoryData = $projectSiteChecklist->checklistCategory;
+                $categoryData = ChecklistCategory::where('id',$subcategoryData['category_id'])->first();
+                $checklistListing[$iterator]['category_id'] = $categoryData['id'];
+                $checklistListing[$iterator]['category_name'] = $categoryData['name'];
+                $checklistListing[$iterator]['sub_category_id'] = $subcategoryData['id'];
+                $checklistListing[$iterator]['sub_category_name'] = $subcategoryData['name'];
+                $checklistListing[$iterator]['floor_name'] = $projectSiteChecklist->quotationFloor->name;
+                $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
+                $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
+                $checklistListing[$iterator]['total_checkpoints'] = 12;
+                $iterator++;
+            }
+            $data['checklist_data'] = $checklistListing;
+
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Checklist Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
         }
         $response = [
             'data' => $data,
