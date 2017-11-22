@@ -108,10 +108,11 @@
                  $status = 200;
                  $main_category_id = AwarenessSubCategory::where('id',$request->sub_category_id)->pluck('awareness_main_category_id')->first();
                  $path = env('AWARENESS_FILE_PATH').DIRECTORY_SEPARATOR.$main_category_id.DIRECTORY_SEPARATOR.$request->sub_category_id;
-                 $files = AwarenessFiles::where('awareness_main_category_id',$main_category_id)->where('awareness_sub_category_id',$request->sub_category_id)->select('file_name')->get();
+                 $files = AwarenessFiles::where('awareness_main_category_id',$main_category_id)->where('awareness_sub_category_id',$request->sub_category_id)->select('id','file_name')->get();
                  $awareness_files = array();
                  $iterator = 0;
                  foreach ($files as $file){
+                     $awareness_files[$iterator]['id'] = $file['id'];
                      $awareness_files[$iterator]['name'] = $file['file_name'];
                      $awareness_files[$iterator]['extension']  = pathinfo($file['file_name'],PATHINFO_EXTENSION);
                      $iterator++;
