@@ -107,7 +107,7 @@
                  $message = "Success";
                  $status = 200;
                  $main_category_id = AwarenessSubCategory::where('id',$request->sub_category_id)->pluck('awareness_main_category_id')->first();
-                 $path = env('AWARENESS_FILE_PATH').DIRECTORY_SEPARATOR.$main_category_id.DIRECTORY_SEPARATOR.$request->sub_category_id;
+                 $path = env('AWARENESS_FILE_PATH').DIRECTORY_SEPARATOR.sha1($main_category_id).DIRECTORY_SEPARATOR.sha1($request->sub_category_id);
                  $files = AwarenessFiles::where('awareness_main_category_id',$main_category_id)->where('awareness_sub_category_id',$request->sub_category_id)->select('id','file_name')->get();
                  $awareness_files = array();
                  $iterator = 0;
