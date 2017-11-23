@@ -178,19 +178,24 @@ class ChecklistController extends BaseController
             $status = 200;
             $data = array();
             $user = Auth::user();
-            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
-                    ->where('project_site_checklists.project_site_id',$request['project_site_id'])
-                    ->where('project_site_user_checklist_assignments.assigned_by',$user['id'])->get();
+            switch ($request['checklist_status_slug']){
+                case 'assigned' :
+                    $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
+                        ->where('project_site_user_checklist_assignments.checklist_status_id',ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first())
+                        ->where('project_site_checklists.project_site_id',$request['project_site_id'])
+                        ->where(function ($query) use ($user){
+                            $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
+                                ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
+                        })->get();
+                    break;
+            }
             $iterator = 0;
             $checklistListing = array();
             foreach($projectSiteUserChecklists as $key => $projectSiteUserChecklist) {
                 $checklistListing[$iterator]['project_site_user_checklist_assignment_id'] = $projectSiteUserChecklist['id'];
                 $projectSiteChecklist = $projectSiteUserChecklist->projectSiteChecklist;
                 $checklistListing[$iterator]['project_site_checklist_id'] = $projectSiteChecklist['id'];
-                $checklistListing[$iterator]['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
-                $assignedToUser = $projectSiteUserChecklist->assignedToUser;
-                $checklistListing[$iterator]['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
-                $checklistListing[$iterator]['assigned_on'] =date('l, d F Y',strtotime($projectSiteUserChecklist['created_at']));
+                $checklistListing[$iterator]['assigned_on'] = date('l, d F Y',strtotime($projectSiteUserChecklist['created_at']));
                 $subcategoryData = $projectSiteChecklist->checklistCategory;
                 $categoryData = ChecklistCategory::where('id',$subcategoryData['category_id'])->first();
                 $checklistListing[$iterator]['category_id'] = $categoryData['id'];
@@ -201,6 +206,19 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
                 $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
                 $checklistListing[$iterator]['total_checkpoints'] = 12;
+                if($projectSiteUserChecklist['assigned_by'] == $user['id']){
+                    $checklistListing[$iterator]['assigned_user'] = $projectSiteUserChecklist['assigned_to'];
+                    $assignedToUser = $projectSiteUserChecklist->assignedToUser;
+                    $checklistListing[$iterator]['assigned_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
+                }elseif($projectSiteUserChecklist['assigned_to'] == $user['id']){
+                    $checklistListing[$iterator]['assigned_user'] = $projectSiteUserChecklist['assigned_by'];
+                    $assignedByUser = $projectSiteUserChecklist->assignedByUser;
+                    $checklistListing[$iterator]['assigned_user_name'] = $assignedByUser['first_name'].' '.$assignedByUser['last_name'];
+                }else{
+                    $checklistListing[$iterator]['assigned_user'] = $projectSiteUserChecklist['assigned_by'];
+                    $assignedByUser = $projectSiteUserChecklist->assignedByUser;
+                    $checklistListing[$iterator]['assigned_user_name'] = $assignedByUser['first_name'].' '.$assignedByUser['last_name'];
+                }
                 $iterator++;
             }
             $data['checklist_data'] = $checklistListing;
