@@ -87,6 +87,9 @@ $app->group(['prefix' => 'checklist'], function () use($app){
     $app->post('category', array('uses' => 'Checklist\ChecklistController@getCategoryListing'));
     $app->post('floor', array('uses' => 'Checklist\ChecklistController@getFloorListing'));
     $app->post('title', array('uses' => 'Checklist\ChecklistController@getTitleListing'));
+    $app->post('assign', array('uses' => 'Checklist\ChecklistController@createUserAssignment'));
+    $app->post('listing', array('uses' => 'Checklist\ChecklistController@getChecklistListing'));
+    $app->post('description', array('uses' => 'Checklist\ChecklistController@getDescriptionListing'));
 });
 
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
