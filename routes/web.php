@@ -89,6 +89,7 @@ $app->group(['prefix' => 'checklist'], function () use($app){
     $app->post('title', array('uses' => 'Checklist\ChecklistController@getTitleListing'));
     $app->post('assign', array('uses' => 'Checklist\ChecklistController@createUserAssignment'));
     $app->post('listing', array('uses' => 'Checklist\ChecklistController@getChecklistListing'));
+    $app->post('checkpoint-listing', array('uses' => 'Checklist\ChecklistController@getCheckPointListing'));
     $app->post('description', array('uses' => 'Checklist\ChecklistController@getDescriptionListing'));
 });
 
