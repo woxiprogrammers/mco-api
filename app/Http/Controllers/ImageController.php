@@ -37,7 +37,7 @@ class ImageController extends BaseController{
                     break;
 
                 case 'bill_transaction' :
-                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD');
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD');
                     break;
 
                 case 'post_grn_bill_transaction' :
@@ -67,8 +67,7 @@ class ImageController extends BaseController{
                 default :
                     $tempUploadPath = '';
             }
-            $tempImageUploadPath = $tempUploadPath.$sha1UserId;
-
+            $tempImageUploadPath = $tempUploadPath.DIRECTORY_SEPARATOR.$sha1UserId;
             if (!file_exists($tempImageUploadPath)) {
                 File::makeDirectory($tempImageUploadPath, $mode = 0777, true, true);
             }
