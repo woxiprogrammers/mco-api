@@ -25,6 +25,10 @@ use App\PurchaseOrderBillPayment;
 use App\PurchaseOrderBillStatus;
 use App\PurchaseOrderComponent;
 use App\PurchaseOrderComponentImage;
+use App\PurchaseOrderTransaction;
+use App\PurchaseOrderTransactionComponent;
+use App\PurchaseOrderTransactionImage;
+use App\PurchaseOrderTransactionStatus;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequests;
 use Carbon\Carbon;
@@ -75,6 +79,12 @@ use InventoryTrait;
                         ->distinct('material_request_components.name')->select('material_request_components.name')->take(5)->get();
                     $purchaseOrderList[$iterator]['materials'] = $material_names->implode('name', ', ');
                     $purchaseOrderList[$iterator]['status'] = ($purchaseOrder['is_approved'] == true) ? 'Approved' : 'Disapproved';
+                    $alreadyGRNGenerated = PurchaseOrderTransaction::where('purchase_order_id',$purchaseOrder['id'])->whereNull('bill_number')->pluck('grn')->last();
+                    if(count($alreadyGRNGenerated) > 0){
+                        $purchaseOrderList[$iterator]['grn_generated'] = $alreadyGRNGenerated;
+                    }else{
+                        $purchaseOrderList[$iterator]['grn_generated'] = '';
+                    }
                     $iterator++;
                 }
             }
@@ -240,47 +250,41 @@ use InventoryTrait;
         try{
             $message = 'Success';
             $status = 200;
-            $currentTimeStamp = Carbon::now();
+
             $currentDate = Carbon::now();
+            $purchaseOrderTransaction['purchase_order_id'] = $request['purchase_order_id'];
             $monthlyGrnGeneratedCount = GRNCount::where('month',$currentDate->month)->where('year',$currentDate->year)->pluck('count')->first();
             if($monthlyGrnGeneratedCount != null){
                 $serialNumber = $monthlyGrnGeneratedCount + 1;
             }else{
                 $serialNumber = 1;
             }
-            $purchaseOrderBill['grn'] = "GRN".date('Ym').($serialNumber);
-            $purchaseOrderBill['created_at'] = $currentTimeStamp;
-            $purchaseOrderBill['updated_at'] = $currentTimeStamp;
+            $purchaseOrderTransaction['purchase_order_transaction_status_id'] = PurchaseOrderTransactionStatus::where('slug','grn-generated')->pluck('id')->first();
+            $purchaseOrderTransaction['grn'] = "GRN".date('Ym').($serialNumber);
+            $purchaseOrderTransaction['in_time'] = Carbon::now();
+            $purchaseOrderTransactionData = PurchaseOrderTransaction::create($purchaseOrderTransaction);
             $user = Auth::user();
             $sha1UserId = sha1($user['id']);
-            foreach($request['item_list'] as $key => $material){
-                $purchaseOrderBill['purchase_order_component_id'] = $material['purchase_order_component_id'];
-                $purchaseOrderBill['quantity'] = $material['quantity'];
-                $purchaseOrderBill['unit_id'] = $material['unit_id'];
-                $purchaseOrderBill['purchase_order_bill_status_id'] = PurchaseOrderBillStatus::where('slug','grn-generated')->pluck('id')->first();
-                $purchaseOrderBillId = PurchaseOrderBill::insertGetId($purchaseOrderBill);
-                $purchaseOrderBillData = PurchaseOrderBill::where('id',$purchaseOrderBillId)->first();
-                $purchaseOrderId = $purchaseOrderBillData->purchaseOrderComponent->purchaseOrder['id'];
-                if($request->has('images')){
-                    $sha1PurchaseOrderId = sha1($purchaseOrderId);
-                    $sha1PurchaseOrderBillId = sha1($purchaseOrderBillId);
-                    foreach($request['images'] as $key1 => $imageName){
-                        $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
-                        if(File::exists($tempUploadFile)){
-                            $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId;
-                            if(!file_exists($imageUploadNewPath)) {
-                                File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
-                            }
-                            $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
-                            File::copy($tempUploadFile,$imageUploadNewPath);
-                            PurchaseOrderBillImage::create(['name' => $imageName , 'purchase_order_bill_id' => $purchaseOrderBillId, 'is_payment_image' => false]);
+            if($request->has('images')){
+                $sha1PurchaseOrderId = sha1($request['purchase_order_id']);
+                $sha1PurchaseOrderTransactionId = sha1($purchaseOrderTransactionData['id']);
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                         }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::copy($tempUploadFile,$imageUploadNewPath);
+                        PurchaseOrderTransactionImage::create(['name' => $imageName , 'purchase_order_transaction_id' => $purchaseOrderTransactionData['id'], 'is_pre_grn' => true]);
                     }
                 }
             }
+
             if($request->has('images')){
                 foreach($request['images'] as $key1 => $imageName){
-                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_TRANSACTION_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
                         File::delete($tempUploadFile);
                     }
@@ -292,7 +296,7 @@ use InventoryTrait;
             }else{
                 GRNCount::create(['month'=> $currentDate->month, 'year'=> $currentDate->year,'count' => $serialNumber]);
             }
-            $data['grn'] = $purchaseOrderBill['grn'];
+            $data['grn'] = $purchaseOrderTransactionData['grn'];
         }catch(\Exception $e){
             $message = 'Fail';
             $status = 500;
@@ -310,7 +314,127 @@ use InventoryTrait;
         return response()->json($response,$status);
     }
 
-    public function createPurchaseOrderBillTransaction(Request $request){
+    public function createPurchaseOrderBillTransaction(Request $request)
+    {
+        try {
+            $message = "Success";
+            $status = 200;
+            $purchaseOrderTransaction['vehicle_number'] = $request['vehicle_number'];
+            /*$purchaseOrderTransaction['bill_amount'] = $request['vehicle_number'];*/
+            $purchaseOrderTransaction['remark'] = $request['remark'];
+            $purchaseOrderTransaction['bill_number'] = $request['bill_number'];
+            $purchaseOrderTransaction['out_time'] = Carbon::now();
+            $purchaseOrderTransaction['purchase_order_transaction_status_id'] = PurchaseOrderTransactionStatus::where('slug','bill-pending')->pluck('id')->first();
+            PurchaseOrderTransaction::where('grn',$request['grn'])->update($purchaseOrderTransaction);
+            $purchaseOrderTransactionData = PurchaseOrderTransaction::where('grn',$request['grn'])->first();
+            $user = Auth::user();
+            $sha1UserId = sha1($user['id']);
+            if($request->has('images')){
+                $sha1PurchaseOrderId = sha1($purchaseOrderTransactionData['purchase_order_id']);
+                $sha1PurchaseOrderTransactionId = sha1($purchaseOrderTransactionData['id']);
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::copy($tempUploadFile,$imageUploadNewPath);
+                        PurchaseOrderTransactionImage::create(['name' => $imageName , 'purchase_order_transaction_id' => $purchaseOrderTransactionData['id'], 'is_pre_grn' => false]);
+                    }
+                }
+            }
+
+            if($request->has('images')){
+                foreach($request['images'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        File::delete($tempUploadFile);
+                    }
+                }
+            }
+            foreach($request['item_list'] as $key => $material){
+                $purchaseOrderTransactionComponent['purchase_order_component_id'] = $material['purchase_order_component_id'];
+                $purchaseOrderTransactionComponent['purchase_order_transaction_id'] = $purchaseOrderTransactionData['id'];
+                $purchaseOrderTransactionComponent['quantity'] = $material['quantity'];
+                $purchaseOrderTransactionComponent['unit_id'] = $material['unit_id'];
+                $purchaseOrderTransactionComponentData = PurchaseOrderTransactionComponent::create($purchaseOrderTransactionComponent);
+                $purchaseOrderComponent = PurchaseOrderComponent::where('id',$material['purchase_order_component_id'])->first();
+                $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
+                $project_site_id = $materialRequestComponent->materialRequest->project_site_id;
+                $materialComponentSlug = $materialRequestComponent->materialRequestComponentTypes->slug;
+                $alreadyPresent = InventoryComponent::where('name','ilike',$materialRequestComponent->name)->where('project_site_id',$project_site_id)->first();
+                if($alreadyPresent != null){
+                    $inventoryComponentId = $alreadyPresent['id'];
+                }else{
+                    if($materialComponentSlug == 'quotation-material' || $materialComponentSlug == 'new-material' || $materialComponentSlug == 'structure-material'){
+                        $inventoryData['is_material'] = true;
+                        $inventoryData['reference_id']  = Material::where('name','ilike',$materialRequestComponent->name)->pluck('id')->first();
+                    }else{
+                        $inventoryData['is_material'] = false;
+                        $inventoryData['reference_id']  =  Asset::where('name','ilike',$materialRequestComponent->name)->pluck('id')->first();
+                    }
+                    $inventoryData['name'] = $materialRequestComponent->name;
+                    $inventoryData['project_site_id'] = $project_site_id;
+                    $inventoryData['purchase_order_component_id'] = $purchaseOrderComponent->id;
+                    $inventoryData['opening_stock'] = 0;
+                    $inventoryData['created_at'] = $inventoryData['updated_at'] = Carbon::now();
+                    $inventoryComponent = InventoryComponent::create($inventoryData);
+                    $inventoryComponentId = $inventoryComponent->id;
+                    $transferData['inventory_component_id'] = $inventoryComponentId;
+                    $name = 'supplier';
+                    $type = 'IN';
+                    $transferData['quantity'] = $purchaseOrderTransactionComponentData->quantity;
+                    $transferData['unit_id'] = $purchaseOrderTransactionComponentData->unit_id;
+                    $transferData['date'] = $purchaseOrderTransactionData['created_at'];
+                    $transferData['in_time'] = $purchaseOrderTransactionData['in_time'];
+                    $transferData['out_time'] = $purchaseOrderTransactionData['out_time'];
+                    $transferData['vehicle_number'] = $purchaseOrderTransactionData['vehicle_number'];
+                    $transferData['bill_number'] = $purchaseOrderTransactionData['bill_number'];
+                    /*$transferData['bill_amount'] = $purchaseOrderTransactionData['bill_amount'];
+                    $transferData['remark'] = $purchaseOrderTransactionData['remark'];*/
+                    $transferData['source_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
+                    $transferData['grn'] = $purchaseOrderTransactionData['grn'];
+                    $transferData['user_id'] = $user['id'];
+                    $createdTransferId = $this->create($transferData,$name,$type,'from-purchase');
+                    $transferData['images'] = array();
+                    /*if(count($purchaseOrderBillImages) > 0){
+                        $sha1InventoryComponentId = sha1($inventoryComponentId);
+                        $sha1InventoryTransferId = sha1($createdTransferId);
+                        $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder['id'];
+                        $sha1PurchaseOrderId = sha1($purchaseOrderId);
+                        $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
+                        foreach ($purchaseOrderBillImages as $key => $image){
+                            $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId.DIRECTORY_SEPARATOR.$image['name'];
+                            $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
+                            if(!file_exists($imageUploadNewPath)) {
+                                File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                            }
+                            $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
+                            File::copy($tempUploadFile,$imageUploadNewPath);
+                            InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
+                        }
+                    }*/
+                }
+            }
+        } catch (\Exception $e) {
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Create Purchase Order Bill Transaction',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response, $status);
+    }
+
+    /*public function createPurchaseOrderBillTransaction(Request $request){
         try{
             $user = Auth::user();
             $sha1UserId = sha1($user['id']);
@@ -428,7 +552,7 @@ use InventoryTrait;
             'message' => $message
         ];
         return response()->json($response,$status);
-    }
+    }*/
 
     public function editPurchaseOrderBillTransaction(Request $request){
         try{
