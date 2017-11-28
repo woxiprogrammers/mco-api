@@ -79,8 +79,21 @@ use InventoryTrait;
                         ->distinct('material_request_components.name')->select('material_request_components.name')->take(5)->get();
                     $purchaseOrderList[$iterator]['materials'] = $material_names->implode('name', ', ');
                     $purchaseOrderList[$iterator]['status'] = ($purchaseOrder['is_approved'] == true) ? 'Approved' : 'Disapproved';
-                    $alreadyGRNGenerated = PurchaseOrderTransaction::where('purchase_order_id',$purchaseOrder['id'])->whereNull('bill_number')->pluck('grn')->last();
-                    if(count($alreadyGRNGenerated) > 0){
+                    $alreadyGRNGenerated = PurchaseOrderTransaction::where('purchase_order_id',$purchaseOrder['id'])->whereNull('bill_number')->orderBy('created_at','desc')->pluck('grn')->first();
+                    $purchaseOrderList[$iterator]['images'] = array();
+                    if(($alreadyGRNGenerated) != null){
+                        $transactionImages = PurchaseOrderTransactionImage::join('purchase_order_transactions','purchase_order_transactions.id','=','purchase_order_transaction_images.purchase_order_transaction_id')
+                                            ->where('purchase_order_transactions.grn',$alreadyGRNGenerated)
+                                            ->where('purchase_order_transaction_images.is_pre_grn', true)
+                                            ->select('purchase_order_transactions.id as transaction_id','purchase_order_transaction_images.name as name')
+                                            ->get();
+                        $jIterator = 0;
+                        $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
+                        foreach($transactionImages as $image){
+                            $sha1PurchaseOrderTransactionId = sha1($image['transaction_id']);
+                            $purchaseOrderList[$iterator]['images'][$jIterator] = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId.DIRECTORY_SEPARATOR.$image['name'];
+                            $jIterator++;
+                        }
                         $purchaseOrderList[$iterator]['grn_generated'] = $alreadyGRNGenerated;
                     }else{
                         $purchaseOrderList[$iterator]['grn_generated'] = '';
