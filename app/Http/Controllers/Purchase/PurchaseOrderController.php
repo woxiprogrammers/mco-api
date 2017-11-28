@@ -91,7 +91,7 @@ use InventoryTrait;
                         $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
                         foreach($transactionImages as $image){
                             $sha1PurchaseOrderTransactionId = sha1($image['transaction_id']);
-                            $purchaseOrderList[$iterator]['images'][$jIterator] = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId.DIRECTORY_SEPARATOR.$image['name'];
+                            $purchaseOrderList[$iterator]['images'][$jIterator]['image_url'] = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId.DIRECTORY_SEPARATOR.$image['name'];
                             $jIterator++;
                         }
                         $purchaseOrderList[$iterator]['grn_generated'] = $alreadyGRNGenerated;
