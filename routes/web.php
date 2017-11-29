@@ -101,3 +101,7 @@ $app->group(['prefix' => 'awareness'], function () use($app){
     $app->post('get-sub-categories', array('uses' => 'Awareness\AwarenessManagementController@getSubCategories'));
     $app->post('listing', array('uses' => 'Awareness\AwarenessManagementController@listing'));
 });
+    $app->group(['prefix' => 'drawing'], function () use($app){
+        $app->post('get-main-categories', array('uses' => 'Drawing\DrawingController@getMainCategories'));
+        $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
+    });
