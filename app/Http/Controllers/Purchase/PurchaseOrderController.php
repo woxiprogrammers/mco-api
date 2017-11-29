@@ -147,6 +147,7 @@ use InventoryTrait;
                 $purchaseOrderList['materials'][$iterator]['material_request_component_id'] = $materialRequestComponent->id;
                 $purchaseOrderList['materials'][$iterator]['name'] = $materialRequestComponent->name;
                 $purchaseOrderList['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
+                $purchaseOrderList['materials'][$iterator]['rate_per_unit'] = $purchaseOrderComponent['rate_per_unit'];
                 $purchaseOrderList['materials'][$iterator]['unit_id'] = $purchaseOrderComponent['unit_id'];
                 $purchaseOrderList['materials'][$iterator]['unit_name'] = $purchaseOrderComponent->unit->name;
                 $purchaseOrderList['materials'][$iterator]['quotation_images'] = array();
