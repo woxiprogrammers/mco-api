@@ -40,10 +40,6 @@ class ImageController extends BaseController{
                     $tempUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD');
                     break;
 
-                case 'post_grn_bill_transaction' :
-                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_POST_GRN_TRANSACTION_TEMP_IMAGE_UPLOAD');
-                    break;
-
                 case 'bill_payment' :
                     $tempUploadPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_PAYMENT_TEMP_IMAGE_UPLOAD');
                     break;
