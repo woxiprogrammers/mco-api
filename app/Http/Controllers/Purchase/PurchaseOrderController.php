@@ -639,6 +639,56 @@ use InventoryTrait;
             $message = 'Success';
             $status = 200;
             if($request->has('purchase_order_id')){
+                $purchaseOrderTransactions = PurchaseOrderTransaction::where('purchase_order_id',$request['purchase_order_id'])->orderBy('created_at','desc')->get();
+            }else{
+                $purchaseRequestIds = PurchaseRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
+                $purchaseOrderIds = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->pluck('id');
+                $purchaseOrderTransactions = PurchaseOrderTransaction::whereIn('purchase_order_id',$purchaseOrderIds)->orderBy('created_at','desc')->get();
+            }
+dd($purchaseOrderTransactions->toArray());
+/*            $displayLength = 30;
+            $start = ((int)$pageId) * $displayLength;
+            $totalSent = ($pageId + 1) * $displayLength;
+            $totalBillCount = count($purchaseOrderBillListing);
+            $remainingCount = $totalBillCount - $totalSent;
+            $data['purchase_order_bill_listing'] = array();
+            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalBillCount; $iterator++,$jIterator++){
+                $data['purchase_order_bill_listing'][] = $purchaseOrderBillListing[$iterator];
+            }
+            if($remainingCount > 0 ){
+                $page_id = (string)($pageId + 1);
+                $next_url = "/purchase/purchase-order/bill-listing";
+            }else{
+                $next_url = "";
+                $page_id = "";
+            }*/
+        }catch (\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Get Purchase Order Bill Transaction listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            $next_url = "";
+            $page_id = "";
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message,
+            /*"next_url" => $next_url,
+            "page_id" => $page_id*/
+        ];
+        return response()->json($response,$status);
+    }
+
+    /*public function getPurchaseOrderBillTransactionListing(Request $request){
+        try{
+            $pageId = $request->page;
+            $message = 'Success';
+            $status = 200;
+            if($request->has('purchase_order_id')){
                 $purchaseOrderComponentIDs = PurchaseOrderComponent::where('purchase_order_id',$request['purchase_order_id'])->pluck('id');
             }else{
                 $purchaseRequestIds = PurchaseRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
@@ -740,58 +790,6 @@ use InventoryTrait;
             "page_id" => $page_id
         ];
         return response()->json($response,$status);
-    }
+    }*/
 
-    public function createBillPayment(Request $request){
-        try{
-            $message = "Success";
-            $status = 200;
-            $purchaseOrderBillPayment['purchase_order_bill_id'] = $request['purchase_order_bill_id'];
-            $purchaseOrderBillPayment['payment_id'] = PaymentType::where('slug',$request['payment_slug'])->pluck('id')->first();
-            $purchaseOrderBillPayment['amount'] = $request['amount'];
-            $purchaseOrderBillPayment['reference_number'] = $request['reference_number'];
-            $purchaseOrderBillPayment['remark'] = $request['remark'];
-            $purchaseOrderBillPayment['created_at'] = $purchaseOrderBillPayment['updated_at'] = Carbon::now();
-            $purchaseOrderBillPaymentId = PurchaseOrderBillPayment::insertGetId($purchaseOrderBillPayment);
-            PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->update(['purchase_order_bill_status_id' => PurchaseOrderBillStatus::where('slug','amendment-pending')->pluck('id')->first()]);
-            $purchaseOrderBill = PurchaseOrderBill::where('id',$request['purchase_order_bill_id'])->first();
-            $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder->id;
-            if($request->has('images')){
-                $user = Auth::user();
-                $sha1UserId = sha1($user['id']);
-                $sha1PurchaseOrderBillPaymentId = sha1($purchaseOrderBillPaymentId);
-                $sha1PurchaseOrderId = sha1($purchaseOrderId);
-                foreach($request['images'] as $key1 => $imageName){
-                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_BILL_PAYMENT_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
-                    if(File::exists($tempUploadFile)){
-                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-payment'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillPaymentId;
-                        Log::info($imageUploadNewPath);
-                        if(!file_exists($imageUploadNewPath)) {
-                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
-                        }
-                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
-                        File::move($tempUploadFile,$imageUploadNewPath);
-                        PurchaseOrderBillImage::create([
-                            'purchase_order_bill_id' => $purchaseOrderBillPaymentId ,
-                            'name' => $imageName,
-                            'is_payment_image' => true
-                        ]);
-                    }
-                }
-            }
-        }catch (\Exception $e){
-            $message = "Fail";
-            $status = 500;
-            $data = [
-                'action' => 'Create Bill Payment',
-                'exception' => $e->getMessage(),
-                'params' => $request->all()
-            ];
-            Log::critical(json_encode($data));
-        }
-        $response = [
-            'message' => $message,
-        ];
-        return response()->json($response,$status);
-    }
 }
