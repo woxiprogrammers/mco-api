@@ -182,17 +182,13 @@ class ChecklistController extends BaseController
             $status = 200;
             $data = array();
             $user = Auth::user();
-            switch ($request['checklist_status_slug']){
-                case 'assigned' :
-                    $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
-                        ->where('project_site_user_checklist_assignments.checklist_status_id',ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first())
-                        ->where('project_site_checklists.project_site_id',$request['project_site_id'])
-                        ->where(function ($query) use ($user){
-                            $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
-                                ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
-                        })->get();
-                    break;
-            }
+            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
+                ->where('project_site_user_checklist_assignments.checklist_status_id',ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first())
+                ->where('project_site_checklists.project_site_id',$request['project_site_id'])
+                ->where(function ($query) use ($user){
+                    $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
+                        ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
+                })->get();
             $iterator = 0;
             $checklistListing = array();
             foreach($projectSiteUserChecklists as $key => $projectSiteUserChecklist) {
