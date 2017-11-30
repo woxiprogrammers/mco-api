@@ -54,10 +54,10 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('generate-grn',array('uses' => 'Purchase\PurchaseOrderController@generateGRN'));
-        $app->post('bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderBillTransaction'));
-        $app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));
-        $app->post('bill-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderBillTransactionListing'));
-        $app->post('bill-payment',array('uses' => 'Purchase\PurchaseOrderController@createBillPayment'));
+        $app->post('create-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderTransaction'));
+        /*$app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));*/
+        $app->post('transaction-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderTransactionListing'));
+        /*$app->post('bill-payment',array('uses' => 'Purchase\PurchaseOrderController@createBillPayment'));*/
     });
 
 });

@@ -19,6 +19,6 @@ class PurchaseOrderTransactionComponent extends Model
     }
 
     public function unit(){
-        return $this->belongsTo('Aopp\Unit','unit_id');
+        return $this->belongsTo('App\Unit','unit_id');
     }
 }
