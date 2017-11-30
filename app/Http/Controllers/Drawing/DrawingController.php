@@ -7,6 +7,8 @@
     namespace App\Http\Controllers\Drawing;
     use App\DrawingCategory;
     use App\DrawingCategorySiteRelation;
+    use App\DrawingImage;
+    use App\DrawingImageVersion;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Auth;
     use Illuminate\Support\Facades\Log;
@@ -74,6 +76,56 @@
                 $message = "Fail";
                 $data = [
                     'action' => 'Get Main Categories',
+                    'params' => $request->all(),
+                    'exception' => $e->getMessage()
+                ];
+                $page_id = "";
+                Log::critical(json_encode($data));
+            }
+            $response = [
+                "data" => $data,
+                "page_id" => $pageId,
+                "message" => $message,
+
+            ];
+            return response()->json($response,$status);
+        }
+        public function getCurrentVersionImages(Request $request){
+            try{
+                $pageId = $request->page;
+                $drawing_category_site_relation_id = DrawingCategorySiteRelation::where('drawing_category_id',$request->sub_category_id)
+                    ->where('project_site_id',$request->project_site_id)
+                    ->pluck('id')->toArray();
+                $drawing_images_id = DrawingImage::whereIn('drawing_category_site_relation_id',$drawing_category_site_relation_id)->pluck('id')->toArray();
+                $iterator = 0;
+                $drawing_image_latest_version = array();
+                $path = env('DRAWING_IMAGE_UPLOAD_PATH').DIRECTORY_SEPARATOR.sha1($request->project_site_id).DIRECTORY_SEPARATOR.sha1($request->sub_category_id);
+                foreach ($drawing_images_id as $value){
+                    $drawing_image_latest_version[$iterator] =DrawingImageVersion:: where('drawing_image_id',$value)->orderBy('id','desc')->select('id','title','name')->first()->toArray();
+                    $drawing_image_latest_version[$iterator]['encoded_name'] = $path.DIRECTORY_SEPARATOR.urlencode($drawing_image_latest_version[$iterator]['name']);
+                    $iterator++;
+                }
+                $status = 200;
+                $message = "Success";
+                $displayLength = 30;
+                $start = ((int)$pageId) * $displayLength;
+                $totalSent = ($pageId + 1) * $displayLength;
+                $totalMainCategoriesCount = count($drawing_image_latest_version);
+                $remainingCount = $totalMainCategoriesCount - $totalSent;
+                $data['images'] = array();
+                for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMainCategoriesCount; $iterator++,$jIterator++){
+                    $data['images'][] = $drawing_image_latest_version[$iterator];
+                }
+                if($remainingCount > 0 ){
+                    $page_id = (string)($pageId + 1);
+                }else{
+                    $page_id = "";
+                }
+            }catch (\Exception $e){
+                $status = 500;
+                $message = "Fail";
+                $data = [
+                    'action' => 'Get current versions',
                     'params' => $request->all(),
                     'exception' => $e->getMessage()
                 ];

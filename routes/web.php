@@ -104,4 +104,5 @@ $app->group(['prefix' => 'awareness'], function () use($app){
     $app->group(['prefix' => 'drawing'], function () use($app){
         $app->post('get-main-categories', array('uses' => 'Drawing\DrawingController@getMainCategories'));
         $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
+        $app->post('get-current-version-images', array('uses' => 'Drawing\DrawingController@getCurrentVersionImages'));
     });
