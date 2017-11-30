@@ -149,9 +149,9 @@ class AuthController extends BaseController
             $moduleResponse = array();
             if($user->roles[0]->role->slug == 'admin' || $user->roles[0]->role->slug == 'superadmin'){
                 $submoduleInfo = Module::join('permissions','permissions.module_id','=','modules.id')
-                    ->join('user_has_permissions','user_has_permissions.permission_id','=','permissions.id')
                     ->where('permissions.is_mobile', true)
                     ->select('modules.id as sub_module_id','modules.name as sub_module_name','modules.slug as sub_module_tag','permissions.id as permission_id','permissions.name as permission_name','modules.module_id as module_id')
+                    ->distinct('permission_id')
                     ->get()
                     ->toArray();
             }else{
@@ -160,6 +160,7 @@ class AuthController extends BaseController
                     ->where('user_has_permissions.user_id', $user->id)
                     ->where('permissions.is_mobile', true)
                     ->select('modules.id as sub_module_id','modules.name as sub_module_name','modules.slug as sub_module_tag','permissions.id as permission_id','permissions.name as permission_name','modules.module_id as module_id')
+                    ->distinct('permission_id')
                     ->get()
                     ->toArray();
             }

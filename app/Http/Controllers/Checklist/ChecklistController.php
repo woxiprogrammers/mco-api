@@ -8,11 +8,14 @@
 namespace App\Http\Controllers\Checklist;
 use App\ChecklistCategory;
 use App\ChecklistStatus;
+use App\Permission;
 use App\ProjectSiteChecklist;
 use App\ProjectSiteChecklistCheckpoint;
 use App\ProjectSiteUserChecklistAssignment;
 use App\ProjectSiteUserCheckpoint;
 use App\ProjectSiteUserCheckpointImage;
+use App\User;
+use App\UserHasPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -279,6 +282,36 @@ class ChecklistController extends BaseController
             $status = 500;
             $data = [
                 'action' => 'Get Checkpoint Listing',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getUserWithAssignAcl(Request $request){
+        try{
+            $checklistManagementACl = Permission::whereIn('name',['create-checklist-management','view-checklist-management'])->pluck('id');
+            $userIDs = UserHasPermission::join('user_project_site_relation','user_project_site_relation.user_id','=','user_has_permissions.user_id')
+                ->whereIn('user_has_permissions.permission_id',$checklistManagementACl)
+                ->where('user_project_site_relation.project_site_id',$request['project_site_id'])
+                ->distinct('user_has_permissions.user_id')
+                ->pluck('user_has_permissions.user_id');
+
+            $users = User::whereIn('id',$userIDs)->select('id as user_id','first_name','last_name')->get()->toArray();
+            $data['users'] = $users;
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get User With Assign Acl',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
