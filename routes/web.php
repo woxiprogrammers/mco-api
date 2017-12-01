@@ -94,6 +94,7 @@ $app->group(['prefix' => 'checklist'], function () use($app){
     $app->post('get-user-with-assign-acl', array('uses' => 'Checklist\ChecklistController@getUserWithAssignAcl'));
     $app->post('save-checkpoint-detail',array('uses' => 'Checklist\ChecklistController@saveCheckpointDetails'));
     $app->post('change-status',array('uses' => 'Checklist\ChecklistController@changeChecklistStatus'));
+    $app->post('recheck-checkpoint',array('uses' => 'Checklist\ChecklistController@recheckCheckpoints'));
 });
 
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
