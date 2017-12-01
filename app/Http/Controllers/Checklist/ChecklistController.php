@@ -400,26 +400,4 @@ class ChecklistController extends BaseController
         ];
         return response()->json($response,$status);
     }
-
-    public function getMainParentCheckpoints(Request $request){
-        try{
-            $message = "Success";
-            $status = 200;
-
-        }catch (Exception $e){
-            $message = 'Fail';
-            $status = 500;
-            $data = [
-                'action' => "Get main parent's checkpoints",
-                'exception' => $e->getMessage(),
-                'params' => $request->all()
-            ];
-            Log::critical(json_encode($data));
-        }
-        $response = [
-            'data' => $data,
-            'message' => $message
-        ];
-        return response()->json($response,$status);
-    }
 }
