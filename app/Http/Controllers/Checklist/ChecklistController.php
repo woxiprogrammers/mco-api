@@ -159,9 +159,9 @@ class ChecklistController extends BaseController
             $status = 200;
             $data = array();
             $user = Auth::user();
-            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
-                ->where('project_site_user_checklist_assignments.checklist_status_id',ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first())
-                ->where('project_site_checklists.project_site_id',$request['project_site_id'])
+            $projectSiteChecklists = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])->pluck('id');
+            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::where('checklist_status_id',ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first())
+                ->whereIn('project_site_checklist_id',$projectSiteChecklists)
                 ->where(function ($query) use ($user){
                     $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
                         ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
