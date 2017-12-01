@@ -298,9 +298,9 @@ class ChecklistController extends BaseController
         return response()->json($response,$status);
     }
 
-    public function saveChecklistDetails(Request $request){
+    public function saveCheckpointDetails(Request $request){
         try{
-            $message = "Success";
+            $message = "Details saved successfully";
             $status = 200;
             $user = Auth::user();
             $updateProjectSiteUserCheckpoint['is_ok'] = $request['is_ok'];
@@ -330,7 +330,7 @@ class ChecklistController extends BaseController
             $message = 'Fail';
             $status = 500;
             $data = [
-                'action' => 'Get Checkpoint Listing',
+                'action' => 'Save Checkpoint Details',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
@@ -344,14 +344,16 @@ class ChecklistController extends BaseController
 
     public function changeChecklistStatus(Request $request){
         try{
-            $message = "Success";
+            $message = "Status changed successfully";
             $status = 200;
             $updateProjectSiteChecklistAssignment['checklist_status_id'] = ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first();
             ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->update($updateProjectSiteChecklistAssignment);
             $projectSiteUserChecklistHistory['checklist_status_id'] = $updateProjectSiteChecklistAssignment['checklist_status_id'];
             $projectSiteUserChecklistHistory['project_site_user_checklist_assignment_id'] = $request['project_site_user_checklist_assignment_id'];
             $projectSiteUserChecklistHistory['checklist_status_id'] = $updateProjectSiteChecklistAssignment['checklist_status_id'];
-            $projectSiteUserChecklistHistory['remark'] = $request['remark'];
+            if($request->has('remark')){
+                $projectSiteUserChecklistHistory['remark'] = $request['remark'];
+            }
             ProjectSiteUserChecklistHistory::create($projectSiteUserChecklistHistory);
         }catch(\Exception $e){
             $message = 'Fail';
