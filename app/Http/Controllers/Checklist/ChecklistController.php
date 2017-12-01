@@ -12,6 +12,7 @@ use App\Permission;
 use App\ProjectSite;
 use App\ProjectSiteChecklist;
 use App\ProjectSiteChecklistCheckpoint;
+use App\ProjectSiteChecklistCheckpointImages;
 use App\ProjectSiteUserChecklistAssignment;
 use App\ProjectSiteUserChecklistHistory;
 use App\ProjectSiteUserCheckpoint;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
+use Mockery\Exception;
 
 class ChecklistController extends BaseController
 {
@@ -221,35 +223,63 @@ class ChecklistController extends BaseController
         try{
             $message = "Success";
             $status = 200;
-            $projectSiteUserCheckpoints = ProjectSiteUserCheckpoint::where('project_site_user_checklist_assignment_id',$request['project_site_user_checklist_assignment_id'])->orderBy('id','asc')
-                                            ->get();
-            $iterator = 0;
-            $checkPointListing = array();
-            foreach($projectSiteUserCheckpoints as $key => $projectSiteUserCheckpoint){
-                $checkPointListing[$iterator]['project_site_user_checkpoint_id'] = $projectSiteUserCheckpoint['id'];
-                $projectSiteChecklistCheckpoint = $projectSiteUserCheckpoint->projectSiteChecklistCheckpoint;
-                $checkPointListing[$iterator]['project_site_user_checkpoint_description'] = $projectSiteChecklistCheckpoint->description;
-                $checkPointListing[$iterator]['project_site_user_checkpoint_is_remark_required'] = $projectSiteChecklistCheckpoint->is_remark_required;
-                $checkPointListing[$iterator]['project_site_user_checkpoint_is_ok'] = $projectSiteUserCheckpoint['is_ok'];
-                $checkPointListing[$iterator]['project_site_user_checkpoint_images'] = array();
-                $projectSiteChecklistCheckpointImages = $projectSiteChecklistCheckpoint->projectSiteChecklistCheckpointImages;
-                $jIterator = 0;
-                foreach($projectSiteChecklistCheckpointImages as $key1 => $projectSiteChecklistCheckpointImage){
-                    $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_id'] = $projectSiteChecklistCheckpointImage['id'];
-                    $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_caption'] = $projectSiteChecklistCheckpointImage['caption'];
-                    $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_is_required'] = $projectSiteChecklistCheckpointImage['is_required'];
-                    $imageUrl = ProjectSiteUserCheckpointImage::where('project_site_user_checkpoint_id',$projectSiteUserCheckpoint['id'])->where('project_site_checklist_checkpoint_image_id',$projectSiteChecklistCheckpointImage['id'])->first();
-                    if(count($imageUrl) > 0){
-                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_id'] = $imageUrl['id'];
-                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = $imageUrl['image'];
-                    }else{
-                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_id'] = null;
-                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = null;
+            if($request->has('project_site_user_checklist_assignment_id')){
+                $projectSiteUserCheckpoints = ProjectSiteUserCheckpoint::where('project_site_user_checklist_assignment_id',$request['project_site_user_checklist_assignment_id'])->orderBy('id','asc')
+                    ->get();
+                $iterator = 0;
+                $checkPointListing = array();
+                foreach($projectSiteUserCheckpoints as $key => $projectSiteUserCheckpoint){
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_id'] = $projectSiteUserCheckpoint['id'];
+                    $projectSiteChecklistCheckpoint = $projectSiteUserCheckpoint->projectSiteChecklistCheckpoint;
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_description'] = $projectSiteChecklistCheckpoint->description;
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_is_remark_required'] = $projectSiteChecklistCheckpoint->is_remark_required;
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_is_ok'] = $projectSiteUserCheckpoint['is_ok'];
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_images'] = array();
+                    $projectSiteChecklistCheckpointImages = $projectSiteChecklistCheckpoint->projectSiteChecklistCheckpointImages;
+                    $jIterator = 0;
+                    foreach($projectSiteChecklistCheckpointImages as $key1 => $projectSiteChecklistCheckpointImage){
+                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_id'] = $projectSiteChecklistCheckpointImage['id'];
+                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_caption'] = $projectSiteChecklistCheckpointImage['caption'];
+                        $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_is_required'] = $projectSiteChecklistCheckpointImage['is_required'];
+                        $imageUrl = ProjectSiteUserCheckpointImage::where('project_site_user_checkpoint_id',$projectSiteUserCheckpoint['id'])->where('project_site_checklist_checkpoint_image_id',$projectSiteChecklistCheckpointImage['id'])->first();
+                        if(count($imageUrl) > 0){
+                            $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_id'] = $imageUrl['id'];
+                            $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = $imageUrl['image'];
+                        }else{
+                            $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_id'] = null;
+                            $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = null;
+                        }
+                        $jIterator++;
                     }
-                    $jIterator++;
+                    $iterator++;
                 }
-                $iterator++;
+            }else{
+                $projectSiteChecklistCheckpoints = ProjectSiteChecklistCheckpoint::where('project_site_checklist_id',$request['project_site_checklist_id'])->orderBy('id','asc')
+                    ->get();
+                $iterator = 0;
+                $checkPointListing = array();
+                foreach($projectSiteChecklistCheckpoints as $key => $projectSiteChecklistCheckpoint){
+                    $checkPointListing[$iterator]['project_site_checklist_checkpoint_id'] = $projectSiteChecklistCheckpoint['id'];
+                    $checkPointListing[$iterator]['project_site_checklist_checkpoint_description'] = $projectSiteChecklistCheckpoint['description'];
+                    $checkPointListing[$iterator]['project_site_checklist_is_remark_required'] = $projectSiteChecklistCheckpoint['is_remark_required'];
+                    $projectSiteChecklistCheckpointImages = $projectSiteChecklistCheckpoint->projectSiteChecklistCheckpointImages;
+                    $jIterator = 0;
+                    if(count($projectSiteChecklistCheckpointImages) > 0){
+                        foreach($projectSiteChecklistCheckpointImages as $key1 => $projectSiteChecklistCheckpointImage){
+                            $checkPointListing[$iterator]['project_site_checklist_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_id'] = $projectSiteChecklistCheckpointImage['id'];
+                            $checkPointListing[$iterator]['project_site_checklist_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_caption'] = $projectSiteChecklistCheckpointImage['caption'];
+                            $checkPointListing[$iterator]['project_site_checklist_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_is_required'] = $projectSiteChecklistCheckpointImage['is_required'];
+                            $jIterator++;
+                        }
+                    }else{
+                        $checkPointListing[$iterator]['project_site_checklist_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_id'] = null;
+                        $checkPointListing[$iterator]['project_site_checklist_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_caption'] = null;
+                        $checkPointListing[$iterator]['project_site_checklist_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_is_required'] = null;
+                    }
+                    $iterator++;
+                }
             }
+
             $data['check_points'] = $checkPointListing;
         }catch(\Exception $e){
             $message = 'Fail';
