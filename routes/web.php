@@ -106,4 +106,6 @@ $app->group(['prefix' => 'awareness'], function () use($app){
         $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
         $app->post('get-current-version-images', array('uses' => 'Drawing\DrawingController@getCurrentVersionImages'));
         $app->post('add-comment', array('uses' => 'Drawing\DrawingController@addComment'));
+        $app->post('get-comments', array('uses' => 'Drawing\DrawingController@getComments'));
+        $app->post('get-all-image-versions', array('uses' => 'Drawing\DrawingController@getAllImageVersions'));
     });

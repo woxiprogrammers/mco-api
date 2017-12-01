@@ -167,5 +167,58 @@
             ];
             return response()->json($response,$status);
         }
+        public function getComments(Request $request){
+            try{
+                $message = "success";
+                $status = 200;
+                $comments = DrawingImageComment::where('drawing_image_version_id',$request->drawing_image_version_id)->select('id','comment')->get()->toArray();
+                $data=[
+                    'comments'=>$comments
+                ];
+
+            }catch (\Exception $e){
+                $status = 500;
+                $message = "Fail";
+                $data = [
+                    'action' => 'Get Comments',
+                    'params' => $request->all(),
+                    'exception' => $e->getMessage()
+                ];
+                $page_id = "";
+                Log::critical(json_encode($data));
+            }
+            $response = [
+                "data" => $data,
+                "message" => $message,
+            ];
+            return response()->json($response,$status);
+        }
+        public function getAllImageVersions(Request $request){
+            try{
+                $message = "success";
+                $status = 200;
+                $image_id = DrawingImageVersion::where('id',$request->image_id)->pluck('drawing_image_id')->first();
+                $versions = DrawingImageVersion::where('drawing_image_id',$image_id)->select('id','title','name')->get();
+                $data=[
+                    'versions'=>$versions
+                ];
+
+            }catch (\Exception $e){
+                $status = 500;
+                $message = "Fail";
+                $data = [
+                    'action' => 'Get Comments',
+                    'params' => $request->all(),
+                    'exception' => $e->getMessage()
+                ];
+                $page_id = "";
+                Log::critical(json_encode($data));
+            }
+            $response = [
+                "data" => $data,
+                "message" => $message,
+            ];
+            return response()->json($response,$status);
+        }
 
   }
