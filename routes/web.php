@@ -54,10 +54,10 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('generate-grn',array('uses' => 'Purchase\PurchaseOrderController@generateGRN'));
-        $app->post('bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderBillTransaction'));
-        $app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));
-        $app->post('bill-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderBillTransactionListing'));
-        $app->post('bill-payment',array('uses' => 'Purchase\PurchaseOrderController@createBillPayment'));
+        $app->post('create-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderTransaction'));
+        /*$app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));*/
+        $app->post('transaction-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderTransactionListing'));
+        /*$app->post('bill-payment',array('uses' => 'Purchase\PurchaseOrderController@createBillPayment'));*/
     });
 
 });
@@ -107,4 +107,7 @@ $app->group(['prefix' => 'awareness'], function () use($app){
         $app->post('get-main-categories', array('uses' => 'Drawing\DrawingController@getMainCategories'));
         $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
         $app->post('get-current-version-images', array('uses' => 'Drawing\DrawingController@getCurrentVersionImages'));
+        $app->post('add-comment', array('uses' => 'Drawing\DrawingController@addComment'));
+        $app->post('get-comments', array('uses' => 'Drawing\DrawingController@getComments'));
+        $app->post('get-all-image-versions', array('uses' => 'Drawing\DrawingController@getAllImageVersions'));
     });
