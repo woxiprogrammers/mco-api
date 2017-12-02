@@ -199,8 +199,10 @@
                 $status = 200;
                 $image_id = DrawingImageVersion::where('id',$request->image_id)->pluck('drawing_image_id')->first();
                 $versions = DrawingImageVersion::where('drawing_image_id',$image_id)->select('id','title','name')->get();
+                $path = env('DRAWING_IMAGE_UPLOAD_PATH').DIRECTORY_SEPARATOR.sha1($request->project_site_id).DIRECTORY_SEPARATOR.sha1($request->sub_category_id);
                 $data=[
-                    'versions'=>$versions
+                    'versions'=>$versions,
+                    'path' => $path
                 ];
 
             }catch (\Exception $e){
