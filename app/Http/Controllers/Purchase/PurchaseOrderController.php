@@ -497,7 +497,7 @@ use InventoryTrait;
                     array_push($material_names,$material_name);
                     $jIterator++;
                 }
-                $purchaseOrder = $purchaseOrderTransaction->purchase_order;
+                $purchaseOrder = $purchaseOrderTransaction->purchaseOrder;
                 $transactionData[$iterator]['purchase_order_transaction_id'] = $purchaseOrderTransaction['id'];
                 $transactionData[$iterator]['grn'] = $purchaseOrderTransaction['grn'];
                 $transactionData[$iterator]['purchase_order_id'] = $purchaseOrder['id'];
@@ -518,6 +518,7 @@ use InventoryTrait;
                     $sha1PurchaseOrderTransactionId = sha1($purchaseOrderTransaction['id']);
                     $imageUploadNewPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId;
                     foreach($purchaseOrderTransactionImages as $key3 => $purchaseOrderTransactionImage){
+                        $transactionData[$iterator]['images'][$kIterator]['image_status'] = ($purchaseOrderTransactionImage['is_pre_grn'] == true) ? 'Pre-GRN' : 'Post-GRN';
                         $transactionData[$iterator]['images'][$kIterator]['image_url'] = $imageUploadNewPath.DIRECTORY_SEPARATOR.$purchaseOrderTransactionImage['name'];
                         $kIterator++;
                     }
