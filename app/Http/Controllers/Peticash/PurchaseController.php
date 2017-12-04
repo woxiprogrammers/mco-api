@@ -137,7 +137,7 @@ use InventoryTrait;
             $transferData['user_id'] = $user['id'];
             $createdTransferInId = $this->create($transferData,$name,'IN','from-purchase');
             $createdTransferOutId = $this->create($transferData,$name,'OUT','from-purchase');
-            $purchasePeticashTransactionImages = PurchasePeticashTransactionImage::where('',$purchaseTransactionData['id'])->get();
+            $purchasePeticashTransactionImages = PurchasePeticashTransactionImage::where('purchase_peticash_transaction_id',$purchaseTransactionData['id'])->get();
             if(count($purchasePeticashTransactionImages) > 0){
                 $sha1PurchaseTransactionId = sha1($purchaseTransactionData['id']);
                 $sha1InventoryComponentId = sha1($inventoryComponentId);
@@ -227,7 +227,7 @@ use InventoryTrait;
             ];
             Log::critical(json_encode($data));
         }
-        return response($reference_id);
+        return $reference_id;
     }
 
     public function getTransactionDetails(Request $request){
