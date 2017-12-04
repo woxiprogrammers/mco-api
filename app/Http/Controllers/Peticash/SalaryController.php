@@ -6,10 +6,12 @@ use App\Employee;
 use App\PaymentType;
 use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
+use App\PeticashSiteApprovedAmount;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
 use App\PurchasePeticashTransaction;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -31,6 +33,7 @@ class SalaryController extends BaseController{
         try{
             $status = 200;
             $message = "Success";
+            $approved_amount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
             $iterator = 0;
             $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->where('project_site_id',$request['project_site_id'])->where('is_active',true)->get()->toArray();
             $data = array();
@@ -66,7 +69,8 @@ class SalaryController extends BaseController{
         }
         $response = [
             "message" => $message,
-            "data" => $data
+            "data" => $data,
+            "approved_amount" => $approved_amount
         ];
         return response()->json($response,$status);
     }
@@ -74,15 +78,28 @@ class SalaryController extends BaseController{
     public function createSalary(Request $request){
         try{
             $user = Auth::user();
-            $status = 200;
-            $message = "Salary transaction created successfully";
+
             $salaryData = $request->except('token','images','type');
             $salaryData['reference_user_id'] = $user['id'];
             $salaryData['peticash_transaction_type_id'] = PeticashTransactionType::where('slug','ilike',$request['type'])->pluck('id')->first();
             $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
-            $salaryData['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
+            $salaryData['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $salaryData['created_at'] = $salaryData['updated_at'] = Carbon::now();
             $salaryTransactionId = PeticashSalaryTransaction::insertGetId($salaryData);
+            $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
+            $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
+            $peticashSiteApprovedAmount->update(['salary_amount_approved' => $updatedPeticashSiteApprovedAmount]);
+            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
+            $remainingSalary = $request['amount'];
+            foreach ($sitePeticashTransfers as $peticashTransfer){
+                if($peticashTransfer->amount < $remainingSalary){
+                    $remainingSalary = $remainingSalary - $peticashTransfer->amount;
+                    $peticashTransfer->update(['amount' => 0]);
+                }elseif($peticashTransfer->amount >= $remainingSalary){
+                    $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
+                    break;
+                }
+            }
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
@@ -100,6 +117,8 @@ class SalaryController extends BaseController{
                     }
                 }
             }
+            $status = 200;
+            $message = "Salary transaction created successfully";
         }catch(\Exception $e){
             $status = 500;
             $message = "Fail";
@@ -169,6 +188,9 @@ class SalaryController extends BaseController{
 
     public function getTransactionListing(Request $request){
         try{
+            $user = Auth::user();
+            $amountLimit = User::where('id',$user['id'])->pluck('purchase_peticash_amount_limit')->first();
+            $data['peticash_purchase_amount_limit'] = ($amountLimit != null) ? $amountLimit : '';
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
