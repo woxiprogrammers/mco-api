@@ -123,12 +123,12 @@ use InventoryTrait;
                     $inventoryData['is_material'] = false;
                     $inventoryData['reference_id'] = Asset::where('name', 'ilike', $purchaseTransactionData['name'])->pluck('id')->first();
                 }
+                $inventoryData['name'] = $purchaseTransactionData['name'];
+                $inventoryData['project_site_id'] = $purchaseTransactionData['project_site_id'];
+                $inventoryData['opening_stock'] = 0;
+                $inventoryComponent = InventoryComponent::create($inventoryData);
+                $inventoryComponentId = $inventoryComponent->id;
             }
-            $inventoryData['name'] = $purchaseTransactionData['name'];
-            $inventoryData['project_site_id'] = $purchaseTransactionData['project_site_id'];
-            $inventoryData['opening_stock'] = 0;
-            $inventoryComponent = InventoryComponent::create($inventoryData);
-            $inventoryComponentId = $inventoryComponent->id;
             $transferData['inventory_component_id'] = $inventoryComponentId;
             $name = 'supplier';
             $transferData['quantity'] = $purchaseTransactionData['quantity'];
