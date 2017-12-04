@@ -77,9 +77,17 @@ use InventoryTrait;
             $purchaseTransaction['peticash_transaction_type_id']= PeticashTransactionType::where('slug',$request['source_slug'])->where('type','PURCHASE')->pluck('id')->first();
             $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $purchaseTransactionData = PurchasePeticashTransaction::create($purchaseTransaction);
-            $peticashSiteTransfer = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->first();
-            $updatePeticashSiteTransferAmount = $peticashSiteTransfer['amount'] - $purchaseTransactionData['amount'];
-            $peticashSiteTransfer->update(['amount' => $updatePeticashSiteTransferAmount]);
+            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
+            $remainingSalary = $request['bill_amount'];
+            foreach ($sitePeticashTransfers as $peticashTransfer){
+                if($peticashTransfer->amount < $remainingSalary){
+                    $remainingSalary = $remainingSalary - $peticashTransfer->amount;
+                    $peticashTransfer->update(['amount' => 0]);
+                }elseif($peticashTransfer->amount >= $remainingSalary){
+                    $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
+                    break;
+                }
+            }
             $purchaseTransactionId = $purchaseTransactionData['id'];
             if($monthlyGrnGeneratedCount != null) {
                 GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
