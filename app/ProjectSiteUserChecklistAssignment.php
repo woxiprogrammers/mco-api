@@ -29,4 +29,8 @@ class ProjectSiteUserChecklistAssignment extends Model
     public function assignedByUser(){
         return $this->belongsTo('App\User','assigned_by');
     }
+
+    public function projectSiteUserCheckpoints(){
+        return $this->hasMany('App\ProjectSiteUserCheckpoint','project_site_user_checklist_assignment_id');
+    }
 }

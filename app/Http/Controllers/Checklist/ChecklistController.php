@@ -186,7 +186,8 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['floor_name'] = $projectSiteChecklist->quotationFloor->name;
                 $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
                 $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
-                $checklistListing[$iterator]['total_checkpoints'] = 12;
+                $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints->count();
+                $checklistListing[$iterator]['total_checkpoints'] = $projectSiteUserCheckpoints;
                 $checklistListing[$iterator]['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
                 $assignedToUser = $projectSiteUserChecklist->assignedToUser;
                 $checklistListing[$iterator]['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
