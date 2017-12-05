@@ -161,8 +161,9 @@ class ChecklistController extends BaseController
             $status = 200;
             $data = array();
             $user = Auth::user();
+            $checklistStatus = ChecklistStatus::where('slug',$request['checklist_status_slug'])->first();
             $projectSiteChecklists = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])->pluck('id');
-            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::where('checklist_status_id',ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first())
+            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::where('checklist_status_id',$checklistStatus['id'])
                 ->whereIn('project_site_checklist_id',$projectSiteChecklists)
                 ->where(function ($query) use ($user){
                     $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
@@ -174,6 +175,7 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['project_site_user_checklist_assignment_id'] = $projectSiteUserChecklist['id'];
                 $projectSiteChecklist = $projectSiteUserChecklist->projectSiteChecklist;
                 $checklistListing[$iterator]['project_site_checklist_id'] = $projectSiteChecklist['id'];
+                $checklistListing[$iterator]['checklist_current_status'] = $checklistStatus['slug'];
                 $checklistListing[$iterator]['assigned_on'] = date('l, d F Y',strtotime($projectSiteUserChecklist['created_at']));
                 $subcategoryData = $projectSiteChecklist->checklistCategory;
                 $categoryData = ChecklistCategory::where('id',$subcategoryData['category_id'])->first();
@@ -229,6 +231,7 @@ class ChecklistController extends BaseController
                     $projectSiteChecklistCheckpoint = $projectSiteUserCheckpoint->projectSiteChecklistCheckpoint;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_description'] = $projectSiteChecklistCheckpoint->description;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_remark_required'] = $projectSiteChecklistCheckpoint->is_remark_required;
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_is_checked'] = ($projectSiteUserCheckpoint['is_ok'] != null) ? true : false;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_ok'] = $projectSiteUserCheckpoint['is_ok'];
                     $checkPointListing[$iterator]['project_site_user_checkpoint_images'] = array();
                     $projectSiteChecklistCheckpointImages = $projectSiteChecklistCheckpoint->projectSiteChecklistCheckpointImages;
