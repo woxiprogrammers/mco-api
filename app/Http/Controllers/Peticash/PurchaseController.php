@@ -38,6 +38,7 @@ use InventoryTrait;
 
     public function createPurchase(Request $request){
         try{
+            $now = Carbon::now();
             $user = Auth::user();
             $purchaseTransaction = $request->except('source_slug','token','images');
             $purchaseTransaction['reference_user_id'] = $user['id'];
@@ -76,6 +77,7 @@ use InventoryTrait;
             $purchaseTransaction['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $purchaseTransaction['peticash_transaction_type_id']= PeticashTransactionType::where('slug',$request['source_slug'])->where('type','PURCHASE')->pluck('id')->first();
             $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
+            $purchaseTransaction['in_time'] = $now;
             $purchaseTransactionData = PurchasePeticashTransaction::create($purchaseTransaction);
             $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
             $remainingSalary = $request['bill_amount'];
@@ -134,8 +136,8 @@ use InventoryTrait;
             $transferData['quantity'] = $purchaseTransactionData['quantity'];
             $transferData['unit_id'] = $purchaseTransactionData['unit_id'];
             $transferData['date'] = $purchaseTransactionData['created_at'];
-            $transferData['in_time'] = $purchaseTransactionData['in_time'];
-            $transferData['out_time'] = $purchaseTransactionData['out_time'];
+            $transferData['in_time'] = $now;
+            $transferData['out_time'] = $now;
             $transferData['vehicle_number'] = $purchaseTransactionData['vehicle_number'];
             $transferData['bill_number'] = $purchaseTransactionData['bill_number'];
             $transferData['bill_amount'] = $purchaseTransactionData['bill_amount'];
@@ -301,10 +303,12 @@ use InventoryTrait;
 
     public function createBillPayment(Request $request){
         try{
+            $now = Carbon::now();
             if($request->has('reference_number')){
                 $transactionData['reference_number'] = $request['reference_number'];
             }
             $transactionData['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
+            $transactionData['out_time'] = $now;
             PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->update($transactionData);
             if(array_has($request,'images')){
                 $user = Auth::user();

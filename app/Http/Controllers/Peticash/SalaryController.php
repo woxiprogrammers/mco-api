@@ -384,15 +384,15 @@ class SalaryController extends BaseController{
             $data = array();
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
                 $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
-                $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id'))
+                $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
                                                 ->where('project_site_id',$request['project_site_id'])
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
                                                 ->sum('payable_amount');
-                $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id'))
+                $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
                                                     ->where('project_site_id',$request['project_site_id'])
                                                     ->where('peticash_status_id',$approvedPeticashStatusId)
                                                     ->sum('amount');
-                $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','=','PURCHASE')->pluck('id'))
+                $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
                                                     ->where('project_site_id',$request['project_site_id'])
                                                     ->where('peticash_status_id',$approvedPeticashStatusId)
                                                     ->sum('bill_amount');
