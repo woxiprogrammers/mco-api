@@ -33,7 +33,12 @@ class SalaryController extends BaseController{
         try{
             $status = 200;
             $message = "Success";
-            $approved_amount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
+            $peticashApprovedAmount =PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
+            if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
+                $approved_amount = $peticashApprovedAmount;
+            }else{
+                $approved_amount = '0';
+            }
             $iterator = 0;
             $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->where('project_site_id',$request['project_site_id'])->where('is_active',true)->get()->toArray();
             $data = array();
@@ -190,7 +195,7 @@ class SalaryController extends BaseController{
         try{
             $user = Auth::user();
             $amountLimit = User::where('id',$user['id'])->pluck('purchase_peticash_amount_limit')->first();
-            $data['peticash_purchase_amount_limit'] = ($amountLimit != null) ? $amountLimit : '';
+            $data['peticash_purchase_amount_limit'] = ($amountLimit != null) ? $amountLimit : '0';
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
