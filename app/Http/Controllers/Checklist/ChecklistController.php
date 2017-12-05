@@ -186,20 +186,17 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['floor_name'] = $projectSiteChecklist->quotationFloor->name;
                 $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
                 $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
-                $checklistListing[$iterator]['total_checkpoints'] = 12;
-                if($projectSiteUserChecklist['assigned_by'] == $user['id']){
-                    $checklistListing[$iterator]['assigned_user'] = $projectSiteUserChecklist['assigned_to'];
-                    $assignedToUser = $projectSiteUserChecklist->assignedToUser;
-                    $checklistListing[$iterator]['assigned_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
-                }elseif($projectSiteUserChecklist['assigned_to'] == $user['id']){
-                    $checklistListing[$iterator]['assigned_user'] = $projectSiteUserChecklist['assigned_by'];
-                    $assignedByUser = $projectSiteUserChecklist->assignedByUser;
-                    $checklistListing[$iterator]['assigned_user_name'] = $assignedByUser['first_name'].' '.$assignedByUser['last_name'];
-                }else{
-                    $checklistListing[$iterator]['assigned_user'] = $projectSiteUserChecklist['assigned_by'];
-                    $assignedByUser = $projectSiteUserChecklist->assignedByUser;
-                    $checklistListing[$iterator]['assigned_user_name'] = $assignedByUser['first_name'].' '.$assignedByUser['last_name'];
-                }
+                $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints->count();
+                $checklistListing[$iterator]['total_checkpoints'] = $projectSiteUserCheckpoints;
+                $checklistListing[$iterator]['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
+                $assignedToUser = $projectSiteUserChecklist->assignedToUser;
+                $checklistListing[$iterator]['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
+                $checklistListing[$iterator]['assigned_by'] = $projectSiteUserChecklist['assigned_by'];
+                $assignedByUser = $projectSiteUserChecklist->assignedByUser;
+                $checklistListing[$iterator]['assigned_by_user_name'] = $assignedByUser['first_name'].' '.$assignedByUser['last_name'];
+                $checklistListing[$iterator]['reviewed_by'] = $projectSiteUserChecklist['reviewed_by'];
+                $reviewedByUser = $projectSiteUserChecklist->reviewedByUser;
+                $checklistListing[$iterator]['reviewed_by_user_name'] = $reviewedByUser['first_name'].' '.$reviewedByUser['last_name'];
                 $iterator++;
             }
             $data['checklist_data'] = $checklistListing;
@@ -393,6 +390,55 @@ class ChecklistController extends BaseController
             $status = 500;
             $data = [
                 'action' => 'Change Checklist Status',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function recheckCheckpoints(Request $request){
+        try{
+            $user = Auth::user();
+            $checklistStatusIDs = ChecklistStatus::whereIn('slug',['assigned','recheck'])->get();
+            $parentProjectSiteUserChecklistAssignment = ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->first();
+            $projectSiteUserChecklistAssignment['project_site_checklist_id'] = $parentProjectSiteUserChecklistAssignment['project_site_checklist_id'];
+            $projectSiteUserChecklistAssignment['checklist_status_id'] = $checklistStatusIDs->where('slug','assigned')->pluck('id')->first();
+            $projectSiteUserChecklistAssignment['assigned_to'] = $request['user_id'];
+            $projectSiteUserChecklistAssignment['assigned_by'] = $user['id'];
+            $projectSiteUserChecklistAssignment['project_site_user_checklist_assignment_id'] = $parentProjectSiteUserChecklistAssignment['id'];
+            $projectSiteUserChecklistAssignmentData = ProjectSiteUserChecklistAssignment::create($projectSiteUserChecklistAssignment);
+            ProjectSiteUserChecklistHistory::create([
+                'checklist_status_id' => $projectSiteUserChecklistAssignment['checklist_status_id'],
+                'project_site_user_checklist_assignment_id' => $projectSiteUserChecklistAssignmentData['id'],
+            ]);
+            foreach($request['project_site_checklist_checkpoint_id'] as $key => $projectSiteChecklistCheckpointId){
+                $projectSiteUserCheckpoint['project_site_checklist_checkpoint_id'] = $projectSiteChecklistCheckpointId;
+                //$projectSiteUserCheckpoint['project_site_user_checkpoint_id'] = $projectSiteChecklistCheckpointId;
+                $projectSiteUserCheckpoint['project_site_user_checklist_assignment_id'] = $projectSiteUserChecklistAssignmentData['id'];
+                ProjectSiteUserCheckpoint::create($projectSiteUserCheckpoint);
+            }
+            $reviewChecklistStatusId = $checklistStatusIDs->where('slug','recheck')->pluck('id')->first();
+            $parentProjectSiteUserChecklistAssignment->update([
+                'checklist_status_id' => $reviewChecklistStatusId,
+                'reviewed_by' => $user['id']
+            ]);
+            ProjectSiteUserChecklistHistory::create([
+                'checklist_status_id' => $reviewChecklistStatusId,
+                'project_site_user_checklist_assignment_id' => $parentProjectSiteUserChecklistAssignment['id'],
+                'remark' => $request['remark'],
+            ]);
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Recheck Checkpoints',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
