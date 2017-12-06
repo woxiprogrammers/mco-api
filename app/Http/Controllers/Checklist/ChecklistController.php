@@ -163,12 +163,30 @@ class ChecklistController extends BaseController
             $user = Auth::user();
             $checklistStatus = ChecklistStatus::where('slug',$request['checklist_status_slug'])->first();
             $projectSiteChecklists = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])->pluck('id');
-            $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::where('checklist_status_id',$checklistStatus['id'])
+            $userAllChecklistIds = ProjectSiteUserChecklistAssignment::where('checklist_status_id',$checklistStatus['id'])
                 ->whereIn('project_site_checklist_id',$projectSiteChecklists)
                 ->where(function ($query) use ($user){
                     $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
                         ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
-                })->get();
+                })
+                ->pluck('project_site_user_checklist_assignments.id');
+            $userLatestChecklistIds = array();
+            if(count($userAllChecklistIds) > 0){
+                $userAllChecklistIds = $userAllChecklistIds->toArray();
+                $iterator = 0;
+                foreach($userAllChecklistIds as $allChecklistId){
+                    if(!in_array($allChecklistId,$userLatestChecklistIds)){
+                        $userLatestChecklistIds[$iterator] = $allChecklistId;
+                        for($nextChecklistId = ProjectSiteUserChecklistAssignment::whereIn('id',$userAllChecklistIds)->where('project_site_user_checklist_assignment_id',$allChecklistId['id'])->first(); $nextChecklistId != null; $nextChecklistId = ProjectSiteUserChecklistAssignment::where('project_site_user_checklist_assignment_id',$nextChecklistId['id'])->whereIn('id',$userAllChecklistIds)->first()){
+                            $userLatestChecklistIds[$iterator] = $nextChecklistId['id'];
+                        }
+                    }
+                    $iterator++;
+                }
+                $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::whereIn('id',$userLatestChecklistIds)->get();
+            }else{
+                $projectSiteUserChecklists = array();
+            }
             $iterator = 0;
             $checklistListing = array();
             foreach($projectSiteUserChecklists as $key => $projectSiteUserChecklist) {
@@ -186,8 +204,11 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['floor_name'] = $projectSiteChecklist->quotationFloor->name;
                 $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
                 $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
-                $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints->count();
-                $checklistListing[$iterator]['total_checkpoints'] = $projectSiteUserCheckpoints;
+                $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints;
+                $projectSiteUserCheckpointsNotCompleted = $projectSiteUserCheckpoints->where('is_ok',null)->count();
+                $totalCheckpoints = $projectSiteUserCheckpoints->count();
+                $checklistListing[$iterator]['total_checkpoints'] = $totalCheckpoints;
+                $checklistListing[$iterator]['completed_checkpoints'] = $totalCheckpoints - $projectSiteUserCheckpointsNotCompleted;
                 $checklistListing[$iterator]['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
                 $assignedToUser = $projectSiteUserChecklist->assignedToUser;
                 $checklistListing[$iterator]['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
