@@ -79,17 +79,6 @@ use InventoryTrait;
             $purchaseTransaction['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $purchaseTransaction['in_time'] = $now;
             $purchaseTransactionData = PurchasePeticashTransaction::create($purchaseTransaction);
-            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
-            $remainingSalary = $request['bill_amount'];
-            foreach ($sitePeticashTransfers as $peticashTransfer){
-                if($peticashTransfer->amount < $remainingSalary){
-                    $remainingSalary = $remainingSalary - $peticashTransfer->amount;
-                    $peticashTransfer->update(['amount' => 0]);
-                }elseif($peticashTransfer->amount >= $remainingSalary){
-                    $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
-                    break;
-                }
-            }
             $purchaseTransactionId = $purchaseTransactionData['id'];
             if($monthlyGrnGeneratedCount != null) {
                 GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
@@ -309,12 +298,23 @@ use InventoryTrait;
     public function createBillPayment(Request $request){
         try{
             $now = Carbon::now();
+            $purchasePeticashTransaction = PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->first();
             if($request->has('reference_number')){
                 $transactionData['reference_number'] = $request['reference_number'];
             }
-            $transactionData['peticash_status_id'] = PeticashStatus::where('slug','pending')->pluck('id')->first();
             $transactionData['out_time'] = $now;
-            PurchasePeticashTransaction::where('id',$request['peticash_transaction_id'])->update($transactionData);
+            $purchasePeticashTransaction->update($transactionData);
+            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$purchasePeticashTransaction['project_site_id'])->where('amount','>',0)->get();
+            $remainingSalary = $purchasePeticashTransaction['bill_amount'];
+            foreach ($sitePeticashTransfers as $peticashTransfer){
+                if($peticashTransfer->amount < $remainingSalary){
+                    $remainingSalary = $remainingSalary - $peticashTransfer->amount;
+                    $peticashTransfer->update(['amount' => 0]);
+                }elseif($peticashTransfer->amount >= $remainingSalary){
+                    $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
+                    break;
+                }
+            }
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
