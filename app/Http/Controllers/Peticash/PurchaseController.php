@@ -132,7 +132,7 @@ use InventoryTrait;
                 $inventoryComponentId = $inventoryComponent->id;
             }
             $transferData['inventory_component_id'] = $inventoryComponentId;
-            $name = 'supplier';
+            $name = $request['source_slug'];
             $transferData['quantity'] = $purchaseTransactionData['quantity'];
             $transferData['unit_id'] = $purchaseTransactionData['unit_id'];
             $transferData['date'] = $purchaseTransactionData['created_at'];
@@ -146,13 +146,16 @@ use InventoryTrait;
             $transferData['grn'] = $purchaseTransactionData['grn'];
             $transferData['user_id'] = $user['id'];
             $createdTransferInId = $this->create($transferData,$name,'IN','from-purchase');
-            $createdTransferOutId = $this->create($transferData,$name,'OUT','from-purchase');
+            if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
+                $createdTransferOutId = $this->create($transferData, $name, 'OUT', 'from-purchase');
+                $sha1InventoryTransferOutId = sha1($createdTransferOutId);
+            }
             $purchasePeticashTransactionImages = PurchasePeticashTransactionImage::where('purchase_peticash_transaction_id',$purchaseTransactionData['id'])->get();
             if(count($purchasePeticashTransactionImages) > 0){
                 $sha1PurchaseTransactionId = sha1($purchaseTransactionData['id']);
                 $sha1InventoryComponentId = sha1($inventoryComponentId);
                 $sha1InventoryTransferInId = sha1($createdTransferInId);
-                $sha1InventoryTransferOutId = sha1($createdTransferOutId);
+
                 foreach ($purchasePeticashTransactionImages as $key => $images){
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('PETICASH_PURCHASE_TRANSACTION_IMAGE_UPLOAD').$sha1PurchaseTransactionId.DIRECTORY_SEPARATOR.$images['name'];
 
@@ -164,13 +167,15 @@ use InventoryTrait;
                     File::copy($tempUploadFile,$imageUploadNewPathForInventoryIn);
                     InventoryComponentTransferImage::create(['name' => $images['name'],'inventory_component_transfer_id' => $createdTransferInId]);
 
-                    $imageUploadNewPathForInventoryOut = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferOutId;
-                    if(!file_exists($imageUploadNewPathForInventoryOut)) {
-                        File::makeDirectory($imageUploadNewPathForInventoryOut, $mode = 0777, true, true);
+                    if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
+                        $imageUploadNewPathForInventoryOut = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_IMAGE_UPLOAD') . $sha1InventoryComponentId . DIRECTORY_SEPARATOR . 'transfers' . DIRECTORY_SEPARATOR . $sha1InventoryTransferOutId;
+                        if (!file_exists($imageUploadNewPathForInventoryOut)) {
+                            File::makeDirectory($imageUploadNewPathForInventoryOut, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPathForInventoryOut .= DIRECTORY_SEPARATOR.$images['name'];
+                        File::copy($tempUploadFile,$imageUploadNewPathForInventoryOut);
+                        InventoryComponentTransferImage::create(['name' => $images['name'],'inventory_component_transfer_id' => $createdTransferInId]);
                     }
-                    $imageUploadNewPathForInventoryOut .= DIRECTORY_SEPARATOR.$images['name'];
-                    File::copy($tempUploadFile,$imageUploadNewPathForInventoryOut);
-                    InventoryComponentTransferImage::create(['name' => $images['name'],'inventory_component_transfer_id' => $createdTransferInId]);
                 }
             }
             $data = array();

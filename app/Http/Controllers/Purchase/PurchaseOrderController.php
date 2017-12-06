@@ -163,6 +163,7 @@ use InventoryTrait;
                 $purchaseOrderList['materials'][$iterator]['rate_per_unit'] = $purchaseOrderComponent['rate_per_unit'];
                 $purchaseOrderList['materials'][$iterator]['unit_id'] = $purchaseOrderComponent['unit_id'];
                 $purchaseOrderList['materials'][$iterator]['unit_name'] = $purchaseOrderComponent->unit->name;
+                $purchaseOrderList['materials'][$iterator]['expected_delivery_date'] = ($purchaseOrderComponent->expected_delivery_date == null) ? '' : $purchaseOrderComponent->expected_delivery_date;
                 $purchaseOrderList['materials'][$iterator]['quotation_images'] = array();
                 $purchaseOrderList['materials'][$iterator]['client_approval_images'] = array();
                 $images = PurchaseOrderComponentImage::where('purchase_order_component_id',$purchaseOrderComponent['id'])->get();
