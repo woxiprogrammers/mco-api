@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\CustomTraits;
 
 use App\GRNCount;
+use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
 use App\InventoryTransferTypes;
+use App\ProjectSite;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,9 +17,43 @@ use Illuminate\Support\Facades\Log;
 trait InventoryTrait{
     public function createInventoryTransfer(Request $request){
         try{
-            $requestData = $request->except('name','type','token','images');
-            $selectedTransferType = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
-            $message = "Inventory Component moved ".strtolower($selectedTransferType)." successfully";
+            $requestData = $request->except('name','type','token','images','project_site_id');
+
+            $inventoryComponentTransferDataId = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
+            if($request['name'] == 'site'){
+                $componentData = InventoryComponent::where('id',$request['inventory_component_id'])->first();
+                $alreadyPresent = InventoryComponent::where('name','ilike',$componentData['name'])->where('project_site_id',$request['project_site_id'])->first();
+                if($alreadyPresent != null){
+                    $inventoryComponentId = $alreadyPresent['id'];
+                }else{
+                    $inventoryData['is_material'] = $componentData['is_material'];
+                    $inventoryData['reference_id']  = $componentData['reference_id'];
+                    $inventoryData['name'] = $componentData['name'];
+                    $inventoryData['project_site_id'] = $request['project_site_id'];
+                    $inventoryData['opening_stock'] = 0;
+                    $inventoryComponent = InventoryComponent::create($inventoryData);
+                    $inventoryComponentId = $inventoryComponent->id;
+                }
+                $requestData['inventory_component_id'] = $inventoryComponentId;
+                $requestData['source_name'] = ProjectSite::where('id',$request['project_site_id'])->pluck('name')->first();
+                $inventoryComponentTransferINDataId = $this->create($requestData,'office','IN','from-api',null);
+                $inventoryComponentTransferImages = InventoryComponentTransferImage::where('inventory_component_transfer_id',$inventoryComponentTransferDataId)->get();
+                if(count($inventoryComponentTransferImages) > 0){
+                    $sha1InventoryComponentId = sha1($inventoryComponentId);
+                    $sha1InventoryTransferId = sha1($inventoryComponentTransferINDataId);
+                    foreach ($inventoryComponentTransferImages as $key1 => $image){
+                        $tempUploadFile = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').sha1($request['inventory_component_id']).DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.sha1($inventoryComponentTransferDataId);
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
+                        File::copy($tempUploadFile,$imageUploadNewPath);
+                        InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $inventoryComponentTransferINDataId]);
+                    }
+                }
+            }
+            $message = "Inventory Component moved successfully";
             $status = 200;
         }catch(\Exception $e){
             $message = "Fail";
@@ -87,11 +123,6 @@ trait InventoryTrait{
             ];
             Log::critical(json_encode($data));
         }
-        if($slug == 'from-api'){
-            return $selectedTransferType->type;
-        }else{
             return $inventoryComponentTransferDataId;
-        }
-
     }
 }
