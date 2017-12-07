@@ -95,6 +95,7 @@ $app->group(['prefix' => 'checklist'], function () use($app){
     $app->post('save-checkpoint-detail',array('uses' => 'Checklist\ChecklistController@saveCheckpointDetails'));
     $app->post('change-status',array('uses' => 'Checklist\ChecklistController@changeChecklistStatus'));
     $app->post('recheck-checkpoint',array('uses' => 'Checklist\ChecklistController@recheckCheckpoints'));
+    $app->post('get-parent',array('uses' => 'Checklist\ChecklistController@getParentChecklist'));
 });
 
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
