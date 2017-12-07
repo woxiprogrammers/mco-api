@@ -29,6 +29,7 @@ use App\PurchaseOrderTransaction;
 use App\PurchaseOrderTransactionComponent;
 use App\PurchaseOrderTransactionImage;
 use App\PurchaseOrderTransactionStatus;
+use App\PurchasePeticashTransactionImage;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequests;
 use Carbon\Carbon;
@@ -335,7 +336,7 @@ use InventoryTrait;
             $message = "Success";
             $status = 200;
             $purchaseOrderTransaction['vehicle_number'] = $request['vehicle_number'];
-            /*$purchaseOrderTransaction['bill_amount'] = $request['vehicle_number'];*/
+            $purchaseOrderTransaction['bill_amount'] = $request['bill_amount'];
             $purchaseOrderTransaction['remark'] = $request['remark'];
             $purchaseOrderTransaction['bill_number'] = $request['bill_number'];
             $purchaseOrderTransaction['out_time'] = Carbon::now();
@@ -344,9 +345,9 @@ use InventoryTrait;
             $purchaseOrderTransactionData = PurchaseOrderTransaction::where('grn',$request['grn'])->first();
             $user = Auth::user();
             $sha1UserId = sha1($user['id']);
+            $sha1PurchaseOrderId = sha1($purchaseOrderTransactionData['purchase_order_id']);
+            $sha1PurchaseOrderTransactionId = sha1($purchaseOrderTransactionData['id']);
             if($request->has('images')){
-                $sha1PurchaseOrderId = sha1($purchaseOrderTransactionData['purchase_order_id']);
-                $sha1PurchaseOrderTransactionId = sha1($purchaseOrderTransactionData['id']);
                 foreach($request['images'] as $key1 => $imageName){
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_TRANSACTION_TEMP_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
@@ -397,40 +398,38 @@ use InventoryTrait;
                     $inventoryData['created_at'] = $inventoryData['updated_at'] = Carbon::now();
                     $inventoryComponent = InventoryComponent::create($inventoryData);
                     $inventoryComponentId = $inventoryComponent->id;
-                    $transferData['inventory_component_id'] = $inventoryComponentId;
-                    $name = 'supplier';
-                    $type = 'IN';
-                    $transferData['quantity'] = $purchaseOrderTransactionComponentData->quantity;
-                    $transferData['unit_id'] = $purchaseOrderTransactionComponentData->unit_id;
-                    $transferData['date'] = $purchaseOrderTransactionData['created_at'];
-                    $transferData['in_time'] = $purchaseOrderTransactionData['in_time'];
-                    $transferData['out_time'] = $purchaseOrderTransactionData['out_time'];
-                    $transferData['vehicle_number'] = $purchaseOrderTransactionData['vehicle_number'];
-                    $transferData['bill_number'] = $purchaseOrderTransactionData['bill_number'];
-                    /*$transferData['bill_amount'] = $purchaseOrderTransactionData['bill_amount'];
-                    $transferData['remark'] = $purchaseOrderTransactionData['remark'];*/
-                    $transferData['source_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
-                    $transferData['grn'] = $purchaseOrderTransactionData['grn'];
-                    $transferData['user_id'] = $user['id'];
-                    $createdTransferId = $this->create($transferData,$name,$type,'from-purchase');
-                    $transferData['images'] = array();
-                    /*if(count($purchaseOrderBillImages) > 0){
-                        $sha1InventoryComponentId = sha1($inventoryComponentId);
-                        $sha1InventoryTransferId = sha1($createdTransferId);
-                        $purchaseOrderId = $purchaseOrderBill->purchaseOrderComponent->purchaseOrder['id'];
-                        $sha1PurchaseOrderId = sha1($purchaseOrderId);
-                        $sha1PurchaseOrderBillId = sha1($purchaseOrderBill['id']);
-                        foreach ($purchaseOrderBillImages as $key => $image){
-                            $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill-transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderBillId.DIRECTORY_SEPARATOR.$image['name'];
-                            $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
-                            if(!file_exists($imageUploadNewPath)) {
-                                File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
-                            }
-                            $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
-                            File::copy($tempUploadFile,$imageUploadNewPath);
-                            InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
+                }
+                $transferData['inventory_component_id'] = $inventoryComponentId;
+                $name = 'supplier';
+                $type = 'IN';
+                $transferData['quantity'] = $purchaseOrderTransactionComponentData->quantity;
+                $transferData['unit_id'] = $purchaseOrderTransactionComponentData->unit_id;
+                $transferData['date'] = $purchaseOrderTransactionData['created_at'];
+                $transferData['in_time'] = $purchaseOrderTransactionData['in_time'];
+                $transferData['out_time'] = $purchaseOrderTransactionData['out_time'];
+                $transferData['vehicle_number'] = $purchaseOrderTransactionData['vehicle_number'];
+                $transferData['bill_number'] = $purchaseOrderTransactionData['bill_number'];
+                $transferData['bill_amount'] = $purchaseOrderTransactionData['bill_amount'];
+                $transferData['remark'] = $purchaseOrderTransactionData['remark'];
+                $transferData['source_name'] = $purchaseOrderComponent->purchaseOrder->vendor->name;
+                $transferData['grn'] = $purchaseOrderTransactionData['grn'];
+                $transferData['user_id'] = $user['id'];
+                $createdTransferId = $this->create($transferData,$name,$type,'from-purchase');
+                $transferData['images'] = array();
+                $purchaseOrderTransactionImages = PurchaseOrderTransactionImage::where('purchase_order_transaction_id',$purchaseOrderTransactionData['id'])->get();
+                if(count($purchaseOrderTransactionImages) > 0){
+                    $sha1InventoryComponentId = sha1($inventoryComponentId);
+                    $sha1InventoryTransferId = sha1($createdTransferId);
+                    foreach ($purchaseOrderTransactionImages as $key1 => $image){
+                        $tempUploadFile = env('WEB_PUBLIC_PATH').env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'bill_transaction'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderTransactionId.$image['name'];
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('INVENTORY_TRANSFER_IMAGE_UPLOAD').$sha1InventoryComponentId.DIRECTORY_SEPARATOR.'transfers'.DIRECTORY_SEPARATOR.$sha1InventoryTransferId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                         }
-                    }*/
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$image['name'];
+                        File::copy($tempUploadFile,$imageUploadNewPath);
+                        InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
+                    }
                 }
             }
         } catch (\Exception $e) {

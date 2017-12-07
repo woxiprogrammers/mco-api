@@ -177,7 +177,7 @@ class ChecklistController extends BaseController
                 foreach($userAllChecklistIds as $allChecklistId){
                     if(!in_array($allChecklistId,$userLatestChecklistIds)){
                         $userLatestChecklistIds[$iterator] = $allChecklistId;
-                        for($nextChecklistId = ProjectSiteUserChecklistAssignment::whereIn('id',$userAllChecklistIds)->where('project_site_user_checklist_assignment_id',$allChecklistId['id'])->first(); $nextChecklistId != null; $nextChecklistId = ProjectSiteUserChecklistAssignment::where('project_site_user_checklist_assignment_id',$nextChecklistId['id'])->whereIn('id',$userAllChecklistIds)->first()){
+                        for($nextChecklistId = ProjectSiteUserChecklistAssignment::whereIn('id',$userAllChecklistIds)->where('project_site_user_checklist_assignment_id',$allChecklistId)->first(); $nextChecklistId != null; $nextChecklistId = ProjectSiteUserChecklistAssignment::where('project_site_user_checklist_assignment_id',$nextChecklistId['id'])->whereIn('id',$userAllChecklistIds)->first()){
                             $userLatestChecklistIds[$iterator] = $nextChecklistId['id'];
                         }
                     }
