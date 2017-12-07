@@ -470,4 +470,55 @@ class ChecklistController extends BaseController
         ];
         return response()->json($response,$status);
     }
+
+    public function getParentChecklist(Request $request){
+        try{
+            $projectSiteUserChecklistAssignmentId = ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->pluck('project_site_user_checklist_assignment_id');
+            $projectSiteUserChecklist = ProjectSiteUserChecklistAssignment::where('id',$projectSiteUserChecklistAssignmentId)->first();
+            $parentChecklist['project_site_user_checklist_assignment_id'] = $projectSiteUserChecklist['id'];
+            $projectSiteChecklist = $projectSiteUserChecklist->projectSiteChecklist;
+            $parentChecklist['project_site_checklist_id'] = $projectSiteChecklist['id'];
+            $parentChecklist['checklist_current_status'] = $projectSiteUserChecklist->checklistStatus->name;
+            $parentChecklist['assigned_on'] = date('l, d F Y',strtotime($projectSiteUserChecklist['created_at']));
+            $subcategoryData = $projectSiteChecklist->checklistCategory;
+            $categoryData = ChecklistCategory::where('id',$subcategoryData['category_id'])->first();
+            $parentChecklist['category_id'] = $categoryData['id'];
+            $parentChecklist['category_name'] = $categoryData['name'];
+            $parentChecklist['sub_category_id'] = $subcategoryData['id'];
+            $parentChecklist['sub_category_name'] = $subcategoryData['name'];
+            $parentChecklist['floor_name'] = $projectSiteChecklist->quotationFloor->name;
+            $parentChecklist['title'] = $projectSiteChecklist->title;
+            $parentChecklist['description'] = $projectSiteChecklist->detail;
+            $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints;
+            $projectSiteUserCheckpointsNotCompleted = $projectSiteUserCheckpoints->where('is_ok',null)->count();
+            $totalCheckpoints = $projectSiteUserCheckpoints->count();
+            $parentChecklist['total_checkpoints'] = $totalCheckpoints;
+            $parentChecklist['completed_checkpoints'] = $totalCheckpoints - $projectSiteUserCheckpointsNotCompleted;
+            $parentChecklist['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
+            $assignedToUser = $projectSiteUserChecklist->assignedToUser;
+            $parentChecklist['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
+            $parentChecklist['assigned_by'] = $projectSiteUserChecklist['assigned_by'];
+            $assignedByUser = $projectSiteUserChecklist->assignedByUser;
+            $parentChecklist['assigned_by_user_name'] = $assignedByUser['first_name'].' '.$assignedByUser['last_name'];
+            $parentChecklist['reviewed_by'] = $projectSiteUserChecklist['reviewed_by'];
+            $reviewedByUser = $projectSiteUserChecklist->reviewedByUser;
+            $parentChecklist['reviewed_by_user_name'] = $reviewedByUser['first_name'].' '.$reviewedByUser['last_name'];
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Parent Checklist',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'data' => $parentChecklist
+        ];
+        return response()->json($response,$status);
+    }
 }
