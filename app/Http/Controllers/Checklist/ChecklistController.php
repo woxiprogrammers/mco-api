@@ -205,7 +205,7 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
                 $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
                 $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints;
-                $projectSiteUserCheckpointsCompleted = count($projectSiteUserCheckpoints->whereIn('is_ok',[false, true]));
+                $projectSiteUserCheckpointsCompleted = ProjectSiteUserCheckpoint::where('project_site_user_checklist_assignment_id',$projectSiteUserChecklist['id'])->whereNotNull('is_ok')->count();
                 $totalCheckpoints = $projectSiteUserCheckpoints->count();
                 $checklistListing[$iterator]['total_checkpoints'] = $totalCheckpoints;
                 $checklistListing[$iterator]['completed_checkpoints'] = $projectSiteUserCheckpointsCompleted;
@@ -490,10 +490,10 @@ class ChecklistController extends BaseController
             $parentChecklist['title'] = $projectSiteChecklist->title;
             $parentChecklist['description'] = $projectSiteChecklist->detail;
             $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints;
-            $projectSiteUserCheckpointsNotCompleted = $projectSiteUserCheckpoints->where('is_ok',null)->count();
+            $projectSiteUserCheckpointsCompleted = ProjectSiteUserCheckpoint::where('project_site_user_checklist_assignment_id',$projectSiteUserChecklist['id'])->whereNotNull('is_ok')->count();
             $totalCheckpoints = $projectSiteUserCheckpoints->count();
             $parentChecklist['total_checkpoints'] = $totalCheckpoints;
-            $parentChecklist['completed_checkpoints'] = $totalCheckpoints - $projectSiteUserCheckpointsNotCompleted;
+            $parentChecklist['completed_checkpoints'] = $projectSiteUserCheckpointsCompleted;
             $parentChecklist['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
             $assignedToUser = $projectSiteUserChecklist->assignedToUser;
             $parentChecklist['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
