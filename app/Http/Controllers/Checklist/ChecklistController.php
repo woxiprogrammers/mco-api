@@ -205,10 +205,10 @@ class ChecklistController extends BaseController
                 $checklistListing[$iterator]['title'] = $projectSiteChecklist->title;
                 $checklistListing[$iterator]['description'] = $projectSiteChecklist->detail;
                 $projectSiteUserCheckpoints = $projectSiteUserChecklist->projectSiteUserCheckpoints;
-                $projectSiteUserCheckpointsNotCompleted = $projectSiteUserCheckpoints->where('is_ok',null)->count();
+                $projectSiteUserCheckpointsCompleted = count($projectSiteUserCheckpoints->whereIn('is_ok',[false, true]));
                 $totalCheckpoints = $projectSiteUserCheckpoints->count();
                 $checklistListing[$iterator]['total_checkpoints'] = $totalCheckpoints;
-                $checklistListing[$iterator]['completed_checkpoints'] = $totalCheckpoints - $projectSiteUserCheckpointsNotCompleted;
+                $checklistListing[$iterator]['completed_checkpoints'] = $projectSiteUserCheckpointsCompleted;
                 $checklistListing[$iterator]['assigned_to'] = $projectSiteUserChecklist['assigned_to'];
                 $assignedToUser = $projectSiteUserChecklist->assignedToUser;
                 $checklistListing[$iterator]['assigned_to_user_name'] = $assignedToUser['first_name'].' '.$assignedToUser['last_name'];
@@ -253,7 +253,7 @@ class ChecklistController extends BaseController
                     $projectSiteChecklistCheckpoint = $projectSiteUserCheckpoint->projectSiteChecklistCheckpoint;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_description'] = $projectSiteChecklistCheckpoint->description;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_remark_required'] = $projectSiteChecklistCheckpoint->is_remark_required;
-                    $checkPointListing[$iterator]['project_site_user_checkpoint_is_checked'] = ($projectSiteUserCheckpoint['is_ok'] != null) ? true : false;
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_is_checked'] = ($projectSiteUserCheckpoint['is_ok'] !== null) ? true : false;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_ok'] = $projectSiteUserCheckpoint['is_ok'];
                     $checkPointListing[$iterator]['project_site_user_checkpoint_images'] = array();
                     $projectSiteChecklistCheckpointImages = $projectSiteChecklistCheckpoint->projectSiteChecklistCheckpointImages;
@@ -360,23 +360,23 @@ class ChecklistController extends BaseController
             $projectSiteUserCheckpoint = ProjectSiteUserCheckpoint::where('id',$request['project_site_user_checkpoint_id'])->first();
             $sha1UserId = sha1($user['id']);
             foreach ($request['images'] as $key => $imageData){
-                $tempUploadFile = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageData['image'];
-                if(File::exists($tempUploadFile)){
-                    $sha1ProjectSiteUserCheckpointId = sha1($projectSiteUserCheckpoint['id']);
-                    $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.'checkpoint'.DIRECTORY_SEPARATOR.$sha1ProjectSiteUserCheckpointId;
-                    if(!file_exists($imageUploadNewPath)) {
-                        File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageData['image'];
+                    if(File::exists($tempUploadFile)){
+                        $sha1ProjectSiteUserCheckpointId = sha1($projectSiteUserCheckpoint['id']);
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.'checkpoint'.DIRECTORY_SEPARATOR.$sha1ProjectSiteUserCheckpointId;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageData['image'];
+                        File::move($tempUploadFile,$imageUploadNewPath);
+                        ProjectSiteUserCheckpointImage::create([
+                            'name' => $imageData['image'] ,
+                            'project_site_user_checkpoint_id' => $projectSiteUserCheckpoint['id'],
+                            'project_site_checklist_checkpoint_image_id' => $imageData['project_site_checklist_checkpoint_image_id'],
+                            'image' => $imageData['image']
+                        ]);
                     }
-                    $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageData['image'];
-                    File::move($tempUploadFile,$imageUploadNewPath);
-                    ProjectSiteUserCheckpointImage::create([
-                        'name' => $imageData['image'] ,
-                        'project_site_user_checkpoint_id' => $projectSiteUserCheckpoint['id'],
-                        'project_site_checklist_checkpoint_image_id' => $imageData['project_site_checklist_checkpoint_image_id'],
-                        'image' => $imageData['image']
-                    ]);
                 }
-            }
         }catch(\Exception $e){
             $message = 'Fail';
             $status = 500;
