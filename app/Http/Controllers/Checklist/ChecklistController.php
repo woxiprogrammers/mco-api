@@ -244,6 +244,7 @@ class ChecklistController extends BaseController
             $message = "Success";
             $status = 200;
             if($request->has('project_site_user_checklist_assignment_id')){
+                $projectSiteUserChecklist = ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->first();
                 $projectSiteUserCheckpoints = ProjectSiteUserCheckpoint::where('project_site_user_checklist_assignment_id',$request['project_site_user_checklist_assignment_id'])->orderBy('id','asc')
                     ->get();
                 $iterator = 0;
@@ -273,12 +274,23 @@ class ChecklistController extends BaseController
                         $jIterator++;
                     }
                     $iterator++;
+                    $checkListData = array();
+                    if($projectSiteUserChecklist['project_site_user_checklist_assignment_id'] != null){
+                        $parentCount = 0;
+                        $nextParentId = $projectSiteUserChecklist['project_site_user_checklist_assignment_id'];
+                        do{
+                            $checkListData[$parentCount]['project_site_user_checklist_assignment_id'] = $nextParentId;
+                            $nextParentId = ProjectSiteUserChecklistAssignment::where('id',$nextParentId)->pluck('project_site_user_checklist_assignment_id');
+                            $parentCount ++;
+                        }while($nextParentId == null);
+                    }
+                    $data['parent_checklist'] = $checkListData;
                 }
             }else{
                 $projectSiteChecklistCheckpoints = ProjectSiteChecklistCheckpoint::where('project_site_checklist_id',$request['project_site_checklist_id'])->orderBy('id','asc')
                     ->get();
                 $iterator = 0;
-                $checkPointListing = array();
+                $checkPointListing = $checkListData = array();
                 foreach($projectSiteChecklistCheckpoints as $key => $projectSiteChecklistCheckpoint){
                     $checkPointListing[$iterator]['project_site_checklist_checkpoint_id'] = $projectSiteChecklistCheckpoint['id'];
                     $checkPointListing[$iterator]['project_site_checklist_checkpoint_description'] = $projectSiteChecklistCheckpoint['description'];
@@ -302,6 +314,7 @@ class ChecklistController extends BaseController
             }
 
             $data['check_points'] = $checkPointListing;
+
         }catch(\Exception $e){
             $message = 'Fail';
             $status = 500;
