@@ -13,4 +13,8 @@ class ProjectSiteUserCheckpoint extends Model
     public function projectSiteChecklistCheckpoint(){
         return $this->belongsTo('App\ProjectSiteChecklistCheckpoint','project_site_checklist_checkpoint_id');
     }
+
+    public function projectSiteUserChecklistAssignment(){
+        return $this->belongsTo('App\ProjectSiteUserChecklistAssignment','project_site_user_checklist_assignment_id');
+    }
 }

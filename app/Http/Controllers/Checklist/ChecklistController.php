@@ -245,6 +245,17 @@ class ChecklistController extends BaseController
             $status = 200;
             if($request->has('project_site_user_checklist_assignment_id')){
                 $projectSiteUserChecklist = ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->first();
+                $checkListData = array();
+                if($projectSiteUserChecklist['project_site_user_checklist_assignment_id'] != null){
+                    $parentCount = 0;
+                    $nextParentId = $projectSiteUserChecklist['project_site_user_checklist_assignment_id'];
+                    do{
+                        $checkListData[$parentCount]['project_site_user_checklist_assignment_id'] = $nextParentId;
+                        $nextParentId = ProjectSiteUserChecklistAssignment::where('id',$nextParentId)->pluck('project_site_user_checklist_assignment_id')->first();
+                        $parentCount ++;
+                    }while($nextParentId !== null);
+                }
+                $data['parent_checklist'] = $checkListData;
                 $projectSiteUserCheckpoints = ProjectSiteUserCheckpoint::where('project_site_user_checklist_assignment_id',$request['project_site_user_checklist_assignment_id'])->orderBy('id','asc')
                     ->get();
                 $iterator = 0;
@@ -265,8 +276,11 @@ class ChecklistController extends BaseController
                         $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_checklist_checkpoint_image_is_required'] = $projectSiteChecklistCheckpointImage['is_required'];
                         $imageUrl = ProjectSiteUserCheckpointImage::where('project_site_user_checkpoint_id',$projectSiteUserCheckpoint['id'])->where('project_site_checklist_checkpoint_image_id',$projectSiteChecklistCheckpointImage['id'])->first();
                         if(count($imageUrl) > 0){
+                            $sha1UserId = sha1($projectSiteUserCheckpoint->projectSiteUserChecklistAssignment->assigned_to);
+                            $sha1ProjectSiteUserCheckpointId = sha1($projectSiteUserCheckpoint->id);
+                            $imageUploadNewPath = env('CHECKLIST_CHECKPOINT_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.'checkpoint'.DIRECTORY_SEPARATOR.$sha1ProjectSiteUserCheckpointId.DIRECTORY_SEPARATOR;
                             $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_id'] = $imageUrl['id'];
-                            $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = $imageUrl['image'];
+                            $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = $imageUploadNewPath.$imageUrl['image'];
                         }else{
                             $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_id'] = null;
                             $checkPointListing[$iterator]['project_site_user_checkpoint_images'][$jIterator]['project_site_user_checkpoint_image_url'] = null;
@@ -274,17 +288,6 @@ class ChecklistController extends BaseController
                         $jIterator++;
                     }
                     $iterator++;
-                    $checkListData = array();
-                    if($projectSiteUserChecklist['project_site_user_checklist_assignment_id'] != null){
-                        $parentCount = 0;
-                        $nextParentId = $projectSiteUserChecklist['project_site_user_checklist_assignment_id'];
-                        do{
-                            $checkListData[$parentCount]['project_site_user_checklist_assignment_id'] = $nextParentId;
-                            $nextParentId = ProjectSiteUserChecklistAssignment::where('id',$nextParentId)->pluck('project_site_user_checklist_assignment_id');
-                            $parentCount ++;
-                        }while($nextParentId == null);
-                    }
-                    $data['parent_checklist'] = $checkListData;
                 }
             }else{
                 $projectSiteChecklistCheckpoints = ProjectSiteChecklistCheckpoint::where('project_site_checklist_id',$request['project_site_checklist_id'])->orderBy('id','asc')
@@ -377,6 +380,7 @@ class ChecklistController extends BaseController
                     if(File::exists($tempUploadFile)){
                         $sha1ProjectSiteUserCheckpointId = sha1($projectSiteUserCheckpoint['id']);
                         $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.'checkpoint'.DIRECTORY_SEPARATOR.$sha1ProjectSiteUserCheckpointId;
+
                         if(!file_exists($imageUploadNewPath)) {
                             File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                         }
@@ -486,8 +490,7 @@ class ChecklistController extends BaseController
 
     public function getParentChecklist(Request $request){
         try{
-            $projectSiteUserChecklistAssignmentId = ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->pluck('project_site_user_checklist_assignment_id');
-            $projectSiteUserChecklist = ProjectSiteUserChecklistAssignment::where('id',$projectSiteUserChecklistAssignmentId)->first();
+            $projectSiteUserChecklist = ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->first();
             $parentChecklist['project_site_user_checklist_assignment_id'] = $projectSiteUserChecklist['id'];
             $projectSiteChecklist = $projectSiteUserChecklist->projectSiteChecklist;
             $parentChecklist['project_site_checklist_id'] = $projectSiteChecklist['id'];
