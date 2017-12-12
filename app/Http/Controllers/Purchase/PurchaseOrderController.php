@@ -25,6 +25,7 @@ use App\PurchaseOrderBillPayment;
 use App\PurchaseOrderBillStatus;
 use App\PurchaseOrderComponent;
 use App\PurchaseOrderComponentImage;
+use App\PurchaseOrderStatus;
 use App\PurchaseOrderTransaction;
 use App\PurchaseOrderTransactionComponent;
 use App\PurchaseOrderTransactionImage;
@@ -74,7 +75,15 @@ use InventoryTrait;
                     $purchaseOrderList[$iterator]['client_name'] = $project->client->company;
                     $purchaseOrderList[$iterator]['project'] = $project->name;
                     $purchaseOrderList[$iterator]['date'] = date($purchaseOrder['created_at']);
-                    $purchaseRequestComponentIds = $purchaseOrder->purchaseOrderComponent->pluck('purchase_request_component_id');
+                    $purchaseOrderComponents = $purchaseOrder->purchaseOrderComponent;
+                    $quantity = $purchaseOrderComponents->sum('quantity');
+                    $consumedQuantity = 0;
+                    foreach($purchaseOrderComponents as $purchaseOrderComponent){
+                        $consumedQuantity += $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
+                    }
+                    $purchaseOrderList[$iterator]['purchase_order_status_slug'] = ($purchaseOrder['purchase_order_status_id'] != null) ? $purchaseOrder->purchaseOrderStatus->slug : '';
+                    $purchaseOrderList[$iterator]['remaining_quantity'] = $quantity - $consumedQuantity;
+                    $purchaseRequestComponentIds = $purchaseOrderComponents->pluck('purchase_request_component_id');
                     $material_names = MaterialRequestComponents::join('purchase_request_components','material_request_components.id','=','purchase_request_components.material_request_component_id')
                         ->whereIn('purchase_request_components.id',$purchaseRequestComponentIds)
                         ->distinct('material_request_components.name')->select('material_request_components.name')->take(5)->get();
@@ -161,6 +170,8 @@ use InventoryTrait;
                 $purchaseOrderList['materials'][$iterator]['material_request_component_id'] = $materialRequestComponent->id;
                 $purchaseOrderList['materials'][$iterator]['name'] = $materialRequestComponent->name;
                 $purchaseOrderList['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
+                $quantityConsumed = $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
+                $purchaseOrderList['materials'][$iterator]['consumed_quantity'] = $quantityConsumed;
                 $purchaseOrderList['materials'][$iterator]['rate_per_unit'] = $purchaseOrderComponent['rate_per_unit'];
                 $purchaseOrderList['materials'][$iterator]['unit_id'] = $purchaseOrderComponent['unit_id'];
                 $purchaseOrderList['materials'][$iterator]['unit_name'] = $purchaseOrderComponent->unit->name;
@@ -225,6 +236,9 @@ use InventoryTrait;
             $materialList[$iterator]['purchase_order_component_id'] = $purchaseOrderComponent['id'];
             $materialList[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
             $materialList[$iterator]['material_component_name'] = $materialRequestComponent['name'];
+            $quantityConsumed = $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
+            $quantityUnused = $purchaseOrderComponent['quantity'] - $quantityConsumed;
+            $materialList[$iterator]['material_component_remaining_quantity'] = (0.1 * ($quantityUnused)) + $quantityUnused;
             $materialList[$iterator]['material_component_units'] = array();
             $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
             $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
@@ -667,5 +681,28 @@ use InventoryTrait;
         ];
         return response()->json($response,$status);
     }*/
+
+    public function changeStatus(Request $request){
+        try{
+            PurchaseOrder::where('id',$request['purchase_order_id'])->update([
+                'purchase_order_status_id' => PurchaseOrderStatus::where('slug',$request['change_status_to_slug'])->pluck('id')->first()
+            ]);
+            $message = 'Status changed successfully';
+            $status = 200;
+        }catch(\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Change Purchase Order status',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+        ];
+        return response()->json($response,$status);
+    }
 
 }
