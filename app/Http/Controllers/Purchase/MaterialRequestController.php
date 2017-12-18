@@ -8,6 +8,7 @@ use App\Material;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
+use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
 use App\MaterialVersion;
 use App\Permission;
@@ -317,6 +318,13 @@ use PurchaseTrait;
                     'unit_id' => $request['unit_id'],
                     'component_status_id' => $request['change_component_status_id_to']
                 ]);
+                $materialRequestComponentVersion['material_request_component_id'] = $request['material_request_component_id'];
+                $materialRequestComponentVersion['component_status_id'] = $request['change_component_status_id_to'];
+                $materialRequestComponentVersion['user_id'] = $user['id'];
+                $materialRequestComponentVersion['quantity'] = $request['quantity'];
+                $materialRequestComponentVersion['unit_id'] = $request['unit_id'];
+                $materialRequestComponentVersion['remark'] = $request['remark'];
+                MaterialRequestComponentVersion::create($materialRequestComponentVersion);
                 $message = "Material Request Edited and Status updated Successfully";
             }else{
                 MaterialRequestComponents::where('id',$request['material_request_component_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
