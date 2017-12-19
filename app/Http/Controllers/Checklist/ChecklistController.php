@@ -421,6 +421,9 @@ class ChecklistController extends BaseController
         try{
             $message = "Status changed successfully";
             $status = 200;
+            if($request['checklist_status_slug'] == 'completed'){
+                $updateProjectSiteChecklistAssignment['reviewed_by'] = Auth::user()->id;
+            }
             $updateProjectSiteChecklistAssignment['checklist_status_id'] = ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first();
             ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->update($updateProjectSiteChecklistAssignment);
             $projectSiteUserChecklistHistory['checklist_status_id'] = $updateProjectSiteChecklistAssignment['checklist_status_id'];
