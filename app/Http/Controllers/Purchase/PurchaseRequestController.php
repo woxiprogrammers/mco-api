@@ -10,6 +10,7 @@ use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
+use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
 use App\Permission;
 use App\PurchaseRequestComponents;
@@ -44,13 +45,25 @@ use PurchaseTrait;
             $purchaseRequest = $materialRequestComponentIds = array();
             if($request->has('item_list')){
                 $materialRequestComponentId = $this->createMaterialRequest($request->except('material_request_component_id'),$user,$is_purchase_request = true);
-                if($request->has('material_request_component_id')){
-                    $materialRequestComponentIds = array_merge($materialRequestComponentId,$request['material_request_component_id']);
+                if($request->has('material_request_component')){
+                    $iterator = 0;
+                    $materialRequestComponentId = array();
+                    foreach($request['material_request_component'] as $key => $materialRequestData){
+                        $materialRequestComponentId[] = $request['material_request_component'][$iterator]['id'];
+                        $iterator++;
+                    }
+                    $materialRequestComponentIds = array_merge($materialRequestComponentIds,$materialRequestComponentId);
                 }else{
                     $materialRequestComponentIds = $materialRequestComponentId;
                 }
-            }elseif($request->has('material_request_component_id')){
-                $materialRequestComponentIds = $request['material_request_component_id'];
+            }elseif($request->has('material_request_component')){
+                $iterator = 0;
+                $materialRequestComponentId = array();
+                foreach($request['material_request_component'] as $key => $materialRequestData){
+                    $materialRequestComponentId[] = $request['material_request_component'][$iterator]['id'];
+                    $iterator++;
+                }
+                $materialRequestComponentIds = array_merge($materialRequestComponentIds,$materialRequestComponentId);
             }
             $quotationId = Quotation::where('project_site_id',$requestData['project_site_id'])->first();
             if(count($quotationId) > 0){
@@ -67,17 +80,25 @@ use PurchaseTrait;
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
             }
-            if($request->has('material_request_component_id')){
+            if($request->has('material_request_component')){
                 $PRAssignedStatusId = PurchaseRequestComponentStatuses::where('slug','p-r-assigned')->pluck('id')->first();
-                MaterialRequestComponents::whereIn('id',$request['material_request_component_id'])->update(['component_status_id' => $PRAssignedStatusId]);
                 $materialComponentHistoryData = array();
                 $materialComponentHistoryData['remark'] = '';
                 $materialComponentHistoryData['user_id'] = $user['id'];
                 $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
-
-                foreach($request['material_request_component_id'] as $materialRequestComponentId){
-                    $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentId;
-                    MaterialRequestComponentHistory::create($materialComponentHistoryData);
+                $iterator = 0;
+                foreach($request['material_request_component'] as $key => $materialRequestComponentData){
+                    MaterialRequestComponents::where('id',$request['material_request_component'][$iterator]['id'])->update(['component_status_id' => $PRAssignedStatusId]);
+                    if(array_key_exists('quantity',$request['material_request_component'][$iterator])){
+                        $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponentData['id'];
+                        $materialRequestComponentVersion['component_status_id'] = $PRAssignedStatusId;
+                        $materialRequestComponentVersion['user_id'] = $user['id'];
+                        $materialRequestComponentVersion['quantity'] = $materialRequestComponentData['quantity'];
+                        $materialRequestComponentVersion['unit_id'] = $materialRequestComponentData['unit_id'];
+                        $materialRequestComponentVersion['remark'] = $materialRequestComponentData['remark'];
+                        MaterialRequestComponentVersion::create($materialRequestComponentVersion);
+                    }
+                    $iterator++;
                 }
             }
 
