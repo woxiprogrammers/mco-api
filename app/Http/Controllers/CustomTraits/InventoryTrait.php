@@ -129,7 +129,9 @@ trait InventoryTrait{
 
     public function getSiteTransferRequestListing(Request $request){
         try{
-            $inventoryTransferData = InventoryComponentTransfers::where('inventory_component_transfer_status_id',InventoryComponentTransferStatus::where('slug','requested')->pluck('id')->first())->orderBy('created_at','desc')->get();
+            $inventoryComponentIds = InventoryComponent::where('project_site_id',$request['project_site_id'])->pluck('id');
+            $inventoryTransferData = InventoryComponentTransfers::where('inventory_component_transfer_status_id',InventoryComponentTransferStatus::where('slug','requested')->pluck('id')->first())
+                                        ->whereIn('inventory_component_id',$inventoryComponentIds)->orderBy('created_at','desc')->get();
             $request_component_listing = array();
             $iterator = 0;
             foreach ($inventoryTransferData as $key => $inventoryTransfer) {
