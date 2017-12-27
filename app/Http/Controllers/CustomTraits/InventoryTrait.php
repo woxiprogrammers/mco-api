@@ -6,6 +6,7 @@ use App\GRNCount;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
+use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
 use App\ProjectSite;
 use Carbon\Carbon;
@@ -124,5 +125,66 @@ trait InventoryTrait{
             Log::critical(json_encode($data));
         }
             return $inventoryComponentTransferDataId;
+    }
+
+    public function getSiteTransferRequestListing(Request $request){
+        try{
+            $inventoryComponentIds = InventoryComponent::where('project_site_id',$request['project_site_id'])->pluck('id');
+            $inventoryTransferData = InventoryComponentTransfers::where('inventory_component_transfer_status_id',InventoryComponentTransferStatus::where('slug','requested')->pluck('id')->first())
+                                        ->whereIn('inventory_component_id',$inventoryComponentIds)->orderBy('created_at','desc')->get();
+            $request_component_listing = array();
+            $iterator = 0;
+            foreach ($inventoryTransferData as $key => $inventoryTransfer) {
+                $request_component_listing[$iterator]['inventory_component_transfer_id'] = $inventoryTransfer['id'];
+                $request_component_listing[$iterator]['project_site_from'] = $inventoryTransfer->inventoryComponent->projectSite->name;
+                $request_component_listing[$iterator]['project_site_to'] = $inventoryTransfer->source_name;
+                $request_component_listing[$iterator]['component_name'] = $inventoryTransfer->inventoryComponent->name;
+                $request_component_listing[$iterator]['quantity'] = $inventoryTransfer->quantity;
+                $request_component_listing[$iterator]['unit'] = $inventoryTransfer->unit->name;
+                $iterator++;
+            }
+            $data['request_component_listing'] = $request_component_listing;
+            $message = "Success";
+            $status = 200;
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Request Component listing',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "data" => $data,
+            "message" => $message,
+
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function changeStatus(Request $request){
+        try{
+            InventoryComponentTransfers::where('id',$request['inventory_component_transfer_id'])
+                ->update([
+                    'inventory_component_transfer_status_id' =>  InventoryComponentTransferStatus::where('slug',$request['change_status_slug_to'])->pluck('id')->first()
+                ]);
+            $message = "Inventory Component Transfer Status Changed Successfully";
+            $status = 200;
+        }catch (\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Change Status',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message,
+        ];
+        return response()->json($response,$status);
     }
 }
