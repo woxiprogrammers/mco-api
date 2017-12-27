@@ -7,6 +7,7 @@
 
 namespace App\Http\Controllers\Notification;
 
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,7 @@ use Laravel\Lumen\Routing\Controller as BaseController;
 
 class NotificationController extends BaseController{
 
+    use NotificationTrait;
     public function __construct(){
         $this->middleware('jwt.auth');
         if(!Auth::guest()) {
