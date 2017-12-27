@@ -10,7 +10,8 @@
         "vlucas/phpdotenv": "~2.2",
         "spatie/laravel-permission": "^1.12",
         "tymon/jwt-auth": "1.0.0-beta.3",
-        "cviebrock/eloquent-sluggable": "^4.3"
+        "cviebrock/eloquent-sluggable": "4.2.4",
+        "brozot/laravel-fcm": "^1.2"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

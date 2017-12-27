@@ -89,6 +89,9 @@ $app->singleton(
 // $app->register(App\Providers\EventServiceProvider::class);
 $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 $app->register(Cviebrock\EloquentSluggable\ServiceProvider::class);
+$app->register(LaravelFCM\FCMServiceProvider::class);
+class_alias(\LaravelFCM\Facades\FCM::class, 'FCM');
+class_alias(\LaravelFCM\Facades\FCMGroup::class, 'FCMGroup');
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes

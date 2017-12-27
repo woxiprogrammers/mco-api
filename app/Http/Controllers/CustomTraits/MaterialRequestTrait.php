@@ -10,6 +10,7 @@ use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
 use App\PurchaseRequestComponentStatuses;
 use App\Quotation;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 trait MaterialRequestTrait{
-
+    use NotificationTrait;
     public function createMaterialRequest($data,$user,$is_purchase_request){
         $currentDate = Carbon::now();
         $purchaseRequestComponentStatus = PurchaseRequestComponentStatuses::get();
@@ -74,6 +75,24 @@ trait MaterialRequestTrait{
             }
             $iterator++;
         }
+        $mobileTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
+                    ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                    ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
+                    ->where('permissions.name','approve-material-request')
+                    ->whereNotNull('users.mobile_fcm_token')
+                    ->where('user_project_site_relation.project_site_id',$data['project_site_id'])
+                    ->pluck('users.mobile_fcm_token')
+                    ->toArray();
+        $webTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
+                    ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                    ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
+                    ->where('permissions.name','approve-material-request')
+                    ->whereNotNull('users.web_fcm_token')
+                    ->where('user_project_site_relation.project_site_id',$data['project_site_id'])
+                    ->pluck('users.web_fcm_token')
+                    ->toArray();
+        $tokens = array_merge($mobileTokens,$webTokens);
+        $this->sendPushNotification('Material Request Created','New Material Request is created',$tokens);
         return $materialRequestComponent;
     }
 }
