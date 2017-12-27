@@ -18,8 +18,8 @@ trait NotificationTrait{
         try{
             $optionBuilder = new OptionsBuilder();
             $optionBuilder->setTimeToLive(60*20);
-            $notificationBuilder = new PayloadNotificationBuilder('Material Request Created');
-            $notificationBuilder->setBody('ABC has created a material request for site XYZ')
+            $notificationBuilder = new PayloadNotificationBuilder($title);
+            $notificationBuilder->setBody($body)
                         ->setSound('default');
             $dataBuilder = new PayloadDataBuilder();
             /*$dataBuilder->addData(['a_data' => 'my_data']);*/
