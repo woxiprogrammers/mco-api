@@ -136,7 +136,7 @@ class ChecklistController extends BaseController
             foreach ($request['assigned_to'] as $key => $assignedUserId) {
                 $project_site_user_checklist_assignment['assigned_to'] = $assignedUserId;
                 $projectSiteUserChecklistAssignment = ProjectSiteUserChecklistAssignment::create($project_site_user_checklist_assignment);
-                $projectSiteChecklistCheckpoints = ProjectSiteChecklist::where('id',$request['project_site_checklist_id'])->pluck('id');
+                $projectSiteChecklistCheckpoints = ProjectSiteChecklistCheckpoint::where('project_site_checklist_id',$request['project_site_checklist_id'])->pluck('id');
                 foreach($projectSiteChecklistCheckpoints as $projectSiteChecklistCheckpoint){
                     ProjectSiteUserCheckpoint::create([
                         'project_site_checklist_checkpoint_id' => $projectSiteChecklistCheckpoint,

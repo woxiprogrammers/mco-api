@@ -82,7 +82,7 @@ use InventoryTrait;
                         $consumedQuantity += $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
                     }
                     $purchaseOrderList[$iterator]['purchase_order_status_slug'] = ($purchaseOrder['purchase_order_status_id'] != null) ? $purchaseOrder->purchaseOrderStatus->slug : '';
-                    $purchaseOrderList[$iterator]['remaining_quantity'] = $quantity - $consumedQuantity;
+                    $purchaseOrderList[$iterator]['remaining_quantity'] = (string)($quantity - $consumedQuantity);
                     $purchaseRequestComponentIds = $purchaseOrderComponents->pluck('purchase_request_component_id');
                     $material_names = MaterialRequestComponents::join('purchase_request_components','material_request_components.id','=','purchase_request_components.material_request_component_id')
                         ->whereIn('purchase_request_components.id',$purchaseRequestComponentIds)
@@ -238,7 +238,7 @@ use InventoryTrait;
             $materialList[$iterator]['material_component_name'] = $materialRequestComponent['name'];
             $quantityConsumed = $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
             $quantityUnused = $purchaseOrderComponent['quantity'] - $quantityConsumed;
-            $materialList[$iterator]['material_component_remaining_quantity'] = (0.1 * ($quantityUnused)) + $quantityUnused;
+            $materialList[$iterator]['material_component_remaining_quantity'] = (string)((0.1 * ($quantityUnused)) + $quantityUnused);
             $materialList[$iterator]['material_component_units'] = array();
             $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
             $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
