@@ -110,11 +110,15 @@ $app->group(['prefix' => 'awareness'], function () use($app){
     $app->post('get-sub-categories', array('uses' => 'Awareness\AwarenessManagementController@getSubCategories'));
     $app->post('listing', array('uses' => 'Awareness\AwarenessManagementController@listing'));
 });
-    $app->group(['prefix' => 'drawing'], function () use($app){
-        $app->post('get-main-categories', array('uses' => 'Drawing\DrawingController@getMainCategories'));
-        $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
-        $app->post('get-current-version-images', array('uses' => 'Drawing\DrawingController@getCurrentVersionImages'));
-        $app->post('add-comment', array('uses' => 'Drawing\DrawingController@addComment'));
-        $app->post('get-comments', array('uses' => 'Drawing\DrawingController@getComments'));
-        $app->post('get-all-image-versions', array('uses' => 'Drawing\DrawingController@getAllImageVersions'));
-    });
+$app->group(['prefix' => 'drawing'], function () use($app){
+    $app->post('get-main-categories', array('uses' => 'Drawing\DrawingController@getMainCategories'));
+    $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
+    $app->post('get-current-version-images', array('uses' => 'Drawing\DrawingController@getCurrentVersionImages'));
+    $app->post('add-comment', array('uses' => 'Drawing\DrawingController@addComment'));
+    $app->post('get-comments', array('uses' => 'Drawing\DrawingController@getComments'));
+    $app->post('get-all-image-versions', array('uses' => 'Drawing\DrawingController@getAllImageVersions'));
+});
+$app->group(['prefix' => 'notification'], function () use($app){
+    $app->post('store-fcm-token',array('uses'=> 'Notification\NotificationController@storeFCMToken'));
+    $app->get('send-push-notification',array('uses'=> 'Notification\NotificationController@sendPushNotification'));
+});
