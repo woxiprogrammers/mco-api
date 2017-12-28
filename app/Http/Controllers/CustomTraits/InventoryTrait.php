@@ -8,7 +8,10 @@ use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
 use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
+use App\Material;
 use App\ProjectSite;
+use App\Unit;
+use App\UnitConversion;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +19,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 trait InventoryTrait{
-    public function createInventoryTransfer(Request $request){
+    /*public function createInventoryTransfer(Request $request){
         try{
             $requestData = $request->except('name','type','token','images','project_site_id');
 
@@ -70,13 +73,60 @@ trait InventoryTrait{
             'message' => $message,
         ];
             return response()->json($response,$status);
+    }*/
+
+    public function createInventoryTransfer(Request $request){
+    try{
+        switch ($request['name']){
+            case 'site' :
+                    if($request->has('inventory_component_id')){
+                        $inventoryComponentId = $request['inventory_component_id'];
+                    }else{
+                        $inventoryData = $request->only('is_material','reference_id');
+                        $inventoryData['project_site_id'] = $request['project_site_id_to'];
+                        $inventoryData['name'] = $request['component_name'];
+                        $inventoryData['opening_stock'] = 0;
+                        $inventoryComponent = InventoryComponent::create($inventoryData);
+                        $inventoryComponentId = $inventoryComponent->id;
+                    }
+                    $requestData = $request->only('quantity','unit_id','remark');
+                    $requestData['inventory_component_id'] = $inventoryComponentId;
+                    $projectSite = ProjectSite::where('id',$request['project_site_id_from'])->first();
+                    $requestData['source_name'] = $projectSite->project->name.'-'.$projectSite->name;
+                    $requestData['date'] = Carbon::now();
+                    $inventoryComponentTransferDataId = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
+                break;
+
+            case 'user' :
+                $requestData = $request->only('inventory_component_id','quantity','unit_id','remark','source_name');
+                $requestData['date'] = Carbon::now();
+                $inventoryComponentTransferDataId = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
+                break;
+        }
+        $message = "Inventory Component moved successfully";
+        $status = 200;
+    }catch(\Exception $e){
+        $message = "Fail";
+        $status = 500;
+        $data = [
+            'action' => 'Create Transfer for inventory',
+            'exception' => $e->getMessage(),
+            'params' => $request->all()
+        ];
+        Log::critical(json_encode($data));
     }
+    $response = [
+        'message' => $message,
+    ];
+    return response()->json($response,$status);
+}
 
     public function create($request,$name,$type,$slug,$images=null){
         try{
             $inventoryComponentTransferData = $request;
             $selectedTransferType = InventoryTransferTypes::where('slug',$name)->where('type','ilike',$type)->first();
             $inventoryComponentTransferData['transfer_type_id'] = $selectedTransferType->id;
+            $inventoryComponentTransferData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
             if($slug == 'from-api'){
                 $currentDate = Carbon::now();
                 $monthlyGrnGeneratedCount = GRNCount::where('month',$currentDate->month)->where('year',$currentDate->year)->pluck('count')->first();
@@ -186,5 +236,73 @@ trait InventoryTrait{
             "message" => $message,
         ];
         return response()->json($response,$status);
+    }
+
+    public function autoSuggest(Request $request){
+        try{
+            $message = 'Success';
+            $status = 200;
+            $data = array();
+            if($request['search_in'] == 'material'){
+                $fromProjectSiteComponents = InventoryComponent::where('name','ilike','%'.$request['keyword'].'%')
+                                                ->where('is_material',true)
+                                                ->where('project_site_id',$request['project_site_id_to'])
+                                                ->select('name','reference_id','id as inventory_component_id')->get();
+                $alreadyExitMaterialsIds = $fromProjectSiteComponents->pluck('reference_id');
+                $toProjectSiteComponents = InventoryComponent::where('name','ilike','%'.$request['keyword'].'%')->where('is_material',true)->whereNotIn('reference_id',$alreadyExitMaterialsIds)->where('project_site_id',$request['project_site_id_from'])->distinct('name')->select('name','reference_id')->get();
+                $iterator = 0;
+                $components = array_merge($fromProjectSiteComponents->toArray(),$toProjectSiteComponents->toArray());
+                foreach($components as $key => $component){
+                    $data[$iterator]['name'] = $component['name'];
+                    $data[$iterator]['reference_id'] = $component['reference_id'];
+                    $data[$iterator]['inventory_component_id'] = (array_key_exists('id',$component)) ? $component['id'] : null;
+                    $data[$iterator]['unit'] = array();
+                    $materialUnitId = Material::where('id',$component['reference_id'])->pluck('unit_id')->first();
+                    $data[$iterator]['unit'][0]['unit_id'] = $materialUnitId;
+                    $data[$iterator]['unit'][0]['unit_name'] =  Unit::where('id',$materialUnitId)->pluck('name')->first();
+                    $unitConversionIds1 = UnitConversion::where('unit_1_id',$materialUnitId)->pluck('unit_2_id');
+                    $unitConversionIds2 = UnitConversion::where('unit_2_id',$materialUnitId)->pluck('unit_1_id');
+                    $unitConversionNeededIds = array_merge($unitConversionIds1->toArray(),$unitConversionIds2->toArray());
+                    $jIterator = 1;
+                    foreach ($unitConversionNeededIds as $key1 => $unitId){
+                        $unit = Unit::where('id',$unitId)->first();
+                        $data[$iterator]['unit'][$jIterator]['unit_id'] = $unit->id;
+                        $data[$iterator]['unit'][$jIterator]['unit_name'] = $unit->name;
+                        $jIterator++;
+                    }
+                    $iterator++;
+                }
+            }else{
+                $fromProjectSiteComponents = InventoryComponent::where('name','ilike','%'.$request['keyword'].'%')->where('is_material',false)->where('project_site_id',$request['project_site_id_to'])->select('name','reference_id','id as inventory_component_id')->get();
+                $alreadyExitMaterialsIds = $fromProjectSiteComponents->pluck('reference_id');
+                $toProjectSiteComponents = InventoryComponent::where('name','ilike','%'.$request['keyword'].'%')->where('is_material',false)->whereNotIn('reference_id',$alreadyExitMaterialsIds)->where('project_site_id',$request['project_site_id_from'])->distinct('name')->select('name','reference_id')->get();
+                $components = array_merge($fromProjectSiteComponents->toArray(),$toProjectSiteComponents->toArray());
+                $iterator = 0;
+                $assetUnit = Unit::where('slug','nos')->first();
+                foreach($components as $key => $component){
+                    $data[$iterator]['name'] = $component['name'];
+                    $data[$iterator]['reference_id'] = $component['reference_id'];
+                    $data[$iterator]['inventory_component_id'] = (array_key_exists('id',$component)) ? $component['id'] : null;
+                    $data[$iterator]['unit'] = array();
+                    $data[$iterator]['unit'][0]['unit_id'] = $assetUnit->id;
+                    $data[$iterator]['unit'][0]['unit_name'] =  $assetUnit->name;
+                    $iterator++;
+                }
+            }
+        }catch(\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Get Inventory Component Auto Suggestion',
+                'exception' => $e->getMessage(),
+                'data' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response($response,$status);
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\CustomTraits\InventoryTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
+use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
 use App\Unit;
 use Carbon\Carbon;
@@ -36,13 +37,14 @@ class AssetManagementController extends BaseController
             $pageId = $request->page;
             $projectSiteId = $request->project_site_id;
             $inventoryComponents = InventoryComponent::where('is_material',((boolean)false))->where('project_site_id',$projectSiteId)->get();
+            $approvedStatusId = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
             $inventoryListingData = array();
             $iterator = 0;
             $inTransferIds = InventoryTransferTypes::where('type','ilike','in')->pluck('id')->toArray();
             $outTransferIds = InventoryTransferTypes::where('type','ilike','out')->pluck('id')->toArray();
             foreach($inventoryComponents as $key => $inventoryComponent){
-                $outQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
-                $inQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
+                $outQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->where('inventory_component_transfer_status_id',$approvedStatusId)->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
+                $inQuantity = InventoryComponentTransfers::where('inventory_component_id', $inventoryComponent['id'])->where('inventory_component_transfer_status_id',$approvedStatusId)->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
                 $availableQuantity = $inQuantity - $outQuantity;
                 if($availableQuantity > 0 || true){
                     $inventoryListingData[$iterator]['assets_name'] = $inventoryComponent['name'];
@@ -246,6 +248,7 @@ class AssetManagementController extends BaseController
             $status = 200;
             $data = $request->except(['token']);
             $todayDate = date('Y-m-d');
+            $approvedStatusId = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
             $inventoryComponent = InventoryComponent::findOrFail($data['inventory_component_id']);
             $data['start_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['start_time']);
             $data['stop_time'] = Carbon::createFromFormat('Y-m-d H:i:s',$todayDate.' '.$data['stop_time']);
@@ -269,8 +272,8 @@ class AssetManagementController extends BaseController
                     ];
                     return response()->json($response,203);
                 }
-                $inQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
-                $outQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
+                $inQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->where('inventory_component_transfer_status_id',$approvedStatusId)->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
+                $outQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->where('inventory_component_transfer_status_id',$approvedStatusId)->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
                 $availableQuantity = $inQuantity - $outQuantity;
                 if($availableQuantity < $data['top_up']){
                     $response = [
@@ -291,7 +294,7 @@ class AssetManagementController extends BaseController
                     'source_name' => $user->first_name.' '.$user->last_name,
                     'user_id' => $user->id
                 ];
-                $this->create($inventoryTransferData,'labour','OUT','from-api');
+                $this->create($inventoryTransferData,'user','OUT','from-api');
             }
         }catch(\Exception $e){
             $status = 500;
