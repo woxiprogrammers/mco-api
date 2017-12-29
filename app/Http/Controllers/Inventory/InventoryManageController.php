@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomTraits\InventoryTrait;
 use App\Http\Controllers\CustomTraits\UnitTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransfers;
+use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
 use App\Material;
 use App\MaterialVersion;
@@ -44,6 +45,7 @@ use UnitTrait;
             $quotation = Quotation::where('project_site_id',$request->project_site_id)->first();
             $inventoryListingData = array();
             $iterator = 0;
+            $approvedStatusId = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
             foreach($inventoryComponents as $key => $inventoryComponent){
                 $inventoryTransferTypes = InventoryComponentTransfers::where('inventory_component_id',$inventoryComponent['id'])->pluck('transfer_type_id')->toArray();
                 $isQuotationMaterial = 0;
@@ -77,6 +79,7 @@ use UnitTrait;
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
                                                                     ->where('inventory_transfer_types.type','IN')
+                                                                    ->where('inventory_component_transfer_status_id',$approvedStatusId)
                                                                     ->select('inventory_component_transfers.id','inventory_component_transfers.quantity','inventory_component_transfers.unit_id')->orderBy('inventory_component_transfers.id')->get()->toArray();
                 $unitId = Material::where('id',$inventoryComponent['reference_id'])->pluck('unit_id')->first();
                 $totalIN = 0;
@@ -93,6 +96,7 @@ use UnitTrait;
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
                                                                     ->where('inventory_transfer_types.type','OUT')
+                                                                    ->where('inventory_component_transfer_status_id',$approvedStatusId)
                                                                     ->select('inventory_component_transfers.id','inventory_component_transfers.quantity','inventory_component_transfers.unit_id')->orderBy('inventory_component_transfers.id')->get()->toArray();
                 $totalOUT = 0;
                 foreach($inventoryComponentOutData as $key1 => $inventoryComponentOUTTransfer){
