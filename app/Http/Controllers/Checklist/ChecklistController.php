@@ -273,6 +273,7 @@ class ChecklistController extends BaseController
                     $checkPointListing[$iterator]['project_site_user_checkpoint_description'] = $projectSiteChecklistCheckpoint->description;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_remark_required'] = $projectSiteChecklistCheckpoint->is_remark_required;
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_checked'] = ($projectSiteUserCheckpoint['is_ok'] !== null) ? true : false;
+                    $checkPointListing[$iterator]['project_site_user_checkpoint_remark'] = ($projectSiteUserCheckpoint['remark'] !== null) ? $projectSiteUserCheckpoint['remark'] : '';
                     $checkPointListing[$iterator]['project_site_user_checkpoint_is_ok'] = $projectSiteUserCheckpoint['is_ok'];
                     $checkPointListing[$iterator]['project_site_user_checkpoint_images'] = array();
                     $projectSiteChecklistCheckpointImages = $projectSiteChecklistCheckpoint->projectSiteChecklistCheckpointImages;
