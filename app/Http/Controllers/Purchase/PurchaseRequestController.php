@@ -160,15 +160,13 @@ use PurchaseTrait;
                 ->where('permissions.name','approve-purchase-request')
                 ->where('user_has_permissions.user_id',$user['id'])
                 ->count();
+            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
+                ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
+                ->orderBy('created_at','desc')->get();
             if($approvalAclPermissionCount > 0){
-                $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
-                                    ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
-                                    ->orderBy('created_at','desc')->get();
+                $has_approve_access = true;
             }else{
-                $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
-                    ->where('user_id',$user['id'])
-                    ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
-                    ->orderBy('created_at','desc')->get();
+                $has_approve_access = false;
             }
             $purchaseRequestList = $data = array();
             $iterator = 0;
@@ -181,11 +179,6 @@ use PurchaseTrait;
                     $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
                     $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->slug;
                     $purchase_component_status_id = $purchaseRequest['purchase_component_status_id'];
-                    if($approvalAclPermissionCount > 0){
-                        $purchaseRequestList[$iterator]['have_access'] = 'approve-purchase-request';
-                    }else{
-                        $purchaseRequestList[$iterator]['have_access'] = 'create-purchase-request';
-                    }
                     if($purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-disapproved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-disapproved'){
                         $materialRequestComponentId = $purchaseRequest->purchaseRequestComponents->pluck('material_request_component_id')->first();
                         $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponentId)->where('component_status_id',$purchase_component_status_id)->pluck('user_id')->first();
@@ -216,6 +209,7 @@ use PurchaseTrait;
             $status = 200;
             $message = "Success";
         }catch(Exception $e){
+            $has_approve_access = false;
             $message = "Fail";
             $status = 500;
             $data = [
@@ -228,6 +222,7 @@ use PurchaseTrait;
             Log::critical(json_encode($data));
         }
         $response = [
+            "has_approve_access" => $has_approve_access,
             "data" => $data,
             "message" => $message,
             "next_url" => $next_url,
