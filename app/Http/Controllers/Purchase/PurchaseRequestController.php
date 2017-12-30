@@ -178,6 +178,8 @@ use PurchaseTrait;
                     $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
                     $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
                     $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->slug;
+                    $createdByUser = User::where('id',$purchaseRequest['user_id'])->select('first_name','last_name')->first();
+                    $purchaseRequestList[$iterator]['created_by'] = $createdByUser['first_name'].' '.$createdByUser['last_name'];
                     $purchase_component_status_id = $purchaseRequest['purchase_component_status_id'];
                     if($purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-disapproved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-disapproved'){
                         $materialRequestComponentId = $purchaseRequest->purchaseRequestComponents->pluck('material_request_component_id')->first();

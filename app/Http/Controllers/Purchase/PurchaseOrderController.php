@@ -18,6 +18,7 @@ use App\Material;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
 use App\PaymentType;
+use App\Permission;
 use App\PurchaseOrder;
 use App\PurchaseOrderBill;
 use App\PurchaseOrderBillImage;
@@ -53,6 +54,16 @@ use InventoryTrait;
     public function getPurchaseOrderListing(Request $request){
         try{
             $pageId = $request->page;
+            $user = Auth::user();
+            $createAclPermissionCount = Permission::join('user_has_permissions','permissions.id','=','user_has_permissions.permission_id')
+                ->where('permissions.name','create-purchase-order')
+                ->where('user_has_permissions.user_id',$user['id'])
+                ->count();
+            if($createAclPermissionCount > 0){
+                $has_create_access = true;
+            }else{
+                $has_create_access = false;
+            }
             if($request->has('purchase_request_id')){
                 $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->orderBy('created_at','desc')->get();
             }else{
@@ -138,11 +149,13 @@ use InventoryTrait;
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
+            $has_create_access = false;
             $next_url = "";
             $page_id = "";
             Log::critical(json_encode($data));
         }
         $response = [
+            "has_create_access" => $has_create_access,
             'data' => $data,
             'message' => $message,
             "next_url" => $next_url,
