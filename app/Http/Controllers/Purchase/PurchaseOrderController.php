@@ -56,7 +56,7 @@ use InventoryTrait;
             $pageId = $request->page;
             $user = Auth::user();
             $createAclPermissionCount = Permission::join('user_has_permissions','permissions.id','=','user_has_permissions.permission_id')
-                ->where('permissions.name','create-purchase-order')
+                ->where('permissions.name','create-purchase-bill')
                 ->where('user_has_permissions.user_id',$user['id'])
                 ->count();
             if($createAclPermissionCount > 0){
