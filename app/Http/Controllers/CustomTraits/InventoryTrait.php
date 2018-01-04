@@ -255,7 +255,7 @@ trait InventoryTrait{
                 foreach($components as $key => $component){
                     $data[$iterator]['name'] = $component['name'];
                     $data[$iterator]['reference_id'] = $component['reference_id'];
-                    $data[$iterator]['inventory_component_id'] = (array_key_exists('id',$component)) ? $component['id'] : null;
+                    $data[$iterator]['inventory_component_id'] = (array_key_exists('inventory_component_id',$component)) ? $component['inventory_component_id'] : null;
                     $data[$iterator]['unit'] = array();
                     $materialUnitId = Material::where('id',$component['reference_id'])->pluck('unit_id')->first();
                     $data[$iterator]['unit'][0]['unit_id'] = $materialUnitId;
@@ -282,7 +282,7 @@ trait InventoryTrait{
                 foreach($components as $key => $component){
                     $data[$iterator]['name'] = $component['name'];
                     $data[$iterator]['reference_id'] = $component['reference_id'];
-                    $data[$iterator]['inventory_component_id'] = (array_key_exists('id',$component)) ? $component['id'] : null;
+                    $data[$iterator]['inventory_component_id'] = (array_key_exists('inventory_component_id',$component)) ? $component['inventory_component_id'] : null;
                     $data[$iterator]['unit'] = array();
                     $data[$iterator]['unit'][0]['unit_id'] = $assetUnit->id;
                     $data[$iterator]['unit'][0]['unit_name'] =  $assetUnit->name;
