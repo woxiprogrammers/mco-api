@@ -12,6 +12,8 @@ use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
 use App\MaterialVersion;
 use App\Permission;
+use App\PurchaseOrder;
+use App\PurchaseOrderComponent;
 use App\PurchaseRequestComponentStatuses;
 use App\Quotation;
 use App\QuotationMaterial;
@@ -433,6 +435,110 @@ use PurchaseTrait;
         $response = [
             "data" => $data,
             "message" => $message,
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getPurchaseRequestHistory(Request $request){
+        try{
+            $data = array();
+            $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component_id'])->first();
+            $materialComponentVersions = $materialRequestComponent->materialRequestComponentVersion;
+            $iterator = 0;
+            foreach($materialComponentVersions as $key => $materialComponentVersion){
+                $materialRequestComponentStatusSlug = $materialComponentVersion->purchaseRequestComponentStatuses->slug;
+                $user = $materialComponentVersion->user;
+                switch ($materialRequestComponentStatusSlug){
+                    case 'pending' :
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material requested by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'manager-approved' :
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material approved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'manager-disapproved':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material disapproved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'admin-approved' :
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material approved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'admin-disapproved':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material disapproved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'in-indent':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material moved to Purchase by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'p-r-assigned':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' P. R. created by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'p-r-manager-approved':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' P. R. approved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'p-r-manager-disapproved':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' P. R. disapproved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'p-r-admin-approved':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' P. R. approved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'p-r-admin-disapproved':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' P. R. disapproved by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+
+                    case 'purchase-requested':
+                        $data[$iterator]['id'] = $iterator;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' purchase requested by '.$user->first_name.' '.$user->last_name.' with remark '.$materialComponentVersion->remark;
+                        break;
+                }
+                $iterator++;
+            }
+            $purchaseOrderComponent = PurchaseOrderComponent::join('purchase_request_components','purchase_request_components.id','=','purchase_order_components.purchase_request_component_id')
+                                                                ->join('purchase_orders','purchase_orders.id','=','purchase_order_components.purchase_order_id')
+                                                                ->join('purchase_requests','purchase_requests.id','=','purchase_request_components.purchase_request_id')
+                                                                ->join('material_request_components','material_request_components.id','=','purchase_request_components.material_request_component_id')
+                                                                ->where('material_request_components.id',$request['material_request_component_id'])
+                                                                ->select('purchase_orders.user_id','purchase_orders.is_approved','purchase_orders.purchase_order_status_id','purchase_orders.created_at','purchase_order_components.quantity','purchase_order_components.unit_id','purchase_order_components.remark')
+                                                                ->first();
+            if($purchaseOrderComponent != null){
+                $unitName = Unit::where('id',$purchaseOrderComponent['unit_id'])->pluck('name')->first();
+                $user = User::where('id',$purchaseOrderComponent['user_id'])->first();
+                $data[$iterator]['id'] = $iterator;
+                $data[$iterator]['display_message'] = date('l, d F Y',strtotime($purchaseOrderComponent['created_at'])).' '.$purchaseOrderComponent['quantity'].' '.$unitName.' purchase order created by '.$user->first_name.' '.$user->last_name.' with remark '.$purchaseOrderComponent['remark'];
+            }
+            $status = 200;
+            $message = "Success";
+        }catch(\Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $data = [
+                'action' => 'Get Purchase History',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message,
+            "data" => array_values($data)
         ];
         return response()->json($response,$status);
     }

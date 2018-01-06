@@ -86,6 +86,7 @@ use PurchaseTrait;
                 $materialComponentHistoryData['remark'] = '';
                 $materialComponentHistoryData['user_id'] = $user['id'];
                 $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
+                MaterialRequestComponentHistory::create($materialComponentHistoryData);
                 $iterator = 0;
                 foreach($request['material_request_component'] as $key => $materialRequestComponentData){
                     MaterialRequestComponents::where('id',$request['material_request_component'][$iterator]['id'])->update(['component_status_id' => $PRAssignedStatusId]);
@@ -122,8 +123,8 @@ use PurchaseTrait;
         try{
             $user = Auth::user();
             $materialComponentHistoryData = array();
-            $materialComponentHistoryData['remark'] = '';
-            $materialComponentHistoryData['user_id'] = $user['id'];
+            $materialComponentHistoryData['remark'] = $materialRequestComponentVersionData['remark'] = '';
+            $materialComponentHistoryData['user_id'] = $materialRequestComponentVersionData['user_id'] = $user['id'];
             PurchaseRequests::where('id',$request['purchase_request_id'])->update([
                 'purchase_component_status_id' => $request['change_component_status_id_to']
             ]);
@@ -131,8 +132,16 @@ use PurchaseTrait;
             MaterialRequestComponents::whereIn('id',$materialComponentIds)->update(['component_status_id' => $request['change_component_status_id_to']]);
             $materialComponentHistoryData['component_status_id'] = $request['change_component_status_id_to'];
             foreach($materialComponentIds as $materialComponentId) {
+                $materialRequestComponentData = MaterialRequestComponents::where('id',$materialComponentId)->first();
                 $materialComponentHistoryData['material_request_component_id'] = $materialComponentId;
                 MaterialRequestComponentHistory::create($materialComponentHistoryData);
+                $materialRequestComponentVersionData = [
+                    'material_request_component_id' => $materialComponentId,
+                    'component_status_id' => $request['change_component_status_id_to'],
+                    'quantity' => $materialRequestComponentData['quantity'],
+                    'unit_id' => $materialRequestComponentData['unit_id'],
+                ];
+                $materialRequestComponentVersion = MaterialRequestComponentVersion::create($materialRequestComponentVersionData);
             }
             $status = 200;
             $message = "Status Updated Successfully";

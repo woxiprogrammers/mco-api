@@ -29,4 +29,8 @@ class MaterialRequestComponents extends Model
     public function materialRequest(){
         return $this->belongsTo('App\MaterialRequests','material_request_id');
     }
+
+    public function materialRequestComponentVersion(){
+        return $this->hasMany('App\MaterialRequestComponentVersion','material_request_component_id');
+    }
 }
