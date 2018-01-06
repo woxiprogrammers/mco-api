@@ -252,31 +252,30 @@ use InventoryTrait;
             $iterator = 0;
             $materialList = array();
             foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
-            $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
-            $materialList[$iterator]['purchase_order_component_id'] = $purchaseOrderComponent['id'];
-            $materialList[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
-            $materialList[$iterator]['material_component_name'] = $materialRequestComponent['name'];
-            $quantityConsumed = $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
-            $quantityUnused = $purchaseOrderComponent['quantity'] - $quantityConsumed;
-            $materialList[$iterator]['material_component_remaining_quantity'] = (string)((0.1 * ($quantityUnused)) + $quantityUnused);
-            $materialList[$iterator]['material_component_units'] = array();
-            $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
-            $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
-            $images = PurchaseOrderComponentImage::where('purchase_order_component_id',$purchaseOrderComponent['id'])->get();
-            if(count($images) > 0){
-                $jIterator = 0;
-                foreach($images as $key1 => $image){
-                    $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
-                    $sha1PurchaseOrderComponentId = sha1($purchaseOrderComponent['id']);
-                    $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
-                    $materialList[$iterator]['material_component_images'][$jIterator]['image_url'] = $imageUploadPath;
-                    $jIterator++;
+                $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
+                $materialList[$iterator]['purchase_order_component_id'] = $purchaseOrderComponent['id'];
+                $materialList[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
+                $materialList[$iterator]['material_component_name'] = $materialRequestComponent['name'];
+                $quantityConsumed = $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
+                $quantityUnused = $purchaseOrderComponent['quantity'] - $quantityConsumed;
+                $materialList[$iterator]['material_component_remaining_quantity'] = (string)((0.1 * ($quantityUnused)) + $quantityUnused);
+                $materialList[$iterator]['material_component_units'] = array();
+                $materialList[$iterator]['material_component_units'][0]['id'] = $materialRequestComponent['unit_id'];
+                $materialList[$iterator]['material_component_units'][0]['name'] = $materialRequestComponent->unit->name;
+                $images = PurchaseOrderComponentImage::where('purchase_order_component_id',$purchaseOrderComponent['id'])->get();
+                if(count($images) > 0){
+                    $jIterator = 0;
+                    foreach($images as $key1 => $image){
+                        $sha1PurchaseOrderId = sha1($purchaseOrder['id']);
+                        $sha1PurchaseOrderComponentId = sha1($purchaseOrderComponent['id']);
+                        $imageUploadPath = env('PURCHASE_ORDER_IMAGE_UPLOAD').$sha1PurchaseOrderId.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$sha1PurchaseOrderComponentId.DIRECTORY_SEPARATOR.$image['name'];
+                        $materialList[$iterator]['material_component_images'][$jIterator]['image_url'] = $imageUploadPath;
+                        $jIterator++;
+                    }
                 }
+                $iterator++;
             }
-
-            $iterator++;
-           }
-           $data['material_list'] = $materialList;
+            $data['material_list'] = $materialList;
             $message = "Success";
             $status = 200;
         }catch(\Exception $e){
