@@ -356,7 +356,7 @@ use PurchaseTrait;
                 $materialRequests = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
                                             ->where('material_request_components.name','ilike','%'.$request['keyword'].'%')
                                             ->where('material_requests.project_site_id',$request['project_site_id'])
-                                            ->orderBy('material_requests.created_at','desc')->get();
+                                            ->orderBy('material_requests.created_at','desc')->select('material_requests.id','material_requests.project_site_id','material_requests.created_at','material_requests.serial_no','material_requests.user_id')->get();
             }else{
                 $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->orderBy('created_at','desc')->get();
             }
@@ -389,7 +389,7 @@ use PurchaseTrait;
                         $materialRequestList[$iterator]['created_at'] = date($materialRequestComponents->created_at);
                         $createdByUser = User::where('id',$materialRequest['user_id'])->select('first_name','last_name')->first();
                         $materialRequestList[$iterator]['created_by'] = $createdByUser['first_name'].' '.$createdByUser['last_name'];
-                        if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-disapproved' || $materialRequestList[$iterator]['component_status'] == 'purchase-requested'){
+                        if($materialRequestList[$iterator]['component_status'] == 'manager-approved' || $materialRequestList[$iterator]['component_status'] == 'manager-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'admin-approved'|| $materialRequestList[$iterator]['component_status'] == 'admin-disapproved'|| $materialRequestList[$iterator]['component_status'] == 'p-r-admin-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-admin-disapproved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-approved' || $materialRequestList[$iterator]['component_status'] == 'p-r-manager-disapproved' || $materialRequestList[$iterator]['component_status'] == 'purchase-requested' || $materialRequestList[$iterator]['component_status'] == 'in-indent'){
                             $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponents->id)->where('component_status_id',$materialRequestList[$iterator]['component_status_id'])->pluck('user_id')->first();
                             $user = User::where('id',$userId)->select('first_name','last_name')->first();
                             $materialRequestList[$iterator]['approved_by'] = $user['first_name'].' '.$user['last_name'];
