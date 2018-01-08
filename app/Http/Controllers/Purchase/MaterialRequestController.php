@@ -352,7 +352,14 @@ use PurchaseTrait;
     public function materialRequestListing(Request $request){
         try{
             $user = Auth::user();
-            $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->orderBy('created_at','desc')->get();
+            if($request->has('keyword')){
+                $materialRequests = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
+                                            ->where('material_request_components.name','ilike','%'.$request['keyword'].'%')
+                                            ->where('material_requests.project_site_id',$request['project_site_id'])
+                                            ->orderBy('material_requests.created_at','desc')->get();
+            }else{
+                $materialRequests = MaterialRequests::where('project_site_id',$request['project_site_id'])->orderBy('created_at','desc')->get();
+            }
             $approvalAclPermissionCount = Permission::join('user_has_permissions','permissions.id','=','user_has_permissions.permission_id')
                                         ->where('permissions.name','approve-material-request')
                                         ->where('user_has_permissions.user_id',$user['id'])
