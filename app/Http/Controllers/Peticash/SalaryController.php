@@ -406,7 +406,34 @@ class SalaryController extends BaseController{
             $message = $e->getMessage();
             $status = 500;
             $data =[
-                'message' => 'Get Peticash Statistics',
+                'action' => 'Get Peticash Statistics',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function calculatePayableAmount(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $data = array();
+            $payable_amount = ($request['per_day_wages'] * $request['working_days']) - ($request['advance_after_last_salary'] + $request['pt'] + $request['pf'] + $request['esic'] + $request['tds']);
+            if($payable_amount < 0){
+                $data['payable_amount'] = 0;
+            }else{
+                $data['payable_amount'] = $payable_amount;
+            }
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data =[
+                'action' => 'Calculate Payable Amount',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
