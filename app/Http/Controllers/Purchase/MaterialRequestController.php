@@ -536,7 +536,7 @@ use PurchaseTrait;
                 $unitName = Unit::where('id',$purchaseOrderComponent['unit_id'])->pluck('name')->first();
                 $user = User::where('id',$purchaseOrderComponent['user_id'])->first();
                 $data[$iterator]['id'] = $iterator;
-                $data[$iterator]['display_message'] = date('l, d F Y',strtotime($purchaseOrderComponent['created_at'])).' '.$purchaseOrderComponent['quantity'].' '.$unitName.' purchase order created by '.$user->first_name.' '.$user->last_name.' with remark '.$purchaseOrderComponent['remark'];
+                $data[$iterator]['display_message'] = date('l, d F Y',strtotime($purchaseOrderComponent['created_at'])).' '.$purchaseOrderComponent['quantity'].' '.$unitName.' purchase order created by '.$user->first_name.' '.$user->last_name.''.$purchaseOrderComponent['remark'];
             }
             $status = 200;
             $message = "Success";
