@@ -124,8 +124,8 @@ use PurchaseTrait;
         try{
             $user = Auth::user();
             $materialComponentHistoryData = array();
-            $materialComponentHistoryData['remark'] = $materialRequestComponentVersionData['remark'] = '';
-            $materialComponentHistoryData['user_id'] = $materialRequestComponentVersionData['user_id'] = $user['id'];
+            $materialComponentHistoryData['remark'] = '';
+            $materialComponentHistoryData['user_id'] = $user['id'];
             PurchaseRequests::where('id',$request['purchase_request_id'])->update([
                 'purchase_component_status_id' => $request['change_component_status_id_to']
             ]);
@@ -141,6 +141,7 @@ use PurchaseTrait;
                     'component_status_id' => $request['change_component_status_id_to'],
                     'quantity' => $materialRequestComponentData['quantity'],
                     'unit_id' => $materialRequestComponentData['unit_id'],
+                    'user_id' => $user['id'],
                 ];
                 $materialRequestComponentVersion = MaterialRequestComponentVersion::create($materialRequestComponentVersionData);
             }
