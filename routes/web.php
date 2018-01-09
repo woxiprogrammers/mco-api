@@ -22,6 +22,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
     $app->post('create-transfer', array('uses' => 'Inventory\InventoryManageController@createInventoryTransfer'));
     $app->post('request-component-listing', array('uses' => 'Inventory\InventoryManageController@getSiteTransferRequestListing'));
     $app->post('component/auto-suggest', array('uses' => 'Inventory\InventoryManageController@autoSuggest'));
+    $app->post('component/get-grn-details', array('uses' => 'Inventory\InventoryManageController@getGRNDetails'));
     $app->post('change-status', array('uses' => 'Inventory\InventoryManageController@changeStatus'));
     $app->group(['prefix' => 'material'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\InventoryManageController@getMaterialListing'));

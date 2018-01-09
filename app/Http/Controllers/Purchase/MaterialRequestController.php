@@ -327,12 +327,12 @@ use PurchaseTrait;
                 MaterialRequestComponentVersion::create($materialRequestComponentVersion);
                 $message = "Material Request Edited and Status updated Successfully";
             }else{
-                $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component_id'])->update(['component_status_id' => $request['change_component_status_id_to']]);
-                $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponent['id'];
+                $materialRequestComponentData->update(['component_status_id' => $request['change_component_status_id_to']]);
+                $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponentData['id'];
                 $materialRequestComponentVersion['component_status_id'] = $request['change_component_status_id_to'];
                 $materialRequestComponentVersion['user_id'] = $user['id'];
-                $materialRequestComponentVersion['quantity'] = $materialRequestComponent['quantity'];
-                $materialRequestComponentVersion['unit_id'] = $materialRequestComponent['unit_id'];
+                $materialRequestComponentVersion['quantity'] = $materialRequestComponentData['quantity'];
+                $materialRequestComponentVersion['unit_id'] = $materialRequestComponentData['unit_id'];
                 $materialRequestComponentVersion['remark'] = $request['remark'];
                 MaterialRequestComponentVersion::create($materialRequestComponentVersion);
                 $message = "Status updated Successfully";
