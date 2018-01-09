@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Peticash;
 
 use App\Employee;
+use App\EmployeeImage;
+use App\EmployeeImageType;
+use App\EmployeeType;
 use App\PaymentType;
 use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
@@ -33,14 +36,8 @@ class SalaryController extends BaseController{
         try{
             $status = 200;
             $message = "Success";
-            $peticashApprovedAmount =PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
-            if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
-                $approved_amount = $peticashApprovedAmount;
-            }else{
-                $approved_amount = '0';
-            }
             $iterator = 0;
-            $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->where('project_site_id',$request['project_site_id'])->where('is_active',true)->get()->toArray();
+            $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->whereIn('employee_type_id',EmployeeType::whereIn('slug',['labour','staff','partner'])->pluck('id'))->where('is_active',true)->get()->toArray();
             $data = array();
             foreach($employeeDetails as $key => $employeeDetail){
                 $data[$iterator]['employee_id'] = $employeeDetail['id'];
@@ -48,6 +45,15 @@ class SalaryController extends BaseController{
                 $data[$iterator]['employee_name'] = $employeeDetail['name'];
                 $data[$iterator]['per_day_wages'] = (int)$employeeDetail['per_day_wages'];
                 $data[$iterator]['employee_profile_picture'] = '/assets/global/img/logo.jpg';
+                $profilePicTypeId = EmployeeImageType::where('slug','profile')->pluck('id')->first();
+                $employeeProfilePic = EmployeeImage::where('employee_id',$employeeDetail['id'])->where('employee_image_type_id',$profilePicTypeId)->first();
+                if($employeeProfilePic == null){
+                    $data[$iterator]['employee_profile_picture'] = "";
+                }else{
+                    $employeeDirectoryName = sha1($employeeDetail['id']);
+                    $imageUploadPath = env('EMPLOYEE_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.$employeeDirectoryName.DIRECTORY_SEPARATOR.'profile';
+                    $data[$iterator]['employee_profile_picture'] = $imageUploadPath.DIRECTORY_SEPARATOR.$employeeProfilePic->name;
+                }
                 $peticashStatus = PeticashStatus::whereIn('slug',['approved','pending'])->select('id','slug')->get();
                 $transactionPendingCount = PeticashSalaryTransaction::where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','pending')->pluck('id')->first())->count();
                 $data[$iterator]['is_transaction_pending'] = ($transactionPendingCount > 0) ? true : false;
@@ -75,7 +81,6 @@ class SalaryController extends BaseController{
         $response = [
             "message" => $message,
             "data" => $data,
-            "approved_amount" => $approved_amount
         ];
         return response()->json($response,$status);
     }
@@ -406,7 +411,42 @@ class SalaryController extends BaseController{
             $message = $e->getMessage();
             $status = 500;
             $data =[
-                'message' => 'Get Peticash Statistics',
+                'action' => 'Get Peticash Statistics',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+        }
+        $response = [
+            'message' => $message,
+            'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function calculatePayableAmount(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $data = array();
+            if($request['type'] == 'salary'){
+                $payable_amount = ($request['per_day_wages'] * $request['working_days']) - ($request['advance_after_last_salary'] + $request['pt'] + $request['pf'] + $request['esic'] + $request['tds']);
+                if($payable_amount < 0){
+                    $data['payable_amount'] = '0';
+                }else{
+                    $data['payable_amount'] = (string)$payable_amount;
+                }
+            }
+            $peticashApprovedAmount =PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
+            if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
+                $data['approved_amount'] = $peticashApprovedAmount;
+            }else{
+                $data['approved_amount'] = '0';
+            }
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data =[
+                'action' => 'Calculate Payable Amount',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
