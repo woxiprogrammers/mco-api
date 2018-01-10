@@ -125,3 +125,14 @@ $app->group(['prefix' => 'notification'], function () use($app){
     $app->post('store-fcm-token',array('uses'=> 'Notification\NotificationController@storeFCMToken'));
     $app->get('send-push-notification',array('uses'=> 'Notification\NotificationController@sendPushNotification'));
 });
+
+$app->group(['prefix' => 'dpr'], function () use($app){
+    $app->group(['prefix' => 'subcontractor'], function() use($app){
+        $app->post('listing',array('uses' => 'DPR\DprController@subcontractorListing'));
+        $app->post('save-details',array('uses' => 'DPR\DprController@saveDetails'));
+    });
+    $app->group(['prefix' => 'category'], function() use($app){
+            $app->post('listing',array('uses' => 'DPR\DprController@categoryListing'));
+    });
+});
+
