@@ -25,7 +25,7 @@ trait MaterialRequestTrait{
         $materialRequestSerialNoCount = MaterialRequests::whereDate('created_at',$currentDate)->count();
         $quotationId = Quotation::where('project_site_id',$data['project_site_id'])->pluck('id')->first();
         $materialRequest['project_site_id'] = $data['project_site_id'];
-        $materialRequest['user_id'] = $user['id'];
+        $materialRequest['user_id'] = $materialRequest['on_behalf_of'] = $user['id'];
         $materialRequest['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
         $materialRequest['serial_no'] = $materialRequestSerialNoCount + 1;
         $materialRequest['format_id'] =  $this->getPurchaseIDFormat('material-request',$data['project_site_id'],Carbon::now(),$materialRequest['serial_no']);

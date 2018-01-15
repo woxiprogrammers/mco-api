@@ -123,6 +123,7 @@ $app->group(['prefix' => 'drawing'], function () use($app){
 });
 $app->group(['prefix' => 'notification'], function () use($app){
     $app->post('store-fcm-token',array('uses'=> 'Notification\NotificationController@storeFCMToken'));
+    $app->post('get-counts',array('uses'=> 'Notification\NotificationController@getNotificationCounts'));
     $app->get('send-push-notification',array('uses'=> 'Notification\NotificationController@sendPushNotification'));
 });
 
