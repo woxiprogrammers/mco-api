@@ -90,6 +90,7 @@ $app->singleton(
 $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 $app->register(Cviebrock\EloquentSluggable\ServiceProvider::class);
 $app->register(LaravelFCM\FCMServiceProvider::class);
+$app->register(\Barryvdh\DomPDF\ServiceProvider::class);
 class_alias(\LaravelFCM\Facades\FCM::class, 'FCM');
 class_alias(\LaravelFCM\Facades\FCMGroup::class, 'FCMGroup');
 /*
