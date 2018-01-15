@@ -6,6 +6,7 @@ use App\Employee;
 use App\EmployeeImage;
 use App\EmployeeImageType;
 use App\EmployeeType;
+use App\Helper\NumberHelper;
 use App\PaymentType;
 use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
@@ -18,6 +19,7 @@ use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -454,6 +456,82 @@ class SalaryController extends BaseController{
         $response = [
             'message' => $message,
             'data' => $data
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function getPaymentVoucherPdf(Request $request){
+        try{
+            $salaryTransactionId = $request['peticash_transaction_id'];
+            $peticashSalaryTransaction = PeticashSalaryTransaction::where('id',$salaryTransactionId)->first();
+            $data['project_site'] = $peticashSalaryTransaction->projectSite->name;
+            $data['date'] = date('d/m/Y',strtotime($peticashSalaryTransaction->date));
+            $data['paid_to'] = $peticashSalaryTransaction->employee->name;
+            $data['amount_in_words'] = ucwords(NumberHelper::getIndianCurrency($peticashSalaryTransaction->amount));
+            $data['particulars'] = $peticashSalaryTransaction->remark;
+            $data['amount'] = $peticashSalaryTransaction->amount;
+            $data['approved_by'] = $peticashSalaryTransaction->referenceUser->first_name.' '.$peticashSalaryTransaction->referenceUser->last_name;
+            $file_name = 'PaymentVoucher-'.$salaryTransactionId.'.pdf';
+            $pdf = App::make('dompdf.wrapper');
+            $pdf->loadView('peticash.peticash-management.salary.pdf.payment-voucher',$data);
+            $pdfContent = $pdf->stream($file_name);
+            $webUploadPath = env('WEB_PUBLIC_PATH');
+            $pdfUploadPath = env('PAYMENT_VOUCHER_UPLOAD_PATH');
+            $pdfUploadPath = $pdfUploadPath.sha1($salaryTransactionId);
+            $paymentVoucherUploadPath = $pdfUploadPath;
+            /* Create Upload Directory If Not Exists */
+            if (!file_exists($webUploadPath.$paymentVoucherUploadPath)) {
+                File::makeDirectory($webUploadPath.$paymentVoucherUploadPath, $mode = 0777, true, true);
+            }
+            file_put_contents($webUploadPath.$paymentVoucherUploadPath.'/'.$file_name,$pdfContent);
+            $pdf_path = [
+                'pdf_url' => $paymentVoucherUploadPath.'/'.$file_name
+            ];
+            $message = "PDF created successfully!";
+            $status = 200;
+        }catch(Exception $e){
+            $status = 500;
+            $message = "Fail";
+            $pdf_path = '';
+            $data = [
+                'action' => 'Get Payment Voucher PDF',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+            'pdf_path' => $pdf_path
+        ];
+
+        return response()->json($response,$status);
+    }
+
+    public function deletePaymentVoucherPdf(Request $request){
+        try{
+           // dd($request['pdf_path']);
+            $ds = DIRECTORY_SEPARATOR;
+            $webUploadPath = env('WEB_PUBLIC_PATH');
+            $file_to_be_deleted = $webUploadPath.$ds.$request['pdf_path'];
+            if(!file_exists($file_to_be_deleted)){
+                $message = "File does not exists";
+            }else{
+                unlink($file_to_be_deleted);
+                $message = "PDF deleted Successfully";
+            }
+            $status = 200;
+        }catch(Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Delete Payment Voucher PDF',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
         ];
         return response()->json($response,$status);
     }

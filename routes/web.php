@@ -83,6 +83,8 @@ $app->group(['prefix' => 'peticash'], function () use($app){
         $app->post('calulate-payable-amount', array('uses' => 'Peticash\SalaryController@calculatePayableAmount'));
         $app->post('employee-detail', array('uses' => 'Peticash\SalaryController@getEmployeeDetails'));
         $app->post('transaction-detail', array('uses' => 'Peticash\SalaryController@getTransactionDetails'));
+        $app->post('generate-payment-voucher', array('uses' => 'Peticash\SalaryController@getPaymentVoucherPdf'));
+        $app->post('delete-payment-voucher', array('uses' => 'Peticash\SalaryController@deletePaymentVoucherPdf'));
     });
     $app->group(['prefix' => 'purchase'], function () use($app){
         $app->post('create', array('uses' => 'Peticash\PurchaseController@createPurchase'));

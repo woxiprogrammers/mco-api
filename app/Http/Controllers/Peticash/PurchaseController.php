@@ -11,6 +11,7 @@ use App\InventoryComponentTransferImage;
 use App\Material;
 use App\MaterialRequestComponentTypes;
 use App\PaymentType;
+use App\PeticashSalaryTransaction;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
@@ -21,11 +22,13 @@ use App\QuotationMaterial;
 use App\QuotationStatus;
 use App\Unit;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
+use Mockery\Exception;
 
 class PurchaseController extends BaseController{
 use InventoryTrait;
@@ -136,7 +139,7 @@ use InventoryTrait;
             $transferData['user_id'] = $user['id'];
             $createdTransferInId = $this->create($transferData,$name,'IN','from-purchase');
             if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
-                $createdTransferOutId = $this->create($transferData, $name, 'OUT', 'from-purchase');
+                $createdTransferOutId = $this->create($transferData, 'user', 'OUT', 'from-purchase');
                 $sha1InventoryTransferOutId = sha1($createdTransferOutId);
             }
             $purchasePeticashTransactionImages = PurchasePeticashTransactionImage::where('purchase_peticash_transaction_id',$purchaseTransactionData['id'])->get();
@@ -349,4 +352,6 @@ use InventoryTrait;
         ];
         return response()->json($response,$status);
     }
+
+
 }
