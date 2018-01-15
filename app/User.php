@@ -47,4 +47,17 @@ class User extends Authenticatable implements JWTSubject
     public function roles(){
         return $this->hasMany('App\UserHasRole','user_id');
     }
+
+    public function customHasPermission($permission){
+        $permissionExists = UserHasPermission::join('permissions','permissions.id','=','user_has_permissions.permission_id')
+            ->where('permissions.name','ilike',$permission)
+            ->where('user_has_permissions.user_id',$this->id)
+            ->where('user_has_permissions.is_mobile', true)
+            ->first();
+        if($permissionExists  == null){
+            return false;
+        }else{
+            return true;
+        }
+    }
 }
