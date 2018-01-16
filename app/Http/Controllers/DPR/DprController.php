@@ -22,7 +22,11 @@ class DprController extends BaseController{
     public function subcontractorListing(Request $request){
         try{
             $status = 200;
-            $response = Subcontractor::where('is_active', true)->select('id','company_name as name')->get()->toArray();
+            $data = Subcontractor::where('is_active', true)->select('id','company_name as name')->get()->toArray();
+            $response = [
+                'data' => $data,
+                'message' => 'Subcontractors listed successfully !'
+            ];
         }catch(\Exception $e){
             $data = [
                 'action' => 'Subcontractor listing in DPR',
@@ -41,11 +45,13 @@ class DprController extends BaseController{
     public function categoryListing(Request $request){
         try{
             $status = 200;
-            $response = SubcontractorDPRCategoryRelation::join('dpr_main_categories','dpr_main_categories.id','=','subcontractor_dpr_category_relations.dpr_main_category_id')
+            $response = array();
+            $response['data'] = SubcontractorDPRCategoryRelation::join('dpr_main_categories','dpr_main_categories.id','=','subcontractor_dpr_category_relations.dpr_main_category_id')
                                         ->where('subcontractor_dpr_category_relations.subcontractor_id',$request->subcontractor_id)
                                         ->select('dpr_main_categories.id as id','dpr_main_categories.name as name')
                                         ->get()
                                         ->toArray();
+            $response['message'] = 'Subcontractor\'s categories listed successfully.!';
         }catch(\Exception $e){
             $data = [
                 'action' => 'Category listing in DPR',
