@@ -104,9 +104,7 @@ class DprController extends BaseController{
 
     public function dprDetailsListing(Request $request){
         try{
-//            dd($request->all());
             $status = 200;
-            $response = array();
             $dprDetails = DprDetail::join('subcontractor_dpr_category_relations','subcontractor_dpr_category_relations.id','=','dpr_details.subcontractor_dpr_category_relation_id')
                                 ->join('subcontractor','subcontractor.id','=','subcontractor_dpr_category_relations.subcontractor_id')
                                 ->join('dpr_main_categories','dpr_main_categories.id','=','subcontractor_dpr_category_relations.dpr_main_category_id')
