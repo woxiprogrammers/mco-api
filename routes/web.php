@@ -133,6 +133,8 @@ $app->group(['prefix' => 'dpr'], function () use($app){
     $app->group(['prefix' => 'subcontractor'], function() use($app){
         $app->post('listing',array('uses' => 'DPR\DprController@subcontractorListing'));
         $app->post('save-details',array('uses' => 'DPR\DprController@saveDetails'));
+        $app->post('dpr-detail-listing',array('uses' => 'DPR\DprController@dprDetailsListing'));
+
     });
     $app->group(['prefix' => 'category'], function() use($app){
             $app->post('listing',array('uses' => 'DPR\DprController@categoryListing'));
