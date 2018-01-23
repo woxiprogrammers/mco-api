@@ -7,6 +7,7 @@
 
 namespace App\Http\Controllers\Purchase;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
@@ -28,7 +29,7 @@ use Mockery\Exception;
 class PurchaseRequestController extends BaseController{
 use MaterialRequestTrait;
 use PurchaseTrait;
-
+use NotificationTrait;
     public function __construct(){
         $this->middleware('jwt.auth');
         if(!Auth::guest()){
@@ -77,6 +78,26 @@ use PurchaseTrait;
             $purchaseRequest['serial_no']  = $serialNoCount + 1;
             $purchaseRequest['format_id'] = $this->getPurchaseIDFormat('purchase-request',$request['project_site_id'],Carbon::now(),$purchaseRequest['serial_no']);
             $purchaseRequest = PurchaseRequests::create($purchaseRequest);
+            $mobileTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
+                ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
+                ->whereIn('permissions.name',['approve-purchase-request','create-purchase-order'])
+                ->whereNotNull('users.mobile_fcm_token')
+                ->where('user_project_site_relation.project_site_id',$request['project_site_id'])
+                ->pluck('users.mobile_fcm_token')
+                ->toArray();
+            $webTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
+                ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
+                ->whereIn('permissions.name',['approve-purchase-request','create-purchase-order'])
+                ->whereNotNull('users.web_fcm_token')
+                ->where('user_project_site_relation.project_site_id',$request['project_site_id'])
+                ->pluck('users.web_fcm_token')
+                ->toArray();
+            $tokens = array_merge($mobileTokens,$webTokens);
+            $notificationString = '2 -'.$purchaseRequest->projectSite->project->name.' '.$purchaseRequest->projectSite->name;
+            $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Request Created.';
+            $this->sendPushNotification('',$notificationString,$tokens);
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
             }
