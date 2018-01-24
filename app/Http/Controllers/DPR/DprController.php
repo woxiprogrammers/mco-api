@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DPR;
 use App\DprDetail;
 use App\Subcontractor;
 use App\SubcontractorDPRCategoryRelation;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -73,18 +74,25 @@ class DprController extends BaseController{
             $response = [
                 'message' => 'Data saved successfully'
             ];
-            $dprDetailData = [
-                'project_site_id' => $request->project_site_id
-            ];
-            foreach($request->number_of_users as $dprCategoryId => $numberOfUser){
+            foreach($request->number_of_users as $userData){
                 $subcontractorDprCategoryRelationId = SubcontractorDPRCategoryRelation::where('subcontractor_id',$request->subcontractor_id)
-                                                                ->where('dpr_main_category_id', $dprCategoryId)
+                                                                ->where('dpr_main_category_id', $userData['category_id'])
                                                                 ->pluck('id')
                                                                 ->first();
+                $today = Carbon::now();
                 if($subcontractorDprCategoryRelationId != null){
-                    $dprDetailData['number_of_users'] = $numberOfUser;
-                    $dprDetailData['subcontractor_dpr_category_relation_id'] = $subcontractorDprCategoryRelationId;
-                    DprDetail::create($dprDetailData);
+                    $dprDetail = DprDetail::where('subcontractor_dpr_category_relation_id', $subcontractorDprCategoryRelationId)->whereDate('created_at', $today)->first();
+                    if($dprDetail != null){
+                        $dprDetail->update(['number_of_users' => $userData['users']]);
+                    }else{
+                        $dprDetailData = [
+                            'project_site_id' => $request->project_site_id,
+                            'number_of_users' => $userData['users'],
+                            'subcontractor_dpr_category_relation_id' => $subcontractorDprCategoryRelationId
+                        ];
+                        DprDetail::create($dprDetailData);
+                    }
+
                 }
             }
         }catch(\Exception $e){
