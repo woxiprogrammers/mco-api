@@ -6,6 +6,7 @@
      */
 
 namespace App\Http\Controllers\Purchase;
+use App\PurchaseOrder;
 use App\PurchaseOrderRequest;
 use App\PurchaseOrderRequestComponent;
 use App\PurchaseRequests;
@@ -43,7 +44,8 @@ class PurchaseOrderRequestController extends BaseController{
                     $purchaseOrderRequestList[$iterator]['component_names'] = implode(', ',$componentNamesArray);
                     $purchaseOrderRequestList[$iterator]['user_name'] = $purchaseOrderRequest->user->first_name.' '.$purchaseOrderRequest->user->last_name;
                     $purchaseOrderRequestList[$iterator]['date'] = date('l, d F Y',strtotime($purchaseOrderRequest['created_at']));
-
+                    $purchaseOrderCount = PurchaseOrder::where('purchase_order_request_id',$purchaseOrderRequest['id'])->count();
+                    $purchaseOrderRequestList[$iterator]['purchase_order_done'] = ($purchaseOrderCount > 0) ? true : false;
                     $iterator++;
                 }
                 $status = 200;
@@ -54,6 +56,54 @@ class PurchaseOrderRequestController extends BaseController{
                 $status = 500;
                 $data = [
                     'action' => 'Get Purchase Order Request Listing',
+                    'params' => $request->all(),
+                    'exception' => $e->getMessage()
+                ];
+                Log::critical(json_encode($data));
+            }
+            $response = [
+                "data" => $data,
+                "message" => $message,
+
+            ];
+            return response()->json($response,$status);
+        }
+
+        public function getPurchaseOrderRequestDetail(Request $request){
+            try{
+                $purchaseOrderRequestComponents = array();
+                $purchaseOrderRequestComponentData = PurchaseOrderRequestComponent::where('purchase_order_request_id',$request['purchase_order_request_id'])->get();
+                $iterator = 0;
+                foreach($purchaseOrderRequestComponentData as $purchaseOrderRequestComponent){
+                    if(!array_key_exists($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id,$purchaseOrderRequestComponents)){
+                        $purchaseOrderRequestComponents[$iterator]['purchase_order_request_component_id'] = $purchaseOrderRequestComponent['id'];
+                        $purchaseOrderRequestComponents[$iterator]['name'] = ucwords($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchaseRequestComponent->materialRequestComponent->name);
+                        $purchaseOrderRequestComponents[$iterator]['quantity'] = $purchaseOrderRequestComponent->quantity;
+                        $purchaseOrderRequestComponents[$iterator]['unit'] = $purchaseOrderRequestComponent->unit->name;
+                        $purchaseOrderRequestComponents[$iterator]['is_approved'] = ($purchaseOrderRequestComponent->is_approved != null) ? true : false;
+                    }
+                    $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
+                    $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
+                    $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
+                    $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->igst_percentage / 100));
+                    $purchaseOrderRequestComponents[$iterator]['vendor_relations'][] = [
+                        'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
+                        'vendor_name' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company,
+                        'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
+                        'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
+                        'rate_with_tax' => (string)$rateWithTax,
+                        'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$iterator]['quantity'])
+                    ];
+                    $iterator++;
+                }
+                $data['purchase_order_request_list'] = $purchaseOrderRequestComponents;
+                $status = 200;
+                $message = "Success";
+            }catch(\Exception $e){
+                $message = "Fail";
+                $status = 500;
+                $data = [
+                    'action' => 'Get Purchase Order Request Detail',
                     'params' => $request->all(),
                     'exception' => $e->getMessage()
                 ];
