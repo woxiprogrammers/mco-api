@@ -55,7 +55,7 @@ class PurchaseOrderRequestController extends BaseController{
                 $message = "Fail";
                 $status = 500;
                 $data = [
-                    'action' => 'Get Purchase Order Request Detail',
+                    'action' => 'Get Purchase Order Request Listing',
                     'params' => $request->all(),
                     'exception' => $e->getMessage()
                 ];
@@ -103,7 +103,7 @@ class PurchaseOrderRequestController extends BaseController{
                 $message = "Fail";
                 $status = 500;
                 $data = [
-                    'action' => 'Get Purchase Order Request Listing',
+                    'action' => 'Get Purchase Order Request Detail',
                     'params' => $request->all(),
                     'exception' => $e->getMessage()
                 ];
