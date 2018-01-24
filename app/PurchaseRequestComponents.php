@@ -17,4 +17,8 @@ class PurchaseRequestComponents extends Model
     public function materialRequestComponent(){
         return $this->belongsTo('App\MaterialRequestComponents','material_request_component_id');
     }
+
+    public function vendorRelations(){
+        return $this->hasMany('App\PurchaseRequestComponentVendorRelation','purchase_request_component_id');
+    }
 }
