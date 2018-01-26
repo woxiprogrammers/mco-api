@@ -116,4 +116,26 @@ class PurchaseOrderRequestController extends BaseController{
             ];
             return response()->json($response,$status);
         }
+
+        public function changeStatus(Request $request){
+            try{
+                foreach ($request['purchase_order_request_components'] as $key => $purchase_order_request_component) {
+                    PurchaseOrderRequestComponent::where('purchase_order_request_id',$purchase_order_request_component['id'])
+                                ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
+                }
+                $message = "Component status changed successfully";
+                $status = 200;
+            }catch(Exception $e){
+              $message = "Fail";
+              $status = 500;
+              $data = [
+                  'action' => 'Purchase Order Request change status',
+                  'params' => $request->all(),
+                  'exception' => $e->getMessage()
+              ];
+              Log::critical(json_encode($data));
+            }
+            return response()->json($message,$status);
+        }
+
     }
