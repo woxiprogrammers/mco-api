@@ -54,6 +54,10 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseRequestController@purchaseRequestListing'));
         $app->post('detail-listing',array('uses' => 'Purchase\PurchaseRequestController@getDetailListing'));
     });
+    $app->group(['prefix' => 'purchase-order-request'],function () use ($app){
+        $app->post('listing',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestListing'));
+        $app->post('detail',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestDetail'));
+    });
     $app->group(['prefix' => 'purchase-order'], function () use ($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderListing'));
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
