@@ -13,18 +13,19 @@ use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
+use App\Module;
 use App\Permission;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequests;
 use App\Quotation;
 use App\User;
+use App\UserLastLogin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
-use Mockery\Exception;
 
 class PurchaseRequestController extends BaseController{
 use MaterialRequestTrait;
@@ -125,7 +126,7 @@ use NotificationTrait;
                 }
             }
 
-        }catch (Exception $e){
+        }catch (\Exception $e){
             $status = 500;
             $message = "Fail";
             $data = [
@@ -242,7 +243,20 @@ use NotificationTrait;
             }
             $status = 200;
             $message = "Success";
-        }catch(Exception $e){
+            $purchaseRequestModuleId = Module::where('slug','purchase-request')->pluck('id')->first();
+            $userId = Auth::user()->id;
+            $lastLogin = UserLastLogin::where('user_id',$userId)->where('module_id',$purchaseRequestModuleId)->first();
+            if($lastLogin == null){
+                $lastLoginData = [
+                    'user_id' => Auth::user()->id,
+                    'module_id' => $purchaseRequestModuleId,
+                    'last_login' => Carbon::now()
+                ];
+                UserLastLogin::create($lastLoginData);
+            }else{
+                $lastLogin->update(['last_login' => Carbon::now()]);
+            }
+        }catch(\Exception $e){
             $has_approve_access = false;
             $message = "Fail";
             $status = 500;

@@ -8,6 +8,7 @@
 namespace App\Http\Controllers\Notification;
 
 use App\Http\Controllers\CustomTraits\NotificationTrait;
+use App\MaterialRequestComponentHistory;
 use App\MaterialRequests;
 use App\PurchaseRequests;
 use App\UserLastLogin;
@@ -89,7 +90,7 @@ class NotificationController extends BaseController{
                             ->whereIn('purchase_request_component_statuses.slug',['manager-disapproved','admin-disapproved'])
                             ->where('material_requests.on_behalf_of',$user->id)
                             ->where('material_requests.project_site_id', $request->project_site_id)
-                            ->count();
+                            ->count('material_request_components.id');
                     }else{
                         $materialRequestDisapprovedCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
                             ->join('material_request_component_history_table','material_request_component_history_table.material_request_component_id','=','material_request_components.id')
@@ -97,8 +98,8 @@ class NotificationController extends BaseController{
                             ->whereIn('purchase_request_component_statuses.slug',['manager-disapproved','admin-disapproved'])
                             ->where('material_requests.on_behalf_of',$user->id)
                             ->where('material_requests.project_site_id', $request->project_site_id)
-                            ->where('material_request_component_history_table.created_at','<=',$lastLogin)
-                            ->count();
+                            ->where('material_request_component_history_table.created_at','>=',$lastLogin)
+                            ->count('material_request_component_history_table.id');
                     }
                 }
                 if($user->customHasPermission('create-material-request') || $user->customHasPermission('approve-material-request') || $user->customHasPermission('create-purchase-request') || $user->customHasPermission('approve-purchase-request')){
@@ -109,7 +110,7 @@ class NotificationController extends BaseController{
                         ->first();
                     if($lastLogin == null){
                         $purchaseRequestDisapprovedCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
-			    ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
+			                ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
                             ->join('purchase_requests','purchase_requests.id','=','purchase_request_components.purchase_request_id')
                             ->join('material_request_component_history_table','material_request_component_history_table.material_request_component_id','=','material_request_components.id')
                             ->join('purchase_request_component_statuses','purchase_request_component_statuses.id','=','material_request_components.component_status_id')
@@ -119,10 +120,10 @@ class NotificationController extends BaseController{
                                     ->orWhere('purchase_requests.behalf_of_user_id',$user->id);
                             })
                             ->where('material_requests.project_site_id', $request->project_site_id)
-                            ->count();
+                            ->count('purchase_request_components.id');
                     }else{
                         $purchaseRequestDisapprovedCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
-		            ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
+                            ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
                             ->join('purchase_requests','purchase_requests.id','=','purchase_request_components.purchase_request_id')
                             ->join('material_request_component_history_table','material_request_component_history_table.material_request_component_id','=','material_request_components.id')
                             ->join('purchase_request_component_statuses','purchase_request_component_statuses.id','=','material_request_components.component_status_id')
@@ -131,7 +132,7 @@ class NotificationController extends BaseController{
                                 $query->where('material_requests.on_behalf_of',$user->id)
                                     ->orWhere('purchase_requests.behalf_of_user_id',$user->id);
                             })
-                            ->where('material_request_component_history_table.created_at','<=',$lastLogin)
+                            ->where('material_request_component_history_table.created_at','>=',$lastLogin)
                             ->where('material_requests.project_site_id', $request->project_site_id)
                             ->count();
                     }

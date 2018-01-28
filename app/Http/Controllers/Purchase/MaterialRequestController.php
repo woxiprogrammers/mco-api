@@ -12,6 +12,7 @@ use App\MaterialRequestComponentTypes;
 use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
 use App\MaterialVersion;
+use App\Module;
 use App\Permission;
 use App\PurchaseOrder;
 use App\PurchaseOrderComponent;
@@ -22,6 +23,8 @@ use App\QuotationProduct;
 use App\Unit;
 use App\UnitConversion;
 use App\User;
+use App\UserLastLogin;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -283,7 +286,6 @@ use PurchaseTrait;
                     }
                     break;
             }
-
             $data['allowed_quantity_unit'] = $units;
             $status = 200;
             $message= 'Success';
@@ -425,6 +427,19 @@ use PurchaseTrait;
             $data['material_request_list'] = $materialRequestList;
             $status = 200;
             $message = "Success";
+            $materialRequestModuleId = Module::where('slug','material-request')->pluck('id')->first();
+            $userId = Auth::user()->id;
+            $lastLogin = UserLastLogin::where('user_id',$userId)->where('module_id',$materialRequestModuleId)->first();
+            if($lastLogin == null){
+                $lastLoginData = [
+                    'user_id' => Auth::user()->id,
+                    'module_id' => $materialRequestModuleId,
+                    'last_login' => Carbon::now()
+                ];
+                UserLastLogin::create($lastLoginData);
+            }else{
+                $lastLogin->update(['last_login' => Carbon::now()]);
+            }
         }catch(Exception $e){
             $has_approve_access = false;
             $message = "Fail";
