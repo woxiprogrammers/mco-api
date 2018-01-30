@@ -14,7 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
-use Mockery\Exception;
 
 class PurchaseOrderRequestController extends BaseController{
         public function __construct(){
@@ -51,7 +50,7 @@ class PurchaseOrderRequestController extends BaseController{
                 $status = 200;
                 $message = "Success";
                 $data['purchase_order_request_list'] = $purchaseOrderRequestList;
-            }catch(Exception $e){
+            }catch(\Exception $e){
                 $message = "Fail";
                 $status = 500;
                 $data = [
@@ -76,8 +75,9 @@ class PurchaseOrderRequestController extends BaseController{
                 $iterator = 0;
                 foreach($purchaseOrderRequestComponentData as $purchaseOrderRequestComponent){
                     if(!array_key_exists($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id,$purchaseOrderRequestComponents)){
-                        $purchaseOrderRequestComponents[$iterator]['purchase_order_request_component_id'] = $purchaseOrderRequestComponent['id'];
-                        $purchaseOrderRequestComponents[$iterator]['name'] = ucwords($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchaseRequestComponent->materialRequestComponent->name);
+                        $materialRequestComponent = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchaseRequestComponent->materialRequestComponent;
+                        $purchaseOrderRequestComponents[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
+                        $purchaseOrderRequestComponents[$iterator]['name'] = ucwords($materialRequestComponent->name);
                         $purchaseOrderRequestComponents[$iterator]['quantity'] = $purchaseOrderRequestComponent->quantity;
                         $purchaseOrderRequestComponents[$iterator]['unit'] = $purchaseOrderRequestComponent->unit->name;
                         $purchaseOrderRequestComponents[$iterator]['is_approved'] = ($purchaseOrderRequestComponent->is_approved != null) ? true : false;
@@ -87,6 +87,7 @@ class PurchaseOrderRequestController extends BaseController{
                     $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
                     $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->igst_percentage / 100));
                     $purchaseOrderRequestComponents[$iterator]['vendor_relations'][] = [
+                        'purchase_order_request_component_id' => $purchaseOrderRequestComponent['id'],
                         'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
                         'vendor_name' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company,
                         'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
@@ -125,7 +126,7 @@ class PurchaseOrderRequestController extends BaseController{
                 }
                 $message = "Component status changed successfully";
                 $status = 200;
-            }catch(Exception $e){
+            }catch(\Exception $e){
               $message = "Fail";
               $status = 500;
               $data = [
