@@ -74,30 +74,31 @@ class PurchaseOrderRequestController extends BaseController{
                 $purchaseOrderRequestComponentData = PurchaseOrderRequestComponent::where('purchase_order_request_id',$request['purchase_order_request_id'])->get();
                 $iterator = 0;
                 foreach($purchaseOrderRequestComponentData as $purchaseOrderRequestComponent){
-                    if(!array_key_exists($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id,$purchaseOrderRequestComponents)){
+                    $purchaseRequestComponentId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
+                    if(!array_key_exists($purchaseRequestComponentId,$purchaseOrderRequestComponents)){
                         $materialRequestComponent = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchaseRequestComponent->materialRequestComponent;
-                        $purchaseOrderRequestComponents[$iterator]['material_request_component_id'] = $materialRequestComponent['id'];
-                        $purchaseOrderRequestComponents[$iterator]['name'] = ucwords($materialRequestComponent->name);
-                        $purchaseOrderRequestComponents[$iterator]['quantity'] = $purchaseOrderRequestComponent->quantity;
-                        $purchaseOrderRequestComponents[$iterator]['unit'] = $purchaseOrderRequestComponent->unit->name;
-                        $purchaseOrderRequestComponents[$iterator]['is_approved'] = ($purchaseOrderRequestComponent->is_approved != null) ? true : false;
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['material_request_component_id'] = $materialRequestComponent['id'];
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['name'] = ucwords($materialRequestComponent->name);
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'] = $purchaseOrderRequestComponent->quantity;
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['unit'] = $purchaseOrderRequestComponent->unit->name;
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderRequestComponent->is_approved != null) ? true : false;
                     }
                     $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                     $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
                     $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
                     $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->igst_percentage / 100));
-                    $purchaseOrderRequestComponents[$iterator]['vendor_relations'][] = [
+                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['vendor_relations'][] = [
                         'purchase_order_request_component_id' => $purchaseOrderRequestComponent['id'],
                         'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
                         'vendor_name' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company,
                         'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
                         'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
                         'rate_with_tax' => (string)$rateWithTax,
-                        'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$iterator]['quantity'])
+                        'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'])
                     ];
                     $iterator++;
                 }
-                $data['purchase_order_request_list'] = $purchaseOrderRequestComponents;
+                $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
                 $status = 200;
                 $message = "Success";
             }catch(\Exception $e){

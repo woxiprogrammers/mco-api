@@ -28,7 +28,7 @@ trait MaterialRequestTrait{
             $materialRequestData['user_id'] = $materialRequestData['on_behalf_of'] = $user['id'];
             $materialRequestData['quotation_id'] = $quotationId != null ? $quotationId['id'] : null;
             $materialRequestData['serial_no'] = $materialRequestSerialNoCount + 1;
-            $materialRequestData['format_id'] =  $this->getPurchaseIDFormat('material-request',$data['project_site_id'],Carbon::now(),$materialRequest['serial_no']);
+            $materialRequestData['format_id'] =  $this->getPurchaseIDFormat('material-request',$data['project_site_id'],Carbon::now(),$materialRequestData['serial_no']);
             $materialRequest = MaterialRequests::create($materialRequestData);
             $iterator = 0;
             $materialRequestComponent = array();
