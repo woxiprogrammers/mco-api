@@ -36,6 +36,10 @@ $app->group(['prefix' => 'inventory'],function () use($app){
             $app->post('add',array('uses' => 'Inventory\AssetManagementController@addReadings'));
             $app->post('listing',array('uses' => 'Inventory\AssetManagementController@readingListing'));
         });
+        $app->group(['prefix' => 'maintenance-request'],function() use($app){
+            $app->post('listing', array('uses' => 'Inventory\AssetMaintenanceController@getAssetRequestMaintenanceListing'));
+            $app->post('generate-grn', array('uses' => 'Inventory\AssetMaintenanceController@generateAssetMaintenanceRequestGRN'));
+        });
     });
 });
 $app->group(['prefix' => 'purchase'],function () use($app){

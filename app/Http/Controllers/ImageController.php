@@ -64,6 +64,10 @@ class ImageController extends BaseController{
                     $tempUploadPath = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_TEMP_IMAGE_UPLOAD');
                     break;
 
+                case 'pre_grn_request_maintenance' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('PRE_GRN_REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD');
+                    break;
+
                 default :
                     $tempUploadPath = '';
             }
