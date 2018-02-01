@@ -14,7 +14,7 @@ use LaravelFCM\Message\PayloadNotificationBuilder;
 use FCM;
 
 trait NotificationTrait{
-    public function sendPushNotification($title,$body,$tokens,$tag = ''){
+    public function sendPushNotification($title,$body,$webTokens,$mobileTokens,$tag = ''){
         try{
             $optionBuilder = new OptionsBuilder();
             $optionBuilder->setTimeToLive(60*20);
@@ -23,11 +23,20 @@ trait NotificationTrait{
                         ->setTag($tag)
                         ->setSound('default');
             $dataBuilder = new PayloadDataBuilder();
-            /*$dataBuilder->addData(['a_data' => 'my_data']);*/
+            $dataBuilder->addData([
+                'title' => $title,
+                'body' => $body,
+                'tag' => $tag
+            ]);
             $option = $optionBuilder->build();
             $notification = $notificationBuilder->build();
             $data = $dataBuilder->build();
-            $downstreamResponse = FCM::sendTo($tokens, $option, $notification, $data);
+            if(count($webTokens) > 0){
+                $webDownstreamResponse = FCM::sendTo($webTokens, $option, $notification, $data);
+            }
+            if(count($mobileTokens) > 0){
+                $mobileDownstreamResponse = FCM::sendTo($mobileTokens, $option, null, $data);
+            }
             return true;
         }catch(\Exception $e){
             $data = [

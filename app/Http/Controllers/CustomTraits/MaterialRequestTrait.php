@@ -45,7 +45,8 @@ trait MaterialRequestTrait{
                 ->select('users.web_fcm_token as web_fcm_token','users.mobile_fcm_token as mobile_fcm_token')
                 ->get()
                 ->toArray();
-            $tokens = array_merge(array_column($userTokens,'web_fcm_token'), array_column($userTokens,'mobile_fcm_token'));
+            $webtokens = array_column($userTokens,'web_fcm_token');
+            $mobiletokens = array_column($userTokens,'mobile_fcm_token');
             foreach($data['item_list'] as $key => $itemData){
                 $materialRequestComponentData['material_request_id'] = $materialRequest['id'];
                 $materialRequestComponentData['name'] = $itemData['name'];
@@ -67,7 +68,7 @@ trait MaterialRequestTrait{
                 $notificationString = '1-'.$materialRequest->projectSite->project->name.' '.$materialRequest->projectSite->name;
                 $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].' Material Request Created.';
                 $notificationString .= ' '.$itemData['name'].' '.$materialRequestComponentData['quantity'].' '.$unitName;
-                $this->sendPushNotification('Manisha Construction',$notificationString,$tokens,'c-m-r');
+                $this->sendPushNotification('Manisha Construction',$notificationString,$webtokens,$mobiletokens,'c-m-r');
                 $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponent[$iterator];
                 MaterialRequestComponentHistory::create($materialComponentHistoryData);
                 MaterialRequestComponentVersion::create($materialRequestComponentVersion);
