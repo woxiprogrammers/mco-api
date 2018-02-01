@@ -420,6 +420,10 @@ use PurchaseTrait;
                         }else{
                             $materialRequestList[$iterator]['approved_by'] = '';
                         }
+                        $purchaseOrderCount = PurchaseOrderComponent::join('purchase_request_components','purchase_request_components.id','=','purchase_order_components.purchase_request_component_id')
+                                                ->join('material_request_components','material_request_components.id','=','purchase_request_components.material_request_component_id')
+                                                ->where('material_request_components.id',$materialRequestComponents->id)->count();
+                        $materialRequestList[$iterator]['is_purchase_order_created'] = ($purchaseOrderCount > 0) ? true : false;
 
                         $iterator++;
                     }
