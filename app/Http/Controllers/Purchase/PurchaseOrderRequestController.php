@@ -137,7 +137,10 @@ class PurchaseOrderRequestController extends BaseController{
               ];
               Log::critical(json_encode($data));
             }
-            return response()->json($message,$status);
+            $response = [
+                'message' => $message
+            ];
+            return response()->json($response,$status);
         }
 
     }
