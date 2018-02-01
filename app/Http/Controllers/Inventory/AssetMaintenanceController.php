@@ -94,6 +94,7 @@ class AssetMaintenanceController extends BaseController{
                         $assetMaintenanceList[$iterator]['approved_vendor_id'] = '';
                         $assetMaintenanceList[$iterator]['approved_vendor_name'] = '';
                     }
+                    $assetMaintenanceList[$iterator]['is_transaction_created'] = (count($assetMaintenance->assetMaintenanceTransaction) > 0) ? true : false;
                     $grnGeneratedStatusId = AssetMaintenanceTransactionStatuses::where('slug','grn-generated')->pluck('id')->first();
                     $assetMaintenanceTransaction = $assetMaintenance->assetMaintenanceTransaction->where('asset_maintenance_transaction_status_id',$grnGeneratedStatusId)->first();
                     $assetMaintenanceList[$iterator]['images'] = array();
@@ -106,7 +107,7 @@ class AssetMaintenanceController extends BaseController{
                         if(count($images) > 0){
                             $jIterator = 0;
                             foreach($images as $key1 => $image){
-                                $assetMaintenanceList[$iterator]['images'][$jIterator]['image_path'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image['name'];
+                                $assetMaintenanceList[$iterator]['images'][$jIterator]['image_url'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image['name'];
                             }
                         }
                     }else{
