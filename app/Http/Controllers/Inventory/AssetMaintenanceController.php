@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Inventory;
 use App\AssetMaintenance;
+use App\AssetMaintenanceImage;
+use App\AssetMaintenanceStatus;
 use App\AssetMaintenanceTransaction;
 use App\AssetMaintenanceTransactionImages;
 use App\AssetMaintenanceTransactionStatuses;
@@ -24,6 +26,54 @@ class AssetMaintenanceController extends BaseController{
     }
 
         use InventoryTrait;
+
+        public function createAssetMaintenanceRequest(Request $request){
+        try{
+            $status = 200;
+            $message = "Asset Maintenance Request created successfully";
+            $user = Auth::user();
+            if($request->has('remark')){
+                $assetMaintenance['remark'] = $request['remark'];
+            }
+            $assetMaintenance = AssetMaintenance::create([
+                'asset_id' => $request['asset_id'],
+                'project_site_id' => $request['project_site_id'],
+                'asset_maintenance_status_id' => AssetMaintenanceStatus::where('slug','maintenance-requested')->pluck('id')->first(),
+                'user_id' => $user['id'],
+            ]);
+
+            if($request->has('image')){
+                $sha1UserId = sha1($user['id']);
+                $assetDirectoryName = sha1($assetMaintenance['id']);
+                foreach($request['image'] as $key1 => $imageName){
+                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
+                    if(File::exists($tempUploadFile)){
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('ASSET_MAINTENANCE_REQUEST_IMAGE_UPLOAD').$assetDirectoryName;
+                        if(!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageName;
+                        File::move($tempUploadFile,$imageUploadNewPath);
+                        AssetMaintenanceImage::create(['name' => $imageName,'asset_maintenance_id' => $assetMaintenance['id']]);
+                    }
+                }
+            }
+
+        }catch(\Exception $e){
+            $data = [
+                'action' => 'Create Asset Maintenance Request',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+            abort(500);
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
         public function getAssetRequestMaintenanceListing(Request $request){
             try{
                 $assetMaintenanceData = AssetMaintenance::where('project_site_id',$request['project_site_id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])

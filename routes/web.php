@@ -31,12 +31,13 @@ $app->group(['prefix' => 'inventory'],function () use($app){
     $app->group(['prefix' => 'asset'],function () use($app){
         $app->post('listing', array('uses' => 'Inventory\AssetManagementController@getAssetListing'));
         $app->post('summary-listing', array('uses' => 'Inventory\AssetManagementController@getSummaryAssetListing'));
-        $app->post('request-maintenance', array('uses' => 'Inventory\AssetManagementController@createRequestMaintenance'));
+        //$app->post('request-maintenance', array('uses' => 'Inventory\AssetManagementController@createRequestMaintenance'));
         $app->group(['prefix' => 'readings'],function() use($app){
             $app->post('add',array('uses' => 'Inventory\AssetManagementController@addReadings'));
             $app->post('listing',array('uses' => 'Inventory\AssetManagementController@readingListing'));
         });
         $app->group(['prefix' => 'maintenance-request'],function() use($app){
+            $app->post('create', array('uses' => 'Inventory\AssetMaintenanceController@createAssetMaintenanceRequest'));
             $app->post('listing', array('uses' => 'Inventory\AssetMaintenanceController@getAssetRequestMaintenanceListing'));
             $app->group(['prefix' => 'transaction'],function() use($app){
                 $app->post('generate-grn', array('uses' => 'Inventory\AssetMaintenanceController@generateAssetMaintenanceRequestGRN'));
