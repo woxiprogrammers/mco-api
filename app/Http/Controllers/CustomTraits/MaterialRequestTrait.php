@@ -71,10 +71,10 @@ trait MaterialRequestTrait{
                 $materialRequestComponentData['updated_at'] = Carbon::now();
                 $materialRequestComponentData['format_id'] =  $this->getPurchaseIDFormat('material-request-component',$data['project_site_id'],$materialRequestComponentData['created_at'],$materialRequestComponentData['serial_no']);
                 $materialRequestComponent[$iterator] = MaterialRequestComponents::insertGetId($materialRequestComponentData);
-                $notificationString = '<b>1-'.$materialRequest->projectSite->project->name.' '.$materialRequest->projectSite->name.'<b>';
-                $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'<b> Material Request Created.</b><br>';
+                $notificationString = '1-'.$materialRequest->projectSite->project->name.' '.$materialRequest->projectSite->name;
+                $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].' Material Request Created.';
                 $notificationString .= ' '.$itemData['name'].' '.$materialRequestComponentData['quantity'].' '.$unitName;
-                $this->sendPushNotification('',$notificationString,$tokens);
+                $this->sendPushNotification('',$notificationString,$tokens,'c-m-r');
                 $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponent[$iterator];
                 MaterialRequestComponentHistory::create($materialComponentHistoryData);
                 MaterialRequestComponentVersion::create($materialRequestComponentVersion);

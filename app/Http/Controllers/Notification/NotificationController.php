@@ -63,8 +63,9 @@ class NotificationController extends BaseController{
                 if($user->customHasPermission('approve-material-request')){
                     $materialRequestCreateCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
                         ->join('purchase_request_component_statuses','purchase_request_component_statuses.id','=','material_request_components.component_status_id')
+                        ->join('user_project_site_relation','user_project_site_relation.project_site_id','=','material_requests.project_site_id')
+                        ->where('user_project_site_relation.user_id',$user->id)
                         ->where('purchase_request_component_statuses.slug','pending')
-                        ->where('material_requests.assigned_to',$user->id)
                         ->where('material_requests.project_site_id', $request->project_site_id)
                         ->count();
                 }
@@ -72,8 +73,9 @@ class NotificationController extends BaseController{
                     $purchaseRequestCreateCount = PurchaseRequests::join('purchase_request_components','purchase_request_components.purchase_request_id','=','purchase_requests.id')
                         ->join('material_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
                         ->join('purchase_request_component_statuses','purchase_request_component_statuses.id','=','material_request_components.component_status_id')
+                        ->join('user_project_site_relation','user_project_site_relation.project_site_id','=','purchase_requests.project_site_id')
+                        ->where('user_project_site_relation.user_id',$user->id)
                         ->where('purchase_request_component_statuses.slug','pending')
-                        ->where('purchase_requests.assigned_to',$user->id)
                         ->where('purchase_requests.project_site_id', $request->project_site_id)
                         ->count();
                 }

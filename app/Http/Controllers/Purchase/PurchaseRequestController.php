@@ -98,7 +98,7 @@ use NotificationTrait;
             $tokens = array_merge($mobileTokens,$webTokens);
             $notificationString = '2 -'.$purchaseRequest->projectSite->project->name.' '.$purchaseRequest->projectSite->name;
             $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Request Created.';
-            $this->sendPushNotification('',$notificationString,$tokens);
+            $this->sendPushNotification('',$notificationString,$tokens,'c-p-r');
             foreach($materialRequestComponentIds as $materialRequestComponentId){
                 PurchaseRequestComponents::create(['purchase_request_id' => $purchaseRequest['id'], 'material_request_component_id' => $materialRequestComponentId]);
             }

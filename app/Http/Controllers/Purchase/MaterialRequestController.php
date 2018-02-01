@@ -353,7 +353,7 @@ use PurchaseTrait;
                 $notificationString = '1D -'.$materialRequestComponent->materialRequest->projectSite->project->name.' '.$materialRequestComponent->materialRequest->projectSite->name;
                 $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Material Disapproved.';
                 $notificationString .= ' '.$request['remark'];
-                $this->sendPushNotification('',$notificationString,$tokens);
+                $this->sendPushNotification('',$notificationString,$tokens,'d-m-r');
             }
             $status = 200;
         }catch(\Exception $e){
