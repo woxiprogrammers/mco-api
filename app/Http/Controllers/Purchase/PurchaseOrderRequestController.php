@@ -20,6 +20,7 @@ use App\PurchaseOrderStatus;
 use App\PurchaseRequestComponentVendorMailInfo;
 use App\PurchaseRequests;
 use App\Unit;
+use App\User;
 use App\Vendor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -143,6 +144,7 @@ class PurchaseOrderRequestController extends BaseController
                 'vendors' => array(),
                 'clients' => array()
             ];
+            $user = Auth::user();
             $purchaseOrderCount = PurchaseOrder::whereDate('created_at', Carbon::now())->count();
             $projectSiteId = PurchaseRequests::join('purchase_order_requests','purchase_requests.id','=','purchase_order_requests.purchase_request_id')
                                 ->join('purchase_order_request_components','purchase_order_request_components.purchase_order_request_id','=','purchase_order_requests.id')
@@ -270,6 +272,22 @@ class PurchaseOrderRequestController extends BaseController
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
                         $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_id']);
                         $purchaseOrderComponent = PurchaseOrderComponent::create($purchaseOrderComponentData);
+                        $tokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->web_fcm_token, $purchaseOrder->purchaseRequest->onBehalfOfUser->mobile_fcm_token];
+                        $purchaseRequestComponentIds = array_column($purchaseOrder->purchase_order_component->toArray(),'purchase_request_component_id');
+                        $materialRequestUserToken = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
+                            ->join('material_request_components','material_request_components.material_id','=','material_requests.id')
+                            ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
+                            ->join('purchase_order_components','purchase_order_components.purchase_request_component_id','=','purchase_request_components.id')
+                            ->join('purchase_orders','purchase_orders.id','=','purchase_order_components.purchase_order_id')
+                            ->where('purchase_orders.id', $purchaseOrder->id)
+                            ->whereIn('purchase_request_components.id', $purchaseRequestComponentIds)
+                            ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                            ->first();
+                        $tokens = array_merge($tokens,array_column($materialRequestUserToken,'web_fcm_token'),array_column($materialRequestUserToken,'mobile_fcm_token'));
+                        $notificationString = '3 -'.$purchaseOrder->purchaseRequest->projectSite->project->name.' '.$purchaseOrder->purchaseRequest->projectSite->name;
+                        $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
+                        $notificationString .= 'PO number: '.$purchaseOrder->format_id;
+                        $this->sendPushNotification('Manisha Construction',$notificationString,$tokens,'c-p-o');
                         $vendorInfo['materials'][$iterator]['item_name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
                         $vendorInfo['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
                         $vendorInfo['materials'][$iterator]['unit'] = Unit::where('id',$purchaseOrderComponent['unit_id'])->pluck('name')->first();

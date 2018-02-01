@@ -14,12 +14,13 @@ use LaravelFCM\Message\PayloadNotificationBuilder;
 use FCM;
 
 trait NotificationTrait{
-    public function sendPushNotification($title,$body,$tokens){
+    public function sendPushNotification($title,$body,$tokens,$tag = ''){
         try{
             $optionBuilder = new OptionsBuilder();
             $optionBuilder->setTimeToLive(60*20);
             $notificationBuilder = new PayloadNotificationBuilder($title);
             $notificationBuilder->setBody($body)
+                        ->setTag($tag)
                         ->setSound('default');
             $dataBuilder = new PayloadDataBuilder();
             /*$dataBuilder->addData(['a_data' => 'my_data']);*/
