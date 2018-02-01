@@ -145,5 +145,49 @@ class AssetMaintenanceController extends BaseController{
             return response()->json($response,$status);
         }
 
-
+    public function createTransaction(Request $request){
+        try{
+            $assetMaintenanceTransaction = AssetMaintenanceTransaction::where('grn',$request['grn'])->first();
+            $assetMaintenanceTransactionData = $request->only('bill_number','bill_amount',' remark');
+            $assetMaintenanceTransactionData['asset_maintenance_transaction_status_id'] = AssetMaintenanceTransactionStatuses::where('slug','bill-pending')->pluck('id')->first();
+            $assetMaintenanceTransactionData['in_time'] = $assetMaintenanceTransactionData['out_time'] = Carbon::now();
+            $assetMaintenanceTransaction->update($assetMaintenanceTransactionData);
+            if($request->has('images')){
+                $user = Auth::user();
+                $sha1UserId = sha1($user['id']);
+                $sha1assetMaintenanceId = sha1($assetMaintenanceTransaction['asset_maintenance_id']);
+                $sha1assetMaintenanceTransactionId = sha1($assetMaintenanceTransaction['id']);
+                foreach ($request['images'] as $key => $imageName) {
+                    $tempUploadFile = env('WEB_PUBLIC_PATH') . env('POST_GRN_REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
+                    if (File::exists($tempUploadFile)) {
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH') . env('ASSET_MAINTENANCE_REQUEST_IMAGE_UPLOAD') . $sha1assetMaintenanceId . DIRECTORY_SEPARATOR . 'bill_transaction' . DIRECTORY_SEPARATOR . $sha1assetMaintenanceTransactionId;
+                        if (!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR . $imageName;
+                        File::move($tempUploadFile, $imageUploadNewPath);
+                        AssetMaintenanceTransactionImages::create(['name' => $imageName, 'asset_maintenance_transaction_id' => $assetMaintenanceTransaction['id'],'is_pre_grn' => false]);
+                    }
+                }
+            }
+            $status = 200;
+            $message = "Transaction created Successfully";
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Create Asset Maintenance Transaction',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            abort(500);
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response,$status);
     }
+
+
+}
