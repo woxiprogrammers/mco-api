@@ -48,6 +48,7 @@ class AssetManagementController extends BaseController
                 $availableQuantity = $inQuantity - $outQuantity;
                 if($availableQuantity > 0 || true){
                     $inventoryListingData[$iterator]['assets_name'] = $inventoryComponent['name'];
+                    $inventoryListingData[$iterator]['asset_id'] = $inventoryComponent->asset->id;
                     $inventoryListingData[$iterator]['inventory_component_id'] = $inventoryComponent['id'];
                     if($inventoryComponent['reference_id'] == null || $inventoryComponent['reference_id'] == ''){
                         $inventoryListingData[$iterator]['model_number'] = '';
@@ -195,7 +196,7 @@ class AssetManagementController extends BaseController
         return response()->json($response,$status);
     }
 
-    public function createRequestMaintenance(Request $request){
+    /*public function createRequestMaintenance(Request $request){
         try{
             $status = 200;
             $data = $request->all();
@@ -239,7 +240,7 @@ class AssetManagementController extends BaseController
             "message" => $message
         ];
         return response()->json($response,$status);
-    }
+    }*/
 
     public function addReadings(Request $request){
         try{
