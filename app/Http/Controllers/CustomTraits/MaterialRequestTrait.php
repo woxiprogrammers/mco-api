@@ -36,23 +36,16 @@ trait MaterialRequestTrait{
             $materialComponentHistoryData['component_status_id'] = $purchaseRequestComponentStatus->where('slug','pending')->first()->id;
             $materialComponentHistoryData['remark'] = $materialRequestComponentVersion['remark'] = '';
             $materialComponentHistoryData['user_id'] = $materialRequestComponentVersion['user_id'] = $user['id'];
-            $mobileTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
-                ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
-                ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
-                ->where('permissions.name','approve-material-request')
-                ->whereNotNull('users.mobile_fcm_token')
-                ->where('user_project_site_relation.project_site_id',$data['project_site_id'])
-                ->pluck('users.mobile_fcm_token')
-                ->toArray();
-            $webTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
+            $userTokens = User::join('user_has_permissions','users.id','=','user_has_permissions.user_id')
                 ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
                 ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
                 ->where('permissions.name','approve-material-request')
                 ->whereNotNull('users.web_fcm_token')
                 ->where('user_project_site_relation.project_site_id',$data['project_site_id'])
-                ->pluck('users.web_fcm_token')
+                ->select('users.web_fcm_token as web_fcm_token','users.mobile_fcm_token as mobile_fcm_token')
+                ->get()
                 ->toArray();
-            $tokens = array_merge($mobileTokens,$webTokens);
+            $tokens = array_merge(array_column($userTokens,'web_fcm_token'), array_column($userTokens,'mobile_fcm_token'));
             foreach($data['item_list'] as $key => $itemData){
                 $materialRequestComponentData['material_request_id'] = $materialRequest['id'];
                 $materialRequestComponentData['name'] = $itemData['name'];
@@ -74,7 +67,7 @@ trait MaterialRequestTrait{
                 $notificationString = '1-'.$materialRequest->projectSite->project->name.' '.$materialRequest->projectSite->name;
                 $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].' Material Request Created.';
                 $notificationString .= ' '.$itemData['name'].' '.$materialRequestComponentData['quantity'].' '.$unitName;
-                $this->sendPushNotification('',$notificationString,$tokens,'c-m-r');
+                $this->sendPushNotification('Manisha Construction',$notificationString,$tokens,'c-m-r');
                 $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponent[$iterator];
                 MaterialRequestComponentHistory::create($materialComponentHistoryData);
                 MaterialRequestComponentVersion::create($materialRequestComponentVersion);
