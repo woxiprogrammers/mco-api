@@ -95,11 +95,23 @@ class AssetMaintenanceController extends BaseController{
                         $assetMaintenanceList[$iterator]['approved_vendor_name'] = '';
                     }
                     $grnGeneratedStatusId = AssetMaintenanceTransactionStatuses::where('slug','grn-generated')->pluck('id')->first();
-                    $grnGenerated = $assetMaintenance->assetMaintenanceTransaction->where('asset_maintenance_transaction_status_id',$grnGeneratedStatusId)->pluck('grn')->first();
-                    if(count($grnGenerated) > 0){
-                        $assetMaintenanceList[$iterator]['grn'] = $grnGenerated;
+                    $assetMaintenanceTransaction = $assetMaintenance->assetMaintenanceTransaction->where('asset_maintenance_transaction_status_id',$grnGeneratedStatusId)->first();
+                    $assetMaintenanceList[$iterator]['images'] = array();
+                    if(count($assetMaintenanceTransaction) > 0){
+                        $assetMaintenanceList[$iterator]['grn'] = $assetMaintenanceTransaction['grn'];
+                        $images = $assetMaintenanceTransaction->assetMaintenanceTransactionImage;
+                        $sha1assetMaintenanceId = sha1($assetMaintenance['id']);
+                        $sha1assetMaintenanceTransactionId = sha1($assetMaintenanceTransaction['id']);
+                        $imageUploadPath = env('ASSET_MAINTENANCE_REQUEST_IMAGE_UPLOAD') . $sha1assetMaintenanceId . DIRECTORY_SEPARATOR . 'bill_transaction' . DIRECTORY_SEPARATOR . $sha1assetMaintenanceTransactionId;
+                        if(count($images) > 0){
+                            $jIterator = 0;
+                            foreach($images as $key1 => $image){
+                                $assetMaintenanceList[$iterator]['images'][$jIterator]['image_path'] = $imageUploadPath.DIRECTORY_SEPARATOR.$image['name'];
+                            }
+                        }
                     }else{
                         $assetMaintenanceList[$iterator]['grn'] = '';
+                        $assetMaintenanceList[$iterator]['images'] = array();
                     }
                     $assetMaintenanceList[$iterator]['date'] = date('l, d F Y',strtotime($assetMaintenance['created_at']));
                     $iterator++;
