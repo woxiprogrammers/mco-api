@@ -21,4 +21,16 @@ class PurchaseRequests extends Model
     public function projectSite(){
         return $this->belongsTo('App\ProjectSite','project_site_id');
     }
+
+    public function onBehalfOfUser(){
+        return $this->belongsTo('App\User','behalf_of_user_id');
+    }
+
+    public function user(){
+        return $this->belongsTo('App\User','user_id');
+    }
+
+    public function assignedToUser(){
+        return $this->belongsTo('App\User','assigned_to');
+    }
 }

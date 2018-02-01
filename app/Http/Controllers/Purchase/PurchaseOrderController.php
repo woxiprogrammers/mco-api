@@ -81,8 +81,15 @@ use InventoryTrait;
                     $purchaseOrderList[$iterator]['purchase_request_id'] = $purchaseOrder['purchase_request_id'];
                     $purchaseOrderList[$iterator]['purchase_request_format_id'] = $this->getPurchaseIDFormat('purchase-request',$projectSite['id'],$purchaseRequest['created_at'],$purchaseRequest['serial_no']);
                     $project = $projectSite->project;
-                    $purchaseOrderList[$iterator]['vendor_id'] = $purchaseOrder['vendor_id'];
-                    $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->name;
+                    if($purchaseOrder->is_client_order == true){
+                        $purchaseOrderList[$iterator]['vendor_id'] = $purchaseOrder['client_id'];
+                        $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->client->company;
+                        $purchaseOrderList[$iterator]['is_client_order'] = true;
+                    }else{
+                        $purchaseOrderList[$iterator]['vendor_id'] = $purchaseOrder['vendor_id'];
+                        $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->name;
+                        $purchaseOrderList[$iterator]['is_client_order'] = false;
+                    }
                     $purchaseOrderList[$iterator]['client_name'] = $project->client->company;
                     $purchaseOrderList[$iterator]['project'] = $project->name;
                     $purchaseOrderList[$iterator]['date'] = date($purchaseOrder['created_at']);
