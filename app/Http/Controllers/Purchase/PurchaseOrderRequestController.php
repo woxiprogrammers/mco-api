@@ -370,8 +370,7 @@ class PurchaseOrderRequestController extends BaseController
                     $mailData = ['path' => $pdfUploadPath, 'toMail' => $vendorInfo['email']];
                     Mail::send('purchase.purchase-request.email.vendor-quotation', [], function($message) use ($mailData){
                         $message->subject('Testing with attachment');
-//                        $message->to($mailData['toMail']);
-                        $message->to('ameya.woxi@gmail.com');
+                        $message->to($mailData['toMail']);
                         $message->from(env('MAIL_USERNAME'));
                         $message->attach($mailData['path']);
                     });
