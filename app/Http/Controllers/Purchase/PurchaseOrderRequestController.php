@@ -10,6 +10,8 @@ use App\Asset;
 use App\AssetType;
 use App\CategoryMaterialRelation;
 use App\Client;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
+use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\Material;
 use App\MaterialRequestComponentTypes;
 use App\MaterialVersion;
@@ -32,7 +34,6 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Lumen\Routing\Controller as BaseController;
-use Mockery\Exception;
 
 class PurchaseOrderRequestController extends BaseController
 {
@@ -139,6 +140,8 @@ class PurchaseOrderRequestController extends BaseController
         return response()->json($response, $status);
     }
 
+    use PurchaseTrait;
+    use NotificationTrait;
     public function changeStatus(Request $request)
     {
         try{
@@ -147,6 +150,7 @@ class PurchaseOrderRequestController extends BaseController
                 'clients' => array()
             ];
             $user = Auth::user();
+            $assetComponentTypeIds = MaterialRequestComponentTypes::whereIn('slug',['new-material','system-asset'])->pluck('id')->toArray();
             $purchaseOrderCount = PurchaseOrder::whereDate('created_at', Carbon::now())->count();
             $projectSiteId = PurchaseRequests::join('purchase_order_requests','purchase_requests.id','=','purchase_order_requests.purchase_request_id')
                                 ->join('purchase_order_request_components','purchase_order_request_components.purchase_order_request_id','=','purchase_order_requests.id')
@@ -162,7 +166,7 @@ class PurchaseOrderRequestController extends BaseController
                     if($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->is_client == true){
                         /*client supplied PO*/
                         $clientId =$purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client_id;
-                        if(array_key_exists($clientId, $purchaseOrderData['clients'])){
+                        if(!array_key_exists($clientId, $purchaseOrderData['clients'])){
                             $purchaseOrderCount++;
                             $purchaseOrderFormatID = $this->getPurchaseIDFormat('purchase-order',$projectSiteId,Carbon::now(),$purchaseOrderCount);
                             $purchaseOrderData['clients'][$clientId] = array();
@@ -185,17 +189,17 @@ class PurchaseOrderRequestController extends BaseController
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
-                        $purchaseOrderData['clients'][$clientId]['component_data'][] = $purchaseOrderRequestComponent;
+                        $purchaseOrderData['clients'][$clientId]['component_data'][] = $purchaseOrderComponentData;
                     }else{
                         /*Vendor PO*/
                         $vendorId =$purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id;
-                        if(array_key_exists($vendorId, $purchaseOrderData['vendors'])){
+                        if(!array_key_exists($vendorId, $purchaseOrderData['vendors'])){
                             $purchaseOrderCount++;
                             $purchaseOrderFormatID = $this->getPurchaseIDFormat('purchase-order',$projectSiteId,Carbon::now(),$purchaseOrderCount);
                             $purchaseOrderData['vendors'][$vendorId] = array();
                             $purchaseOrderData['vendors'][$vendorId]['purchase_order_data'] = [
                                 'user_id' => Auth::user()->id,
-                                'client_id' => $vendorId,
+                                'vendor_id' => $vendorId,
                                 'is_approved' => true,
                                 'purchase_request_id' => $purchaseOrderRequestComponent->purchaseOrderRequest->purchase_request_id,
                                 'purchase_order_status_id' => PurchaseOrderStatus::where('slug','open')->pluck('id')->first(),
@@ -212,7 +216,7 @@ class PurchaseOrderRequestController extends BaseController
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
-                        $purchaseOrderData['vendors'][$vendorId]['component_data'][] = $purchaseOrderRequestComponent;
+                        $purchaseOrderData['vendors'][$vendorId]['component_data'][] = $purchaseOrderComponentData;
                     }
 
                 }else{
@@ -223,7 +227,7 @@ class PurchaseOrderRequestController extends BaseController
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
                 foreach ($purchaseOrderDatum as $vendorId => $purchaseOrderDataArray){
-                    $purchaseOrderRequest = PurchaseOrderRequest::findOrFail($purchaseOrderDataArray['purchase_order_request_id']);
+                    $purchaseOrderRequest = PurchaseOrderRequest::findOrFail($purchaseOrderDataArray['purchase_order_data']['purchase_order_request_id']);
                     $purchaseOrder = PurchaseOrder::create($purchaseOrderDataArray['purchase_order_data']);
                     if($slug == 'clients'){
                         $vendorInfo = Client::findOrFail($purchaseOrder->client_id)->toArray();
@@ -234,10 +238,10 @@ class PurchaseOrderRequestController extends BaseController
                     $iterator = 0;
                     foreach ($purchaseOrderDataArray['component_data'] as $purchaseOrderComponentData){
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
-                        $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_id']);
+                        $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_component_id']);
                         $purchaseOrderComponent = PurchaseOrderComponent::create($purchaseOrderComponentData);
                         $purchaseOrderRequestComponent->update(['is_approved' => true]);
-                        $componentTypeId = $purchaseOrderRequestComponent->purchaseRequestComponent->materialRequestComponent->component_type_id;
+                        $componentTypeId = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->component_type_id;
                         if($newMaterialTypeId == $componentTypeId){
                             $materialName = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
                             $isMaterialExists = Material::where('name','ilike',$materialName)->first();
@@ -265,7 +269,7 @@ class PurchaseOrderRequestController extends BaseController
                             }
                         }elseif ($newAssetTypeId == $componentTypeId){
                             $assetName = $purchaseOrderRequestComponent->purchaseRequestComponent->materialRequestComponent->name;
-                            $is_present = Asset::where('name','ilike',$assetName)->pluck('id')->toArray();
+                            $is_present = Asset::where('name','ilike',$assetName)->first();
                             if($is_present == null){
                                 $asset_type = AssetType::where('slug','other')->pluck('id')->first();
                                 $categoryAssetData = array();
@@ -278,16 +282,16 @@ class PurchaseOrderRequestController extends BaseController
                         }
                         $webTokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->web_fcm_token];
                         $mobileTokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->mobile_fcm_token];
-                        $purchaseRequestComponentIds = array_column($purchaseOrder->purchase_order_component->toArray(),'purchase_request_component_id');
+                        $purchaseRequestComponentIds = array_column(($purchaseOrder->purchaseOrderComponent->toArray()),'purchase_request_component_id');
                         $materialRequestUserToken = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
-                            ->join('material_request_components','material_request_components.material_id','=','material_requests.id')
+                            ->join('material_request_components','material_request_components.material_request_id','=','material_requests.id')
                             ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
                             ->join('purchase_order_components','purchase_order_components.purchase_request_component_id','=','purchase_request_components.id')
                             ->join('purchase_orders','purchase_orders.id','=','purchase_order_components.purchase_order_id')
                             ->where('purchase_orders.id', $purchaseOrder->id)
                             ->whereIn('purchase_request_components.id', $purchaseRequestComponentIds)
                             ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
-                            ->first();
+                            ->get()->toArray();
                         $webTokens = array_merge($webTokens, array_column($materialRequestUserToken,'web_fcm_token'));
                         $mobileTokens = array_merge($mobileTokens, array_column($materialRequestUserToken,'mobile_fcm_token'));
                         $notificationString = '3 -'.$purchaseOrder->purchaseRequest->projectSite->project->name.' '.$purchaseOrder->purchaseRequest->projectSite->name;
@@ -360,13 +364,14 @@ class PurchaseOrderRequestController extends BaseController
                         unlink($pdfUploadPath);
                     }
                     if (!file_exists($pdfDirectoryPath)) {
-                        File::makeDirectory(public_path().$pdfDirectoryPath, $mode = 0777, true, true);
+                        File::makeDirectory(env('WEB_PUBLIC_PATH').$pdfDirectoryPath, $mode = 0777, true, true);
                     }
                     file_put_contents($pdfUploadPath,$pdfContent);
                     $mailData = ['path' => $pdfUploadPath, 'toMail' => $vendorInfo['email']];
                     Mail::send('purchase.purchase-request.email.vendor-quotation', [], function($message) use ($mailData){
                         $message->subject('Testing with attachment');
-                        $message->to($mailData['toMail']);
+//                        $message->to($mailData['toMail']);
+                        $message->to('ameya.woxi@gmail.com');
                         $message->from(env('MAIL_USERNAME'));
                         $message->attach($mailData['path']);
                     });
@@ -403,7 +408,10 @@ class PurchaseOrderRequestController extends BaseController
             ];
             Log::critical(json_encode($data));
         }
-        return response()->json($message, $status);
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response, $status);
     }
 
 }
