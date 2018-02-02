@@ -75,7 +75,7 @@ class NotificationController extends BaseController{
                         ->join('purchase_request_component_statuses','purchase_request_component_statuses.id','=','material_request_components.component_status_id')
                         ->join('user_project_site_relation','user_project_site_relation.project_site_id','=','purchase_requests.project_site_id')
                         ->where('user_project_site_relation.user_id',$user->id)
-                        ->where('purchase_request_component_statuses.slug','pending')
+                        ->where('purchase_request_component_statuses.slug','p-r-assigned')
                         ->where('purchase_requests.project_site_id', $request->project_site_id)
                         ->count();
                 }

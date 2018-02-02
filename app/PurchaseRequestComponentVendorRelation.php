@@ -19,7 +19,7 @@ class PurchaseRequestComponentVendorRelation extends Model
     }
 
     public function purchaseRequestComponent(){
-        return $this->belongsTo('App\PurchaseRequestComponent','purchase_request_component_id');
+        return $this->belongsTo('App\PurchaseRequestComponents','purchase_request_component_id');
     }
 
     public function client(){
