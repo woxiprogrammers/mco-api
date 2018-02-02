@@ -14,7 +14,6 @@ use App\MaterialRequests;
 use App\MaterialVersion;
 use App\Module;
 use App\Permission;
-use App\PurchaseOrder;
 use App\PurchaseOrderComponent;
 use App\PurchaseRequestComponentStatuses;
 use App\Quotation;
@@ -30,7 +29,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
-use Mockery\Exception;
 
 class MaterialRequestController extends BaseController{
 use MaterialRequestTrait;
@@ -48,7 +46,7 @@ use PurchaseTrait;
             $message = "Success";
             $user = Auth::user();
             $materialRequestComponentIds = $this->createMaterialRequest($request->all(),$user,$is_purchase_request = false);
-        }catch (Exception $e){
+        }catch (\Exception $e){
             $status = 500;
             $message = "Fail";
             $data = [
@@ -171,7 +169,7 @@ use PurchaseTrait;
                 break;
             }
 
-        }catch(Exception $e){
+        }catch(\Exception $e){
             $status = 500;
             $message = "Fail";
             $data = [
@@ -353,8 +351,7 @@ use PurchaseTrait;
                 $webTokens = array_column($userTokens,'web_fcm_token');
                 $mobileTokens = array_column($userTokens,'mobile_fcm_token');
                 $notificationString = '1D -'.$materialRequestComponent->materialRequest->projectSite->project->name.' '.$materialRequestComponent->materialRequest->projectSite->name;
-                $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Material Disapproved.';
-                $notificationString .= ' '.$request['remark'];
+                $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].' Material Disapproved.';
                 $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'d-m-r');
             }
             $status = 200;
@@ -446,7 +443,7 @@ use PurchaseTrait;
             }else{
                 $lastLogin->update(['last_login' => Carbon::now()]);
             }
-        }catch(Exception $e){
+        }catch(\Exception $e){
             $has_approve_access = false;
             $message = "Fail";
             $status = 500;
@@ -471,7 +468,7 @@ use PurchaseTrait;
             $data['status'] = PurchaseRequestComponentStatuses::get()->toArray();
             $message = "Success";
             $status = 200;
-        }catch(Exception $e){
+        }catch(\Exception $e){
             $message = "Fail";
             $status = 500;
             $data = [
