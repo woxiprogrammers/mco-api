@@ -351,6 +351,10 @@ class SalaryController extends BaseController{
             $data['admin_remark'] = ($salaryTransactionData->admin_remark == null) ? '' : $salaryTransactionData->admin_remark;
             $data['peticash_transaction_type'] = $salaryTransactionData->peticashTransactionType->name;
             $data['peticash_status_name'] = $salaryTransactionData->peticashStatus->name;
+            $data['tds'] = $salaryTransactionData['tds'];
+            $data['pf'] = $salaryTransactionData['pf'];
+            $data['pt'] = $salaryTransactionData['pt'];
+            $data['esic'] = $salaryTransactionData['esic'];
             $data['payment_type'] = $salaryTransactionData->paymentType->name;
             $transactionImages = PeticashSalaryTransactionImages::where('peticash_salary_transaction_id',$request['peticash_transaction_id'])->get();
             if(count($transactionImages) > 0){
