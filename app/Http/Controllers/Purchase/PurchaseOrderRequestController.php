@@ -53,6 +53,7 @@ class PurchaseOrderRequestController extends BaseController
             $iterator = 0;
             $purchaseOrderRequestList = array();
             $allPurchaseOrderComponentIds = PurchaseOrderComponent::pluck('purchase_order_request_component_id')->toArray();
+            dd($allPurchaseOrderComponentIds);
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
                 $purchaseOrderRequestComponentIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'id');
                 $arrayDiff = array_diff($purchaseOrderRequestComponentIds,$allPurchaseOrderComponentIds);
@@ -109,7 +110,7 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['name'] = ucwords($materialRequestComponent->name);
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'] = $purchaseOrderRequestComponent->quantity;
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['unit'] = $purchaseOrderRequestComponent->unit->name;
-                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderRequestComponent->is_approved != null) ? true : false;
+                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderRequestComponent->is_approved == true) ? true : false;
                 }
                 $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
