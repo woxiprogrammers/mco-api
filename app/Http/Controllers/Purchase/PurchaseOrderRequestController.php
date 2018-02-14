@@ -53,7 +53,6 @@ class PurchaseOrderRequestController extends BaseController
             $iterator = 0;
             $purchaseOrderRequestList = array();
             $allPurchaseOrderComponentIds = PurchaseOrderComponent::pluck('purchase_order_request_component_id')->toArray();
-            dd($allPurchaseOrderComponentIds);
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
                 $purchaseOrderRequestComponentIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'id');
                 $arrayDiff = array_diff($purchaseOrderRequestComponentIds,$allPurchaseOrderComponentIds);
