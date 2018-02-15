@@ -83,7 +83,6 @@ use NotificationTrait;
                 ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
                 ->join('user_project_site_relation','users.id','=','user_project_site_relation.user_id')
                 ->whereIn('permissions.name',['approve-purchase-request','create-purchase-order'])
-                ->whereNotNull('users.web_fcm_token')
                 ->where('user_project_site_relation.project_site_id',$request['project_site_id'])
                 ->select('users.web_fcm_token as web_fcm_token', 'users.mobile_fcm_token as mobile_fcm_token')
                 ->get()
