@@ -34,12 +34,15 @@ class AssetMaintenanceController extends BaseController{
             $user = Auth::user();
             if($request->has('remark')){
                 $assetMaintenance['remark'] = $request['remark'];
+            }else{
+                $assetMaintenance['remark'] = '';
             }
             $assetMaintenance = AssetMaintenance::create([
                 'asset_id' => $request['asset_id'],
                 'project_site_id' => $request['project_site_id'],
                 'asset_maintenance_status_id' => AssetMaintenanceStatus::where('slug','maintenance-requested')->pluck('id')->first(),
                 'user_id' => $user['id'],
+                'remark' => $assetMaintenance['remark']
             ]);
 
             if($request->has('image')){
