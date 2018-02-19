@@ -333,7 +333,7 @@ trait InventoryTrait{
             $data['unit_name'] = $inventoryComponentTransfer->unit->name;
             $data['reference_id'] = $inventoryComponentTransfer['inventoryComponent']['reference_id'];
             $inventoryComponentId = InventoryComponent::where('project_site_id',$request['project_site_id_to'])->where('name',$data['material_name'])->pluck('id')->first();
-            $data['inventory_component_id'] = ($inventoryComponentId != null) ? $inventoryComponentId : null;
+            $data['inventory_component_id'] = ($inventoryComponentId != null) ? $inventoryComponentId : 0;
             $data['project_site_id_from'] = $inventoryComponentTransfer['inventoryComponent']['project_site_id'];
             $data['project_site_name_from'] = $inventoryComponentTransfer['inventoryComponent']->projectSite->name;
         }catch(\Exception $e){
