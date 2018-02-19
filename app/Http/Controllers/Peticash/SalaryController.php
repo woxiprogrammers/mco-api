@@ -39,7 +39,7 @@ class SalaryController extends BaseController{
             $status = 200;
             $message = "Success";
             $iterator = 0;
-            $employeeDetails = Employee::where('name','ilike','%'.$request->employee_name.'%')->whereIn('employee_type_id',EmployeeType::whereIn('slug',['labour','staff','partner'])->pluck('id'))->where('is_active',true)->get()->toArray();
+            $employeeDetails = Employee::where('employee_id','ilike','%'.$request->employee_name.'%')->whereIn('employee_type_id',EmployeeType::whereIn('slug',['labour','staff','partner'])->pluck('id'))->where('is_active',true)->get()->toArray();
             $data = array();
             foreach($employeeDetails as $key => $employeeDetail){
                 $data[$iterator]['employee_id'] = $employeeDetail['id'];
@@ -439,7 +439,7 @@ class SalaryController extends BaseController{
             $status = 200;
             $data = array();
             if($request['type'] == 'salary'){
-                $payable_amount = ($request['per_day_wages'] * $request['working_days']) - ($request['balance'] + $request['pt'] + $request['pf'] + $request['esic'] + $request['tds']);
+                $payable_amount = ($request['per_day_wages'] * $request['working_days']) + $request['balance'] - ($request['pt'] + $request['pf'] + $request['esic'] + $request['tds']);
                 if($payable_amount < 0){
                     $data['payable_amount'] = '0';
                 }else{
