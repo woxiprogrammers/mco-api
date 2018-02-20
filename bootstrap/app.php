@@ -25,7 +25,11 @@ $app = new Laravel\Lumen\Application(
 
 $app->instance('path.config', app()->basePath() . DIRECTORY_SEPARATOR . 'config');
 $app->instance('path.storage', app()->basePath() . DIRECTORY_SEPARATOR . 'storage');
-$app->withFacades();
+
+$app->withFacades(true, [
+    Tymon\JWTAuth\Facades\JWTAuth::class => 'JWTAuth',
+    Tymon\JWTAuth\Facades\JWTFactory::class => 'JWTFactory'
+]);
 
 $app->withEloquent();
 
@@ -65,9 +69,9 @@ $app->singleton(
 //    App\Http\Middleware\ExampleMiddleware::class
 // ]);
 
-// $app->routeMiddleware([
-//     'auth' => App\Http\Middleware\Authenticate::class,
-// ]);
+ $app->routeMiddleware([
+     'auth' => App\Http\Middleware\Authenticate::class,
+ ]);
 
 /*
 |--------------------------------------------------------------------------
@@ -80,10 +84,17 @@ $app->singleton(
 |
 */
 
-// $app->register(App\Providers\AppServiceProvider::class);
-// $app->register(App\Providers\AuthServiceProvider::class);
+ $app->register(App\Providers\AppServiceProvider::class);
+ $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
-
+$app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
+$app->register(Cviebrock\EloquentSluggable\ServiceProvider::class);
+$app->register(LaravelFCM\FCMServiceProvider::class);
+$app->register(\Barryvdh\DomPDF\ServiceProvider::class);
+$app->register(\Illuminate\Mail\MailServiceProvider::class);
+$app->configure('mail');
+class_alias(\LaravelFCM\Facades\FCM::class, 'FCM');
+class_alias(\LaravelFCM\Facades\FCMGroup::class, 'FCMGroup');
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes
