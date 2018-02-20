@@ -178,8 +178,9 @@ class ChecklistController extends BaseController
                 })
                 ->pluck('project_site_user_checklist_assignments.id');
             $userLatestChecklistIds = array();
+            Log::info('all checklist id');
             if(count($userAllChecklistIds) > 0){
-                $userAllChecklistIds = $userAllChecklistIds->toArray();
+                /*$userAllChecklistIds = $userAllChecklistIds->toArray();
                 $iterator = 0;
                 foreach($userAllChecklistIds as $allChecklistId){
                     if(!in_array($allChecklistId,$userLatestChecklistIds)){
@@ -189,7 +190,47 @@ class ChecklistController extends BaseController
                         }
                     }
                     $iterator++;
+                }*/
+                $userAllChecklistIds = $userAllChecklistIds->toArray();
+                sort($userAllChecklistIds);
+                $userLatestChecklistIds = array();
+                $iterator = 0;
+                foreach($userAllChecklistIds as $userAllChecklistId){
+                    Log::info('user all checklist id');
+                    Log::info($userAllChecklistId);
+                    $userLatestChecklistIds[$iterator] = null;
+                    $latestChecklist = ProjectSiteUserChecklistAssignment::where('project_site_user_checklist_assignment_id', $userAllChecklistId)->first();
+		    Log::info('latest checklist');
+                    Log::info($latestChecklist);
+                    if($latestChecklist != null){
+                        Log::info('in if');
+                        for(; $latestChecklist != null; $latestChecklist = ProjectSiteUserChecklistAssignment::where('project_site_user_checklist_assignment_id', $latestChecklist['id'])->first()){
+                            if($latestChecklist['assigned_to'] == $user['id'] || $latestChecklist['assigned_by'] == $user['id']){
+                                if($latestChecklist['checklist_status_id'] == $checklistStatus['id']){
+                                    if(!in_array($latestChecklist['id'],$userLatestChecklistIds)){
+                                        $userLatestChecklistIds[$iterator] = $latestChecklist['id'];
+                                    }
+                                }else{
+                                    $userLatestChecklistIds[$iterator] = null;
+                                }
+
+                            }else{
+                                $previousChecklist = ProjectSiteUserChecklistAssignment::where('id',$latestChecklist['project_site_user_checklist_assignment_id'])->first();
+                                if($previousChecklist['checklist_status_id'] == $checklistStatus['id'] && ($previousChecklist['assigned_to'] == $user['id'] || $previousChecklist['assigned_by'] == $user['id'])){
+                                    if(!in_array($latestChecklist['id'],$userLatestChecklistIds)){
+                                        $userLatestChecklistIds[$iterator] = $latestChecklist['id'];
+                                    }
+                                }
+
+                            }
+                        }
+                    }else{
+                        Log::info('in else');
+                        $userLatestChecklistIds[$iterator] = $userAllChecklistId;
+                    }
+                    $iterator++;
                 }
+                Log::info(json_encode($userLatestChecklistIds));
                 $projectSiteUserChecklists = ProjectSiteUserChecklistAssignment::whereIn('id',$userLatestChecklistIds)->get();
             }else{
                 $projectSiteUserChecklists = array();

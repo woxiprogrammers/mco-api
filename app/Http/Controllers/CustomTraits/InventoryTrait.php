@@ -77,6 +77,7 @@ trait InventoryTrait{
 
     public function createInventoryTransfer(Request $request){
     try{
+Log::info(json_encode($request->all()));
         switch ($request['name']){
             case 'site' :
                     if($request->has('inventory_component_id')){
@@ -96,8 +97,11 @@ trait InventoryTrait{
                     $requestData['date'] = Carbon::now();
 
                     $baseInventoryComponentTransfer = InventoryComponentTransfers::where('grn',$request['grn'])->first();
+Log::info($request['grn']);
                     if($request['is_material'] == true){
-                        $requestData['rate_per_unit'] = $baseInventoryComponentTransfer['rate_per_unit'];
+Log::info($baseInventoryComponentTransfer['cgst_percentage']);
+Log::info($baseInventoryComponentTransfer['sgst_percentage']);                        
+$requestData['rate_per_unit'] = $baseInventoryComponentTransfer['rate_per_unit'];
                         $requestData['cgst_percentage'] = $baseInventoryComponentTransfer['cgst_percentage'];
                         $requestData['sgst_percentage'] = $baseInventoryComponentTransfer['sgst_percentage'];
                         $requestData['igst_percentage'] = $baseInventoryComponentTransfer['igst_percentage'];

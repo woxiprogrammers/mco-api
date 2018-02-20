@@ -439,7 +439,7 @@ class SalaryController extends BaseController{
             $status = 200;
             $data = array();
             if($request['type'] == 'salary'){
-                $payable_amount = ($request['per_day_wages'] * $request['working_days']) - ($request['balance'] + $request['pt'] + $request['pf'] + $request['esic'] + $request['tds']);
+                $payable_amount = ($request['per_day_wages'] * $request['working_days']) + $request['balance'] - ( $request['pt'] + $request['pf'] + $request['esic'] + $request['tds']);
                 if($payable_amount < 0){
                     $data['payable_amount'] = '0';
                 }else{
