@@ -227,7 +227,8 @@ class PurchaseOrderRequestController extends BaseController
 
                 }else{
                     /*disapprove*/
-                    PurchaseOrderRequestComponent::where('purchase_order_request_id', $purchase_order_request_component['id'])
+
+                    PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
                         ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
                 }
             }
@@ -334,7 +335,6 @@ class PurchaseOrderRequestController extends BaseController
                         }else{
                             $vendorInfo['materials'][$iterator]['due_date'] = 'Due on '.date('j/n/Y',strtotime($purchaseOrderComponent['expected_delivery_date']));
                         }
-                        $purchaseOrderRequestComponent = $purchaseOrderComponent->purchaseOrderRequestComponent;
                         if($purchaseOrderRequestComponent['transportation_amount'] == null || $purchaseOrderRequestComponent['transportation_amount'] == ''){
                             $vendorInfo['materials'][$iterator]['transportation_amount'] = 0;
                         }else{

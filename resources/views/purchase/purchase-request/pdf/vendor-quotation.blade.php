@@ -151,12 +151,6 @@
                                     Item Name - Description
                                 </th>
                             @endif
-                            <th>
-                                Quantity
-                            </th>
-                            <th>
-                                Unit
-                            </th>
                         </tr>
                         @for($iterator = 0 ; $iterator < count($vendorInfo['materials']); $iterator++)
                             <tr style="text-align: center">
