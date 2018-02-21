@@ -10,8 +10,12 @@ namespace App\Http\Controllers\Notification;
 use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequests;
+use App\Project;
+use App\ProjectSite;
 use App\PurchaseRequests;
+use App\UserHasRole;
 use App\UserLastLogin;
+use App\UserProjectSiteRelation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -156,6 +160,58 @@ class NotificationController extends BaseController{
             $status = 500;
             $response = array();
         }
+        return response()->json($response,$status);
+    }
+
+    public function getProjectSiteWiseCount(Request $request){
+        try{
+            $message = "Success";
+            $status = 200;
+            $user = Auth::user();
+            $userProjectSiteIds = UserProjectSiteRelation::where('user_id',$user['id'])->pluck('project_site_id');
+            $userRoleRelation = UserHasRole::where('user_id',$user['id'])->first();
+            $userRole = $userRoleRelation->role->slug;
+            if($userRole == 'admin' || $userRole == 'superadmin'){
+                $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)->select('projects.id')->get();
+            }else{
+                $projectIds = Project::join('project_sites','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)
+                    ->whereIn('project_sites.id',$userProjectSiteIds)->select('projects.id')->get();
+            }
+            $projectSites = ProjectSite::whereIn('project_id',$projectIds)->get();
+            $kIterator = 0;
+
+            $projects = array();
+            if($projectSites != null){
+                foreach ($projectSites as $key1 => $projectSite) {
+                    $projects[$kIterator]['project_site_id'] = $projectSite->id;
+                    $projects[$kIterator]['project_site_name'] = $projectSite->name;
+                    $projects[$kIterator]['project_site_address'] = $projectSite->name;
+                    $project = $projectSite->project;
+                    $projects[$kIterator]['project_id'] = $project->id;
+                    $projects[$kIterator]['project_name'] = $project->name;
+                    $projects[$kIterator]['client_company_name'] = $projectSite->project->client->company;
+                    $projects[$kIterator]['notification_count'] = 0;
+                    $kIterator++;
+                }
+            }
+            $data['projects'] = $projects;
+
+        }catch(\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Get Notification Count',
+                'user' => Auth::user(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            "message" => $message,
+            "data" => $data,
+        ];
         return response()->json($response,$status);
     }
 }
