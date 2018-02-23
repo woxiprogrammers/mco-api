@@ -10,12 +10,15 @@ use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
 use App\Material;
 use App\MaterialVersion;
+use App\Module;
 use App\ProductMaterialRelation;
 use App\Quotation;
 use App\QuotationMaterial;
 use App\QuotationProduct;
 use App\Unit;
 use App\UnitConversion;
+use App\UserLastLogin;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +39,7 @@ use UnitTrait;
 
     public function getMaterialListing(Request $request){
         try{
+            $user = Auth::user();
             $message = "Success";
             $status = 200;
             $displayLength = 30;
@@ -113,7 +117,20 @@ use UnitTrait;
                 $inventoryListingData[$iterator]['unit_name'] = Unit::where('id',$unitId)->pluck('name')->first();
                 $iterator++;
             }
-
+            $userLastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
+                ->where('modules.slug','component-transfer')
+                ->where('user_last_logins.user_id',$user->id)
+                ->pluck('user_last_logins.id as user_last_login_id')
+                ->first();
+            if($userLastLogin != null){
+                UserLastLogin::where('id', $userLastLogin)->update(['last_login' => Carbon::now()]);
+            }else{
+                UserLastLogin::create([
+                    'user_id' => $user->id,
+                    'module_id' => Module::where('slug','component-transfer')->pluck('id')->first(),
+                    'last_login' => Carbon::now()
+                ]);
+            }
             $data['material_list'] = $inventoryListingData;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->count();
