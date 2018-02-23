@@ -141,6 +141,7 @@ $app->group(['prefix' => 'notification'], function () use($app){
     $app->post('store-fcm-token',array('uses'=> 'Notification\NotificationController@storeFCMToken'));
     $app->post('get-counts',array('uses'=> 'Notification\NotificationController@getNotificationCounts'));
     $app->get('send-push-notification',array('uses'=> 'Notification\NotificationController@sendPushNotification'));
+    $app->post('project-site/get-count',array('uses'=> 'Notification\NotificationController@getProjectSiteWiseCount'));
 });
 
 $app->group(['prefix' => 'dpr'], function () use($app){
