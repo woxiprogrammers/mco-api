@@ -9,9 +9,10 @@ namespace App\Http\Controllers\Notification;
 
 use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\InventoryComponentTransfers;
+use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
-use App\MaterialRequestComponentHistory;
 use App\MaterialRequests;
+use App\ProjectSiteUserChecklistAssignment;
 use App\PurchaseOrder;
 use App\PurchaseOrderRequest;
 use App\PurchaseOrderTransaction;
@@ -70,6 +71,8 @@ class NotificationController extends BaseController{
             $purchaseRequestCreateCount = $purchaseRequestDisapprovedCount = 0;
             $purchaseOrderCreatedCount = $purchaseOrderBillCreateCount = 0;
             $purchaseOrderRequestCreateCount = $materialSiteOutTransferCreateCount = 0;
+            $materialSiteOutTransferApproveCount = $checklistAssignedCount = 0;
+            $checklistAssignedCount = $reviewChecklistCount = 0;
             if(!in_array($user->roles[0]->role->slug, ['admin','superadmin'])){
                 if($user->customHasPermission('approve-material-request')){
                     $materialRequestCreateCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
@@ -249,12 +252,14 @@ class NotificationController extends BaseController{
                         ->pluck('user_last_logins.last_login')
                         ->first();
                     $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->plcuk('id')->first();
+                    $inventoryRequestedStatusId = InventoryComponentTransferStatus::where('slug','requested')->pluck('id')->first();
                     if($lastLogin == null){
                         $materialSiteOutTransferCreateCount = InventoryComponentTransfers::join('inventory_components','inventory_components.id','=','inventory_component_transfers.inventory_component_id')
                                                                 ->join('user_project_site_relation','user_project_site_relation.project_site_id','=','inventory_components.project_site_id')
                                                                 ->where('user_project_site_relation.user_id', $user->id)
                                                                 ->where('inventory_components.project_site_id',$request->project_site_id)
                                                                 ->where('inventory_component_transfers.transfer_type_id', $siteOutTransferTypeId)
+                                                                ->where('inventory_component_transfers.inventory_component_transfers', $inventoryRequestedStatusId)
                                                                 ->count('inventory_component_transfers.id');
                     }else{
                         $materialSiteOutTransferCreateCount = InventoryComponentTransfers::join('inventory_components','inventory_components.id','=','inventory_component_transfers.inventory_component_id')
@@ -262,11 +267,55 @@ class NotificationController extends BaseController{
                             ->where('user_project_site_relation.user_id', $user->id)
                             ->where('inventory_components.project_site_id',$request->project_site_id)
                             ->where('inventory_component_transfers.transfer_type_id', $siteOutTransferTypeId)
+                            ->where('inventory_component_transfers.inventory_component_transfers', $inventoryRequestedStatusId)
                             ->where('inventory_component_transfers.created_at','>=', $lastLogin)
                             ->count('inventory_component_transfers.id');
                     }
                 }
-
+                if($user->customHasPermission('approve-component-transfer') || $user->customHasPermission('approve-component-transfer')){
+                    $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
+                        ->where('modules.slug','component-transfer')
+                        ->where('user_last_logins.user_id',$user->id)
+                        ->pluck('user_last_logins.last_login')
+                        ->first();
+                    $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->plcuk('id')->first();
+                    $inventoryApprovedStatusId = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
+                    if($lastLogin == null){
+                        $materialSiteOutTransferApproveCount = InventoryComponentTransfers::join('inventory_components','inventory_components.id','=','inventory_component_transfers.inventory_component_id')
+                            ->join('user_project_site_relation','user_project_site_relation.project_site_id','=','inventory_components.project_site_id')
+                            ->where('user_project_site_relation.user_id', $user->id)
+                            ->where('inventory_components.project_site_id',$request->project_site_id)
+                            ->where('inventory_component_transfers.transfer_type_id', $siteOutTransferTypeId)
+                            ->where('inventory_component_transfers.inventory_component_transfers', $inventoryApprovedStatusId)
+                            ->where('inventory_component_transfers.user_id', $user->id)
+                            ->count('inventory_component_transfers.id');
+                    }else{
+                        $materialSiteOutTransferApproveCount = InventoryComponentTransfers::join('inventory_components','inventory_components.id','=','inventory_component_transfers.inventory_component_id')
+                            ->join('user_project_site_relation','user_project_site_relation.project_site_id','=','inventory_components.project_site_id')
+                            ->where('user_project_site_relation.user_id', $user->id)
+                            ->where('inventory_components.project_site_id',$request->project_site_id)
+                            ->where('inventory_component_transfers.transfer_type_id', $siteOutTransferTypeId)
+                            ->where('inventory_component_transfers.inventory_component_transfers', $inventoryApprovedStatusId)
+                            ->where('inventory_component_transfers.updated_at','>=', $lastLogin)
+                            ->where('inventory_component_transfers.user_id', $user->id)
+                            ->count('inventory_component_transfers.id');
+                    }
+                }
+                if($user->customHasPermisssion('create-checklist-management')){
+                    $checklistAssignedCount = ProjectSiteUserChecklistAssignment::join('checklist_statuses','checklist_statuses.id','=','project_site_user_checklist_assignments.checklist_status_id')
+                                                    ->join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
+                                                    ->whereIn('checklist_statuses.slug',['assigned','in-progress'])
+                                                    ->where('project_site_user_checklist_assignments.assigned_to',$user->id)
+                                                    ->where('project_site_checklists.project_site_id', $request->project_site_id)
+                                                    ->count('project_site_user_checklist_assignments.id');
+                }
+                if($user->customHasPermission('create-checklist-recheck') || $user->customHasPermission('view-checklist-recheck')){
+                    $reviewChecklistCount = ProjectSiteUserChecklistAssignment::join('project_site_checklists','project_site_user_checklist_assignments.project_site_checklist_id','=','project_site_checklists.id')
+                                                ->join('checklist_statuses','checklist_statuses.id','=','project_site_user_checklist_assignments.checklist_status_id')
+                                                ->where('checklist_statuses','review')
+                                                ->where('project_site_checklists.project_site_id',$request->project_site_id)
+                                                ->count('project_site_user_checklist_assignments.id');
+                }
             }
             $response['data'] = [
                 'material_request_create_count' => $materialRequestCreateCount,
@@ -276,7 +325,10 @@ class NotificationController extends BaseController{
                 'purchase_order_create_count' => $purchaseOrderCreatedCount,
                 'purchase_order_bill_create_count' => $purchaseOrderBillCreateCount,
                 'purchase_order_request_create_count' => $purchaseOrderRequestCreateCount,
-                'material_site_out_transfer_create_count' => $materialSiteOutTransferCreateCount
+                'material_site_out_transfer_create_count' => $materialSiteOutTransferCreateCount,
+                'material_site_out_transfer_approve_count' => $materialSiteOutTransferApproveCount,
+                'checklist_assigned_count' => $checklistAssignedCount,
+                'review_checklist_count' => $reviewChecklistCount
             ];
         }catch(\Exception $e){
             $data = [
