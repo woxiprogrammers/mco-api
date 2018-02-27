@@ -12,6 +12,7 @@ use App\Material;
 use App\ProjectSite;
 use App\Unit;
 use App\UnitConversion;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -155,6 +156,56 @@ trait InventoryTrait{
             $inventoryComponentTransferData['in_time'] = $inventoryComponentTransferData['out_time'] = Carbon::now();
             $inventoryComponentTransfer = InventoryComponentTransfers::create($inventoryComponentTransferData);
             $inventoryComponentTransferDataId = $inventoryComponentTransfer->id;
+            if($name == 'site' && ($type == 'out' || $type == 'OUT')){
+                $materialSiteTransferApproveTokens = User::join('user_has_permissions','user_has_permissions.user_id','=','users.id')
+                                                        ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                                                        ->join('user_project_site_relation','user_project_site_relation.user_id','=','users.id')
+                                                        ->where('permissions.name','ilike','approve-component-transfer')
+                                                        ->where('user_project_site_relation.project_site_id',$inventoryComponentTransfer->inventoryComponent->project_site_id)
+                                                        ->select('users.web_fcm_token as web_fcm_token','users.mobile_fcm_token')
+                                                        ->get()->toArray();
+                $webTokens = array_column($materialSiteTransferApproveTokens,'web_fcm_token');
+                $mobileTokens = array_column($materialSiteTransferApproveTokens,'mobile_fcm_token');
+                $notificationString = $inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name.' ';
+                $notificationString .= 'Stock transferred to '.$inventoryComponentTransfer->source_name.' ';
+                $notificationString .= $inventoryComponentTransfer->inventoryComponent.' - '.$inventoryComponentTransfer->quantity.' and '.$inventoryComponentTransfer->unit->name;
+                $this->sendPushNotification('Manish Construction',$notificationString,$webTokens,$mobileTokens,'c-m-s-t');
+            }elseif($name == 'user' && ($type == 'out' || $type == 'OUT')){
+                $purchaseRequestApproveAclTokens = User::join('user_has_permissions','user_has_permissions.user_id','=','users.id')
+                                                        ->join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                                                        ->join('user_project_site_relation','user_project_site_relation.user_id','=','users.id')
+                                                        ->where('permissions.name','ilike','approve-purchase-request')
+                                                        ->where('user_project_site_relation.project_site_id',$inventoryComponentTransfer->inventoryComponent->project_site_id)
+                                                        ->select('users.web_fcm_token as web_fcm_token','users.mobile_fcm_token')
+                                                        ->get()->toArray();
+                $webTokens = array_column($purchaseRequestApproveAclTokens,'web_fcm_token');
+                $mobileTokens = array_column($purchaseRequestApproveAclTokens,'mobile_fcm_token');
+                $notificationString = $inventoryComponentTransfer->inventoryComponent->projectSite->project->name.' - '.$inventoryComponentTransfer->inventoryComponent->projectSite->name.' ';
+                $notificationString .= 'Material consumed by user '.$inventoryComponentTransfer->user->first_name.' '.$inventoryComponentTransfer->user->last_name.' ';
+                $notificationString .= $inventoryComponentTransfer->inventoryComponent->name.' - '.$inventoryComponentTransfer->quantity.' and '.$inventoryComponentTransfer->unit->name;
+                $this->sendPushNotification('Manisha Construction', $notificationString,$webTokens,$mobileTokens,'c-m-u-o-t');
+            }elseif($name == 'site' && ($type == 'in' || $type == 'IN')){
+                $fromProjectSitesArray = explode('-', $inventoryComponentTransfer->source_name);
+                $projectSiteId = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
+                                    ->where('project_sites.name','ilike', trim($fromProjectSitesArray[1]))
+                                    ->where('projects.name','ilike', trim($fromProjectSitesArray[0]))
+                                    ->pluck('project_sites.id')->first();
+                $fromInventoryComponentId = InventoryComponent::where('project_site_id', $projectSiteId)
+                                            ->where('name','ilike', $inventoryComponentTransfer->inventoryComponent->name)
+                                            ->pluck('id')->first();
+                $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->plcuk('id')->first();
+                $lastOutInventoryComponentTransfer = InventoryComponentTransfers::where('inventory_component_id', $fromInventoryComponentId)
+                                                                    ->where('transfer_type_id', $siteOutTransferTypeId)
+                                                                    ->where('source_name','ilike',$inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name)
+                                                                    ->orderBy('created_at', 'desc')
+                                                                    ->first();
+                $webTokens = [$lastOutInventoryComponentTransfer->user->web_fcm_token];
+                $mobileTokens = [$lastOutInventoryComponentTransfer->user->mobile_fcm_token];
+                $notificationString = 'From '.$inventoryComponentTransfer->source_name.' stock received to ';
+                $notificationString .= $inventoryComponentTransfer->inventoryComponent->projectSite->project->name.' - '.$inventoryComponentTransfer->inventoryComponent->projectSite->name.' ';
+                $notificationString .= $inventoryComponentTransfer->inventoryComponent->name.' - '.$inventoryComponentTransfer->quantity.' and '.$inventoryComponentTransfer->unit->name;
+                $this->sendPushNotification('Manisha Construction', $notificationString,$webTokens,$mobileTokens,'c-m-s-i-t');
+            }
             if($slug == 'from-api') {
                 if ($monthlyGrnGeneratedCount != null) {
                     GRNCount::where('month', $currentDate->month)->where('year', $currentDate->year)->update(['count' => $serialNumber]);
@@ -189,7 +240,7 @@ trait InventoryTrait{
             ];
             Log::critical(json_encode($data));
         }
-            return $inventoryComponentTransferDataId;
+        return $inventoryComponentTransferDataId;
     }
 
     public function getSiteTransferRequestListing(Request $request){

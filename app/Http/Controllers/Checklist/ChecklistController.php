@@ -8,11 +8,10 @@
 namespace App\Http\Controllers\Checklist;
 use App\ChecklistCategory;
 use App\ChecklistStatus;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\Permission;
-use App\ProjectSite;
 use App\ProjectSiteChecklist;
 use App\ProjectSiteChecklistCheckpoint;
-use App\ProjectSiteChecklistCheckpointImages;
 use App\ProjectSiteUserChecklistAssignment;
 use App\ProjectSiteUserChecklistHistory;
 use App\ProjectSiteUserCheckpoint;
@@ -24,7 +23,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
-use Mockery\Exception;
 
 class ChecklistController extends BaseController
 {
@@ -35,7 +33,7 @@ class ChecklistController extends BaseController
             $this->user = Auth::user();
         }
     }
-
+    use NotificationTrait;
     public function getCategoryListing(Request $request){
         try{
             $subCategoryIds = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])->distinct('checklist_category_id')->pluck('checklist_category_id');
@@ -143,6 +141,15 @@ class ChecklistController extends BaseController
                         'project_site_user_checklist_assignment_id' => $projectSiteUserChecklistAssignment['id']
                     ]);
                 }
+                $projectSite = $projectSiteUserChecklistAssignment->projectSiteChecklist->project_site;
+                $webTokens = $projectSiteUserChecklistAssignment->assignedToUser->web_fcm_token;
+                $mobileTokens = $projectSiteUserChecklistAssignment->assignedToUser->mobile_fcm_token;
+                $notificationString = $projectSite->project->name.' , '.$projectSite->name.' - ';
+                $projectSiteChecklist = $projectSiteUserChecklistAssignment->projectSiteChecklist;
+                $notificationString .= 'From '.$projectSiteUserChecklistAssignment->assignedByUser->first_name.' '.$projectSiteUserChecklistAssignment->assignedByUser->last_name.' ';
+                $notificationString .= 'assigned checklist. '.$projectSiteChecklist->checklistCategory->mainCategory->name.', '.$projectSiteChecklist->checklistCategory->name.', ';
+                $notificationString .= $projectSiteChecklist->quotationFloor->name.', '. $projectSiteChecklist->title;
+                $this->sendPushNotification('Manisha Construction', $notificationString,$webTokens,$mobileTokens,'c-chk-u-a');
             }
             $message = "Checklist Assigned Successfully";
             $status = 200;
@@ -416,24 +423,24 @@ class ChecklistController extends BaseController
             $projectSiteUserCheckpoint = ProjectSiteUserCheckpoint::where('id',$request['project_site_user_checkpoint_id'])->first();
             $sha1UserId = sha1($user['id']);
             foreach ($request['images'] as $key => $imageData){
-                    $tempUploadFile = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageData['image'];
-                    if(File::exists($tempUploadFile)){
-                        $sha1ProjectSiteUserCheckpointId = sha1($projectSiteUserCheckpoint['id']);
-                        $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.'checkpoint'.DIRECTORY_SEPARATOR.$sha1ProjectSiteUserCheckpointId;
+                $tempUploadFile = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageData['image'];
+                if(File::exists($tempUploadFile)){
+                    $sha1ProjectSiteUserCheckpointId = sha1($projectSiteUserCheckpoint['id']);
+                    $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('CHECKLIST_CHECKPOINT_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.'checkpoint'.DIRECTORY_SEPARATOR.$sha1ProjectSiteUserCheckpointId;
 
-                        if(!file_exists($imageUploadNewPath)) {
-                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
-                        }
-                        $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageData['image'];
-                        File::move($tempUploadFile,$imageUploadNewPath);
-                        ProjectSiteUserCheckpointImage::create([
-                            'name' => $imageData['image'] ,
-                            'project_site_user_checkpoint_id' => $projectSiteUserCheckpoint['id'],
-                            'project_site_checklist_checkpoint_image_id' => $imageData['project_site_checklist_checkpoint_image_id'],
-                            'image' => $imageData['image']
-                        ]);
+                    if(!file_exists($imageUploadNewPath)) {
+                        File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
                     }
+                    $imageUploadNewPath .= DIRECTORY_SEPARATOR.$imageData['image'];
+                    File::move($tempUploadFile,$imageUploadNewPath);
+                    ProjectSiteUserCheckpointImage::create([
+                        'name' => $imageData['image'] ,
+                        'project_site_user_checkpoint_id' => $projectSiteUserCheckpoint['id'],
+                        'project_site_checklist_checkpoint_image_id' => $imageData['project_site_checklist_checkpoint_image_id'],
+                        'image' => $imageData['image']
+                    ]);
                 }
+            }
         }catch(\Exception $e){
             $message = 'Fail';
             $status = 500;
@@ -457,8 +464,26 @@ class ChecklistController extends BaseController
             if($request['checklist_status_slug'] == 'completed'){
                 $updateProjectSiteChecklistAssignment['reviewed_by'] = Auth::user()->id;
             }
+
             $updateProjectSiteChecklistAssignment['checklist_status_id'] = ChecklistStatus::where('slug',$request['checklist_status_slug'])->pluck('id')->first();
             ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->update($updateProjectSiteChecklistAssignment);
+            if($request['checklist_status_slug'] == 'review'){
+                $projectSiteUserChecklistAssignment = ProjectSiteUserChecklistAssignment::findOrFail($request->project_site_user_checklist_assignment_id);
+                $checklistReviewAclUserTokens = User::join('user_permissions','user_has_permissions.user_id','=','users.id')
+                                                    ->join('permissions','user_has_permissions.permission_id','=','permissions.id')
+                                                    ->join('user_project_site_relation','user_project_site_relation.user_id','=','users.id')
+                                                    ->where('permissions.name','ilike','create-checklist-recheck')
+                                                    ->where('user_project_site_relation.project_site_id', $projectSiteUserChecklistAssignment->projectSiteChecklist->project_site_id)
+                                                    ->select('users.web_fcm_token as web_fcm_token','users.mobile_fcm_token as mobile_fcm_token')
+                                                    ->get()->toArray();
+                $webTokens = array_column($checklistReviewAclUserTokens,'web_fcm_token');
+                $mobileTokens = array_column($checklistReviewAclUserTokens,'mobile_fcm_token');
+                $notificationString = $projectSiteUserChecklistAssignment->projectSiteChecklist->projectSite->project->name.' - '.$projectSiteUserChecklistAssignment->projectSiteChecklist->projectSite->name.' : ';
+                $notificationString .= 'From '.$projectSiteUserChecklistAssignment->assignedToUser->first_name.' '.$projectSiteUserChecklistAssignment->assignedToUser->last_name.' ';
+                $notificationString .= 'assigned checklist to review.'.$projectSiteUserChecklistAssignment->projectSiteChecklist->checklistCategory->mainCategory->name.', '.$projectSiteUserChecklistAssignment->projectSiteChecklist->checklistCategory->name.', ';
+                $notificationString .= $projectSiteUserChecklistAssignment->projectSiteChecklist->quotationFloor->name.', '. $projectSiteUserChecklistAssignment->projectSiteChecklist->title;
+                $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'c-r-chk');
+            }
             $projectSiteUserChecklistHistory['checklist_status_id'] = $updateProjectSiteChecklistAssignment['checklist_status_id'];
             $projectSiteUserChecklistHistory['project_site_user_checklist_assignment_id'] = $request['project_site_user_checklist_assignment_id'];
             $projectSiteUserChecklistHistory['checklist_status_id'] = $updateProjectSiteChecklistAssignment['checklist_status_id'];
@@ -493,6 +518,15 @@ class ChecklistController extends BaseController
             $projectSiteUserChecklistAssignment['assigned_by'] = $user['id'];
             $projectSiteUserChecklistAssignment['project_site_user_checklist_assignment_id'] = $parentProjectSiteUserChecklistAssignment['id'];
             $projectSiteUserChecklistAssignmentData = ProjectSiteUserChecklistAssignment::create($projectSiteUserChecklistAssignment);
+            $projectSite = $projectSiteUserChecklistAssignmentData->projectSiteChecklist->project_site;
+            $webTokens = $projectSiteUserChecklistAssignment->assignedToUser->web_fcm_token;
+            $mobileTokens = $projectSiteUserChecklistAssignment->assignedToUser->mobile_fcm_token;
+            $notificationString = $projectSite->project->name.' , '.$projectSite->name.' - ';
+            $projectSiteChecklist = $projectSiteUserChecklistAssignment->projectSiteChecklist;
+            $notificationString .= 'From '.$projectSiteUserChecklistAssignment->assignedByUser->first_name.' '.$projectSiteUserChecklistAssignment->assignedByUser->last_name.' ';
+            $notificationString .= 'assigned checklist. '.$projectSiteChecklist->checklistCategory->mainCategory->name.', '.$projectSiteChecklist->checklistCategory->name.', ';
+            $notificationString .= $projectSiteChecklist->quotationFloor->name.', '. $projectSiteChecklist->title;
+            $this->sendPushNotification('Manisha Construction', $notificationString,$webTokens,$mobileTokens,'c-chk-u-a');
             ProjectSiteUserChecklistHistory::create([
                 'checklist_status_id' => $projectSiteUserChecklistAssignment['checklist_status_id'],
                 'project_site_user_checklist_assignment_id' => $projectSiteUserChecklistAssignmentData['id'],

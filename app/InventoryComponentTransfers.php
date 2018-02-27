@@ -10,7 +10,8 @@ class InventoryComponentTransfers extends Model{
 
     protected $fillable = ['inventory_component_id','transfer_type_id','quantity','unit_id','remark','source_name','grn',
         'bill_number','bill_amount','vehicle_number','in_time','out_time','payment_type_id','date','next_maintenance_hour',
-        'user_id','comment_data','inventory_component_transfer_status_id','rate_per_unit','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount','sgst_amount','igst_amount','total'];
+        'user_id','comment_data','inventory_component_transfer_status_id','rate_per_unit','cgst_percentage',
+        'sgst_percentage','igst_percentage','cgst_amount','sgst_amount','igst_amount','total'];
 
     public function inventoryComponent(){
         return $this->belongsTo('App\InventoryComponent','inventory_component_id');
