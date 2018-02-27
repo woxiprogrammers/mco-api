@@ -177,13 +177,31 @@ class ChecklistController extends BaseController
             $user = Auth::user();
             $checklistStatus = ChecklistStatus::where('slug',$request['checklist_status_slug'])->first();
             $projectSiteChecklists = ProjectSiteChecklist::where('project_site_id',$request['project_site_id'])->pluck('id');
-            $userAllChecklistIds = ProjectSiteUserChecklistAssignment::where('checklist_status_id',$checklistStatus['id'])
-                ->whereIn('project_site_checklist_id',$projectSiteChecklists)
-                ->where(function ($query) use ($user){
-                    $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
-                        ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
-                })
-                ->pluck('project_site_user_checklist_assignments.id');
+            if($checklistStatus->slug == 'review'){
+                $recheckStatusId = ChecklistStatus::where('slug','recheck')->pluck('id')->first();
+                if($user->customHasPermission('create-checklist-recheck') || $user->customHasPermission('view-checklist-recheck')){
+                    $userAllChecklistIds = ProjectSiteUserChecklistAssignment::whereIn('checklist_status_id',[$checklistStatus['id'],$recheckStatusId])
+                        ->whereIn('project_site_checklist_id',$projectSiteChecklists)
+                        ->pluck('project_site_user_checklist_assignments.id');
+
+                }else{
+                    $userAllChecklistIds = ProjectSiteUserChecklistAssignment::whereIn('checklist_status_id',[$checklistStatus['id'],$recheckStatusId])
+                        ->whereIn('project_site_checklist_id',$projectSiteChecklists)
+                        ->where(function ($query) use ($user){
+                            $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
+                                ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
+                        })
+                        ->pluck('project_site_user_checklist_assignments.id');
+                }
+            }else{
+                $userAllChecklistIds = ProjectSiteUserChecklistAssignment::where('checklist_status_id',$checklistStatus['id'])
+                    ->whereIn('project_site_checklist_id',$projectSiteChecklists)
+                    ->where(function ($query) use ($user){
+                        $query->where('project_site_user_checklist_assignments.assigned_by',$user['id'])
+                            ->Orwhere('project_site_user_checklist_assignments.assigned_to',$user['id']);
+                    })
+                    ->pluck('project_site_user_checklist_assignments.id');
+            }
             if(count($userAllChecklistIds) > 0){
                 $userAllChecklistIds = $userAllChecklistIds->toArray();
                 sort($userAllChecklistIds);
