@@ -220,6 +220,7 @@ class NotificationController extends BaseController{
                             ->count('purchase_order_transactions.id');
                     }
                 }
+
                 if($user->customHasPermission('approve-purchase-order-request')){
                     $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
                         ->where('modules.slug','purchase-order-request')
@@ -318,24 +319,32 @@ class NotificationController extends BaseController{
                                                 ->where('project_site_checklists.project_site_id',$request->project_site_id)
                                                 ->count('project_site_user_checklist_assignments.id');
                 }
-                if($user->customHasPermisssion('approve-peticash-management')){
-                    $peticashSalaryRequestCount = PeticashRequestedSalaryTransaction::where('peticash_status_id','pending')->where('project_site_id',$request->project_site_id)->count();
+                if($user->customHasPermission('approve-peticash-management')){
+                    $peticashSalaryRequestCount = PeticashRequestedSalaryTransaction::join('peticash_statuses','peticash_statuses.id','=','peticash_requested_salary_transactions.peticash_status_id')
+                                                        ->where('peticash_statuses.slug','pending')
+                                                        ->where('peticash_requested_salary_transactions.project_site_id', $request->project_site_id)
+                                                        ->count('peticash_requested_salary_transactions.id');
                 }
-
-                $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
-                    ->where('modules.slug','component-transfer')
-                    ->where('user_last_logins.user_id',$user->id)
-                    ->pluck('user_last_logins.last_login')
-                    ->first();
-                if($lastLogin == null){
-                    $peticashSalaryApprovedCount = PeticashRequestedSalaryTransaction::where('peticash_status_id','approved')
-                        ->where('project_site_id',$request->project_site_id)
-                        ->where('reference_user_id', $user->id)->count();
-                }else{
-                    $peticashSalaryApprovedCount = PeticashRequestedSalaryTransaction::where('peticash_status_id','approved')
-                        ->where('project_site_id',$request->project_site_id)
-                        ->where('updated_at','>=', $lastLogin)
-                        ->where('reference_user_id', $user->id)->count();
+                if($user->customHasPermission('approve-peticash-management') || $user->customHasPermission('create-peticash-management')){
+                    $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
+                                    ->where('modules.slug','peticash-management')
+                                    ->where('user_last_logins.user_id',$user->id)
+                                    ->pluck('user_last_logins.last_login')
+                                    ->first();
+                    if($lastLogin == null){
+                        $peticashSalaryApprovedCount = PeticashRequestedSalaryTransaction::join('peticash_statuses','peticash_statuses.id','=','peticash_requested_salary_transactions.peticash_status_id')
+                                                        ->where('peticash_statuses.slug','approved')
+                                                        ->where('peticash_requested_salary_transactions.project_site_id',$request->project_site_id)
+                                                        ->where('peticash_requested_salary_transactions.reference_user_id', $user->id)
+                                                        ->count();
+                    }else{
+                        $peticashSalaryApprovedCount = PeticashRequestedSalaryTransaction::join('peticash_statuses','peticash_statuses.id','=','peticash_requested_salary_transactions.peticash_status_id')
+                            ->where('peticash_statuses.slug','approved')
+                            ->where('peticash_requested_salary_transactions.project_site_id',$request->project_site_id)
+                            ->where('peticash_requested_salary_transactions.reference_user_id', $user->id)
+                            ->where('peticash_requested_salary_transactions.updated_at','>=', $lastLogin)
+                            ->count();
+                    }
                 }
             }
             $response['data'] = [
