@@ -12,6 +12,7 @@ use App\InventoryComponentTransfers;
 use App\InventoryComponentTransferStatus;
 use App\InventoryTransferTypes;
 use App\MaterialRequests;
+use App\PeticashRequestedSalaryTransaction;
 use App\ProjectSiteUserChecklistAssignment;
 use App\PurchaseOrder;
 use App\PurchaseOrderRequest;
@@ -73,6 +74,7 @@ class NotificationController extends BaseController{
             $purchaseOrderRequestCreateCount = $materialSiteOutTransferCreateCount = 0;
             $materialSiteOutTransferApproveCount = $checklistAssignedCount = 0;
             $checklistAssignedCount = $reviewChecklistCount = 0;
+            $peticashSalaryRequestCount = $peticashSalaryApprovedCount = 0;
             if(!in_array($user->roles[0]->role->slug, ['admin','superadmin'])){
                 if($user->customHasPermission('approve-material-request')){
                     $materialRequestCreateCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
@@ -316,6 +318,25 @@ class NotificationController extends BaseController{
                                                 ->where('project_site_checklists.project_site_id',$request->project_site_id)
                                                 ->count('project_site_user_checklist_assignments.id');
                 }
+                if($user->customHasPermisssion('approve-peticash-management')){
+                    $peticashSalaryRequestCount = PeticashRequestedSalaryTransaction::where('peticash_status_id','pending')->where('project_site_id',$request->project_site_id)->count();
+                }
+
+                $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
+                    ->where('modules.slug','component-transfer')
+                    ->where('user_last_logins.user_id',$user->id)
+                    ->pluck('user_last_logins.last_login')
+                    ->first();
+                if($lastLogin == null){
+                    $peticashSalaryApprovedCount = PeticashRequestedSalaryTransaction::where('peticash_status_id','approved')
+                        ->where('project_site_id',$request->project_site_id)
+                        ->where('reference_user_id', $user->id)->count();
+                }else{
+                    $peticashSalaryApprovedCount = PeticashRequestedSalaryTransaction::where('peticash_status_id','approved')
+                        ->where('project_site_id',$request->project_site_id)
+                        ->where('updated_at','>=', $lastLogin)
+                        ->where('reference_user_id', $user->id)->count();
+                }
             }
             $response['data'] = [
                 'material_request_create_count' => $materialRequestCreateCount,
@@ -328,7 +349,9 @@ class NotificationController extends BaseController{
                 'material_site_out_transfer_create_count' => $materialSiteOutTransferCreateCount,
                 'material_site_out_transfer_approve_count' => $materialSiteOutTransferApproveCount,
                 'checklist_assigned_count' => $checklistAssignedCount,
-                'review_checklist_count' => $reviewChecklistCount
+                'review_checklist_count' => $reviewChecklistCount,
+                'salary_request_count' => $peticashSalaryRequestCount,
+                'salary_approved_count' => $peticashSalaryApprovedCount
             ];
         }catch(\Exception $e){
             $data = [
