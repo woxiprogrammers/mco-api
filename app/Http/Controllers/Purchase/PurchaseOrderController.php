@@ -10,6 +10,7 @@ namespace App\Http\Controllers\Purchase;
 use App\Asset;
 use App\GRNCount;
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
@@ -34,6 +35,7 @@ use App\PurchaseOrderTransactionStatus;
 use App\PurchasePeticashTransactionImage;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequests;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
@@ -42,8 +44,10 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class PurchaseOrderController extends BaseController{
-use PurchaseTrait;
-use InventoryTrait;
+    use PurchaseTrait;
+    use InventoryTrait;
+    use NotificationTrait;
+
     public function __construct(){
         $this->middleware('jwt.auth');
         if(!Auth::guest()){
@@ -375,9 +379,12 @@ use InventoryTrait;
             $purchaseOrderTransaction['bill_number'] = $request['bill_number'];
             $purchaseOrderTransaction['out_time'] = Carbon::now();
             $purchaseOrderTransaction['purchase_order_transaction_status_id'] = PurchaseOrderTransactionStatus::where('slug','bill-pending')->pluck('id')->first();
-            PurchaseOrderTransaction::where('grn',$request['grn'])->update($purchaseOrderTransaction);
             $purchaseOrderTransactionData = PurchaseOrderTransaction::where('grn',$request['grn'])->first();
+            $purchaseOrderTransactionData->update($purchaseOrderTransaction);
+            $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderTransactionData['purchase_order_id']);
+            $projectInfo = $purchaseOrder->purchaseRequest->projectSite->project->name.' '.$purchaseOrder->purchaseRequest->projectSite->name;
             $user = Auth::user();
+            $mainNotificationString = '4-'.$projectInfo.' '.$user->first_name.' '.$user->last_name.' Material Received. ';
             $sha1UserId = sha1($user['id']);
             $sha1PurchaseOrderId = sha1($purchaseOrderTransactionData['purchase_order_id']);
             $sha1PurchaseOrderTransactionId = sha1($purchaseOrderTransactionData['id']);
@@ -411,6 +418,28 @@ use InventoryTrait;
                 $purchaseOrderTransactionComponent['unit_id'] = $material['unit_id'];
                 $purchaseOrderTransactionComponentData = PurchaseOrderTransactionComponent::create($purchaseOrderTransactionComponent);
                 $purchaseOrderComponent = PurchaseOrderComponent::where('id',$material['purchase_order_component_id'])->first();
+                $materialRequestUserToken = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
+                    ->join('material_request_components','material_request_components.material_request_id','=','material_requests.id')
+                    ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
+                    ->join('purchase_order_components','purchase_order_components.purchase_request_component_id','=','purchase_request_components.id')
+                    ->join('purchase_orders','purchase_orders.id','=','purchase_order_components.purchase_order_id')
+                    ->where('purchase_orders.id', $purchaseOrder->id)
+                    ->where('purchase_request_components.id', $purchaseOrderComponent->purchase_request_component_id)
+                    ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                    ->get()->toArray();
+                $purchaseRequestApproveUserToken = User::join('material_request_component_history_table','material_request_component_history_table.user_id','=','users.id')
+                                                    ->join('material_request_components','material_request_component_history_table.material_request_component_id','=','material_request_components.id')
+                                                    ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
+                                                    ->join('purchase_request_component_statuses','purchase_request_component_statuses.id','=','material_request_component_history_table.component_status_id')
+                                                    ->whereIn('purchase_request_component_statuses.slug',['p-r-manager-approved','p-r-admin-approved'])
+                                                    ->where('purchase_request_components.id',$purchaseOrderComponent->purchase_request_component_id)
+                                                    ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                                                    ->get()->toArray();
+                $webTokens = array_merge(array_column($materialRequestUserToken,'web_fcm_token'), array_column($purchaseRequestApproveUserToken,'web_fcm_token'));
+                $mobileTokens = array_merge(array_column($materialRequestUserToken,'mobile_fcm_token'), array_column($purchaseRequestApproveUserToken,'mobile_fcm_token'));
+                $notificationString = $mainNotificationString.' '.$purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
+                $notificationString .= ' '.$purchaseOrderTransactionComponentData->quantity.' '.$purchaseOrderTransactionComponentData->unit->name;
+                $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'c-p-b');
                 $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
                 $project_site_id = $materialRequestComponent->materialRequest->project_site_id;
                 $materialComponentSlug = $materialRequestComponent->materialRequestComponentTypes->slug;
