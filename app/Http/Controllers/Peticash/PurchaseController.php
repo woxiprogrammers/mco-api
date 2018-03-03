@@ -6,12 +6,12 @@ use App\AssetType;
 use App\CategoryMaterialRelation;
 use App\GRNCount;
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\Material;
 use App\MaterialRequestComponentTypes;
 use App\PaymentType;
-use App\PeticashSalaryTransaction;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
@@ -22,16 +22,16 @@ use App\QuotationMaterial;
 use App\QuotationStatus;
 use App\Unit;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
-use Mockery\Exception;
 
 class PurchaseController extends BaseController{
-use InventoryTrait;
+
+    use InventoryTrait;
+    use NotificationTrait;
     public function __construct(){
         $this->middleware('jwt.auth',['except' => ['autoSuggest']]);
         if(!Auth::guest()) {
