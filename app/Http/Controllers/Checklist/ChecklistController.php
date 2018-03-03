@@ -487,7 +487,7 @@ class ChecklistController extends BaseController
             ProjectSiteUserChecklistAssignment::where('id',$request['project_site_user_checklist_assignment_id'])->update($updateProjectSiteChecklistAssignment);
             if($request['checklist_status_slug'] == 'review'){
                 $projectSiteUserChecklistAssignment = ProjectSiteUserChecklistAssignment::findOrFail($request->project_site_user_checklist_assignment_id);
-                $checklistReviewAclUserTokens = User::join('user_permissions','user_has_permissions.user_id','=','users.id')
+                $checklistReviewAclUserTokens = User::join('user_has_permissions','user_has_permissions.user_id','=','users.id')
                                                     ->join('permissions','user_has_permissions.permission_id','=','permissions.id')
                                                     ->join('user_project_site_relation','user_project_site_relation.user_id','=','users.id')
                                                     ->where('permissions.name','ilike','create-checklist-recheck')
@@ -496,7 +496,7 @@ class ChecklistController extends BaseController
                                                     ->get()->toArray();
                 $webTokens = array_column($checklistReviewAclUserTokens,'web_fcm_token');
                 $mobileTokens = array_column($checklistReviewAclUserTokens,'mobile_fcm_token');
-                $notificationString = $projectSiteUserChecklistAssignment->projectSiteChecklist->projectSite->project->name.' - '.$projectSiteUserChecklistAssignment->projectSiteChecklist->projectSite->name.' : ';
+                $notificationString = $projectSiteUserChecklistAssignment->projectSiteChecklist->project_site->project->name.' - '.$projectSiteUserChecklistAssignment->projectSiteChecklist->project_site->name.' : ';
                 $notificationString .= 'From '.$projectSiteUserChecklistAssignment->assignedToUser->first_name.' '.$projectSiteUserChecklistAssignment->assignedToUser->last_name.' ';
                 $notificationString .= 'assigned checklist to review.'.$projectSiteUserChecklistAssignment->projectSiteChecklist->checklistCategory->mainCategory->name.', '.$projectSiteUserChecklistAssignment->projectSiteChecklist->checklistCategory->name.', ';
                 $notificationString .= $projectSiteUserChecklistAssignment->projectSiteChecklist->quotationFloor->name.', '. $projectSiteUserChecklistAssignment->projectSiteChecklist->title;

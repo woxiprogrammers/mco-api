@@ -168,7 +168,7 @@ trait InventoryTrait{
                 $mobileTokens = array_column($materialSiteTransferApproveTokens,'mobile_fcm_token');
                 $notificationString = $inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name.' ';
                 $notificationString .= 'Stock transferred to '.$inventoryComponentTransfer->source_name.' ';
-                $notificationString .= $inventoryComponentTransfer->inventoryComponent.' - '.$inventoryComponentTransfer->quantity.' and '.$inventoryComponentTransfer->unit->name;
+                $notificationString .= $inventoryComponentTransfer->inventoryComponent->name.' - '.$inventoryComponentTransfer->quantity.' and '.$inventoryComponentTransfer->unit->name;
                 $this->sendPushNotification('Manish Construction',$notificationString,$webTokens,$mobileTokens,'c-m-s-t');
             }elseif($name == 'user' && ($type == 'out' || $type == 'OUT')){
                 $purchaseRequestApproveAclTokens = User::join('user_has_permissions','user_has_permissions.user_id','=','users.id')
