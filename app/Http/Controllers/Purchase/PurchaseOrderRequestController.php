@@ -415,8 +415,9 @@ class PurchaseOrderRequestController extends BaseController
                         File::makeDirectory(env('WEB_PUBLIC_PATH').$pdfDirectoryPath, $mode = 0777, true, true);
                     }
                     file_put_contents($pdfUploadPath,$pdfContent);
+                    $mailMessage = 'Please check the Purchase Order ('.$purchaseOrder->format_id.') attached herewith';
                     $mailData = ['path' => $pdfUploadPath, 'toMail' => $vendorInfo['email']];
-                    Mail::send('purchase.purchase-request.email.vendor-quotation', [], function($message) use ($mailData){
+                    Mail::send('purchase.purchase-request.email.vendor-quotation', ['mailMessage' => $mailMessage], function($message) use ($mailData){
                         $message->subject('Testing with attachment');
                         $message->to($mailData['toMail']);
                         $message->from(env('MAIL_USERNAME'));
