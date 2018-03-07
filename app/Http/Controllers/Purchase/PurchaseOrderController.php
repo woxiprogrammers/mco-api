@@ -105,6 +105,11 @@ class PurchaseOrderController extends BaseController{
                     }
                     $purchaseOrderList[$iterator]['purchase_order_status_slug'] = ($purchaseOrder['purchase_order_status_id'] != null) ? $purchaseOrder->purchaseOrderStatus->slug : '';
                     $purchaseOrderList[$iterator]['remaining_quantity'] = (string)($quantity - $consumedQuantity);
+                    if($purchaseOrder['is_email_sent'] == null){
+                        $purchaseOrderList[$iterator]['is_email_sent'] = true;
+                    }else{
+                        $purchaseOrderList[$iterator]['is_email_sent'] = $purchaseOrder['is_email_sent'];
+                    }
                     $purchaseRequestComponentIds = $purchaseOrderComponents->pluck('purchase_request_component_id');
                     $material_names = MaterialRequestComponents::join('purchase_request_components','material_request_components.id','=','purchase_request_components.material_request_component_id')
                         ->whereIn('purchase_request_components.id',$purchaseRequestComponentIds)
