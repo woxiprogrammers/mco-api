@@ -29,9 +29,8 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class PurchaseController extends BaseController{
-
-    use InventoryTrait;
-    use NotificationTrait;
+use InventoryTrait;
+use NotificationTrait;
     public function __construct(){
         $this->middleware('jwt.auth',['except' => ['autoSuggest']]);
         if(!Auth::guest()) {
