@@ -197,7 +197,8 @@ class PurchaseOrderRequestController extends BaseController
                                 'is_client_order' => true,
                                 'purchase_order_request_id' => $purchaseOrderRequestComponent->purchaseOrderRequest->id,
                                 'format_id' => $purchaseOrderFormatID,
-                                'serial_no' => $purchaseOrderCount
+                                'serial_no' => $purchaseOrderCount,
+                                'is_email_sent' => false
                             ];
                             $purchaseOrderData['clients'][$clientId]['component_data'] = array();
                         }
@@ -224,7 +225,8 @@ class PurchaseOrderRequestController extends BaseController
                                 'is_client_order' => false,
                                 'purchase_order_request_id' => $purchaseOrderRequestComponent->purchaseOrderRequest->id,
                                 'format_id' => $purchaseOrderFormatID,
-                                'serial_no' => $purchaseOrderCount
+                                'serial_no' => $purchaseOrderCount,
+                                'is_email_sent' => false
                             ];
                             $purchaseOrderData['vendors'][$vendorId]['component_data'] = array();
                         }
