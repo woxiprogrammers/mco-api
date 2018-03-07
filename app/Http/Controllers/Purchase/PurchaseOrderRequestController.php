@@ -239,7 +239,6 @@ class PurchaseOrderRequestController extends BaseController
 
                 }else{
                     /*disapprove*/
-
                     PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
                         ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
                 }
@@ -248,13 +247,13 @@ class PurchaseOrderRequestController extends BaseController
                 foreach ($purchaseOrderDatum as $vendorId => $purchaseOrderDataArray){
                     $purchaseOrderRequest = PurchaseOrderRequest::findOrFail($purchaseOrderDataArray['purchase_order_data']['purchase_order_request_id']);
                     $purchaseOrder = PurchaseOrder::create($purchaseOrderDataArray['purchase_order_data']);
-                    if($slug == 'clients'){
+                    /*if($slug == 'clients'){
                         $vendorInfo = Client::findOrFail($purchaseOrder->client_id)->toArray();
                     }else{
                         $vendorInfo = Vendor::findOrFail($purchaseOrder->vendor_id)->toArray();
                     }
                     $vendorInfo['materials'] = array();
-                    $iterator = 0;
+                    $iterator = 0;*/
                     foreach ($purchaseOrderDataArray['component_data'] as $purchaseOrderComponentData){
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
                         $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_component_id']);
@@ -317,7 +316,7 @@ class PurchaseOrderRequestController extends BaseController
                         $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
                         $notificationString .= 'PO number: '.$purchaseOrder->format_id;
                         $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'c-p-o');
-                        $vendorInfo['materials'][$iterator]['item_name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
+                        /*$vendorInfo['materials'][$iterator]['item_name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
                         $vendorInfo['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
                         $vendorInfo['materials'][$iterator]['unit'] = Unit::where('id',$purchaseOrderComponent['unit_id'])->pluck('name')->first();
                         $vendorInfo['materials'][$iterator]['hsn_code'] = $purchaseOrderComponent['hsn_code'];
@@ -370,7 +369,7 @@ class PurchaseOrderRequestController extends BaseController
                         $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_cgst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
                         $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_sgst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
                         $vendorInfo['materials'][$iterator]['transportation_igst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_igst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
-                        $vendorInfo['materials'][$iterator]['transportation_total_amount'] = $vendorInfo['materials'][$iterator]['transportation_amount'] + $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_igst_amount'];
+                        $vendorInfo['materials'][$iterator]['transportation_total_amount'] = $vendorInfo['materials'][$iterator]['transportation_amount'] + $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_igst_amount'];*/
                         if(count($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages) > 0){
                             $purchaseOrderMainDirectoryName = sha1($purchaseOrderComponent['purchase_order_id']);
                             $purchaseOrderComponentDirectoryName = sha1($purchaseOrderComponent['id']);
@@ -401,10 +400,10 @@ class PurchaseOrderRequestController extends BaseController
                                 }
                             }
                         }
-                        $iterator++;
+//                        $iterator++;
                     }
                     /*Send Mail*/
-                    $projectSiteInfo = array();
+                    /*$projectSiteInfo = array();
                     $projectSiteInfo['project_name'] = $purchaseOrderRequest->purchaseRequest->projectSite->project->name;
                     $projectSiteInfo['project_site_name'] = $purchaseOrderRequest->purchaseRequest->projectSite->name;
                     $projectSiteInfo['project_site_address'] = $purchaseOrderRequest->purchaseRequest->projectSite->address;
@@ -453,7 +452,7 @@ class PurchaseOrderRequestController extends BaseController
                         ];
                     }
                     PurchaseRequestComponentVendorMailInfo::insert($mailInfoData);
-                    unlink($pdfUploadPath);
+                    unlink($pdfUploadPath);*/
                 }
             }
             $message = "Component status changed successfully";
