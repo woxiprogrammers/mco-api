@@ -6,6 +6,7 @@ use App\AssetType;
 use App\CategoryMaterialRelation;
 use App\GRNCount;
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\Material;
@@ -32,6 +33,7 @@ use Mockery\Exception;
 
 class PurchaseController extends BaseController{
 use InventoryTrait;
+use NotificationTrait;
     public function __construct(){
         $this->middleware('jwt.auth',['except' => ['autoSuggest']]);
         if(!Auth::guest()) {
