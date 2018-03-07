@@ -50,7 +50,7 @@ class PurchaseOrderRequestController extends BaseController
     {
         try {
             $purchaseRequestIds = PurchaseRequests::where('project_site_id', $request['project_site_id'])->pluck('id');
-            $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->get();
+            $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
             $iterator = 0;
             $purchaseOrderRequestList = array();
             $allPurchaseOrderComponentIds = PurchaseOrderComponent::pluck('purchase_order_request_component_id')->toArray();
@@ -123,7 +123,19 @@ class PurchaseOrderRequestController extends BaseController
                     'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
                     'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
                     'rate_with_tax' => (string)$rateWithTax,
-                    'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'])
+                    'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity']),
+                    'expected_delivery_date' => $purchaseOrderRequestComponent->expected_delivery_date,
+                    'transportation_amount' => $purchaseOrderRequestComponent->transportation_amount,
+                    'transportation_cgst_percentage' =>  $purchaseOrderRequestComponent->transportation_cgst_percentage,
+                    'transportation_cgst_amount' =>  ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_cgst_percentage) /100,
+                    'transportation_sgst_percentage' =>  $purchaseOrderRequestComponent->transportation_sgst_percentage,
+                    'transportation_sgst_amount' =>  ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100,
+                    'transportation_igst_percentage' => $purchaseOrderRequestComponent->transportation_igst_percentage,
+                    'transportation_igst_amount' => ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100,
+                    'total_transportation_amount' => $purchaseOrderRequestComponent->transportation_amount
+                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_cgst_percentage) /100
+                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100
+                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100
                 ];
             }
             $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
