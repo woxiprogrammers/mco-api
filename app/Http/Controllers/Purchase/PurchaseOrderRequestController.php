@@ -22,7 +22,9 @@ use App\PurchaseOrderComponentImage;
 use App\PurchaseOrderRequest;
 use App\PurchaseOrderRequestComponent;
 use App\PurchaseOrderStatus;
+use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentVendorMailInfo;
+use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
 use App\Unit;
 use App\User;
@@ -53,10 +55,11 @@ class PurchaseOrderRequestController extends BaseController
             $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
             $iterator = 0;
             $purchaseOrderRequestList = array();
-            $allPurchaseOrderComponentIds = PurchaseOrderComponent::pluck('purchase_order_request_component_id')->toArray();
+            $allPurchaseRequestComponentIds = PurchaseOrderComponent::pluck('purchase_request_component_id')->toArray();
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
-                $purchaseOrderRequestComponentIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'id');
-                $arrayDiff = array_diff($purchaseOrderRequestComponentIds,$allPurchaseOrderComponentIds);
+                $purchaseRequestComponentVendorRealtionIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'purchase_request_component_vendor_relation_id');
+                $purchaseRequestComponentIds = array_unique(PurchaseRequestComponentVendorRelation::whereIn('id',$purchaseRequestComponentVendorRealtionIds)->pluck('purchase_request_component_id')->toArray());
+                $arrayDiff = array_diff($purchaseRequestComponentIds,$allPurchaseRequestComponentIds);
                 if(count($arrayDiff) > 0){
                     $purchaseOrderRequestList[$iterator]['purchase_order_request_id'] = $purchaseOrderRequest['id'];
                     $purchaseOrderRequestList[$iterator]['purchase_request_id'] = $purchaseOrderRequest['purchase_request_id'];
@@ -71,8 +74,7 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestList[$iterator]['component_names'] = implode(', ', $componentNamesArray);
                     $purchaseOrderRequestList[$iterator]['user_name'] = $purchaseOrderRequest->user->first_name . ' ' . $purchaseOrderRequest->user->last_name;
                     $purchaseOrderRequestList[$iterator]['date'] = date('l, d F Y', strtotime($purchaseOrderRequest['created_at']));
-                    $purchaseOrderCount = PurchaseOrder::where('purchase_order_request_id', $purchaseOrderRequest['id'])->count();
-                    $purchaseOrderRequestList[$iterator]['purchase_order_done'] = ($purchaseOrderCount > 0) ? true : false;
+                    $purchaseOrderRequestList[$iterator]['purchase_order_done'] = false;
                     $iterator++;
                 }
             }
