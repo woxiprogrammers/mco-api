@@ -22,7 +22,9 @@ use App\PurchaseOrderComponentImage;
 use App\PurchaseOrderRequest;
 use App\PurchaseOrderRequestComponent;
 use App\PurchaseOrderStatus;
+use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentVendorMailInfo;
+use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
 use App\Unit;
 use App\User;
@@ -53,10 +55,11 @@ class PurchaseOrderRequestController extends BaseController
             $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
             $iterator = 0;
             $purchaseOrderRequestList = array();
-            $allPurchaseOrderComponentIds = PurchaseOrderComponent::pluck('purchase_order_request_component_id')->toArray();
+            $allPurchaseRequestComponentIds = PurchaseOrderComponent::pluck('purchase_request_component_id')->toArray();
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
-                $purchaseOrderRequestComponentIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'id');
-                $arrayDiff = array_diff($purchaseOrderRequestComponentIds,$allPurchaseOrderComponentIds);
+                $purchaseRequestComponentVendorRealtionIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'purchase_request_component_vendor_relation_id');
+                $purchaseRequestComponentIds = array_unique(PurchaseRequestComponentVendorRelation::whereIn('id',$purchaseRequestComponentVendorRealtionIds)->pluck('purchase_request_component_id')->toArray());
+                $arrayDiff = array_diff($purchaseRequestComponentIds,$allPurchaseRequestComponentIds);
                 if(count($arrayDiff) > 0){
                     $purchaseOrderRequestList[$iterator]['purchase_order_request_id'] = $purchaseOrderRequest['id'];
                     $purchaseOrderRequestList[$iterator]['purchase_request_id'] = $purchaseOrderRequest['purchase_request_id'];
@@ -71,8 +74,7 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestList[$iterator]['component_names'] = implode(', ', $componentNamesArray);
                     $purchaseOrderRequestList[$iterator]['user_name'] = $purchaseOrderRequest->user->first_name . ' ' . $purchaseOrderRequest->user->last_name;
                     $purchaseOrderRequestList[$iterator]['date'] = date('l, d F Y', strtotime($purchaseOrderRequest['created_at']));
-                    $purchaseOrderCount = PurchaseOrder::where('purchase_order_request_id', $purchaseOrderRequest['id'])->count();
-                    $purchaseOrderRequestList[$iterator]['purchase_order_done'] = ($purchaseOrderCount > 0) ? true : false;
+                    $purchaseOrderRequestList[$iterator]['purchase_order_done'] = false;
                     $iterator++;
                 }
             }
@@ -110,7 +112,8 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['name'] = ucwords($materialRequestComponent->name);
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'] = $purchaseOrderRequestComponent->quantity;
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['unit'] = $purchaseOrderRequestComponent->unit->name;
-                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderRequestComponent->is_approved == true) ? true : false;
+                    $purchaseOrderCount = PurchaseOrderComponent::where('purchase_request_component_id',$purchaseRequestComponentId)->count();
+                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderCount > 0) ? true : false;
                 }
                 $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
@@ -197,7 +200,8 @@ class PurchaseOrderRequestController extends BaseController
                                 'is_client_order' => true,
                                 'purchase_order_request_id' => $purchaseOrderRequestComponent->purchaseOrderRequest->id,
                                 'format_id' => $purchaseOrderFormatID,
-                                'serial_no' => $purchaseOrderCount
+                                'serial_no' => $purchaseOrderCount,
+                                'is_email_sent' => false
                             ];
                             $purchaseOrderData['clients'][$clientId]['component_data'] = array();
                         }
@@ -224,7 +228,8 @@ class PurchaseOrderRequestController extends BaseController
                                 'is_client_order' => false,
                                 'purchase_order_request_id' => $purchaseOrderRequestComponent->purchaseOrderRequest->id,
                                 'format_id' => $purchaseOrderFormatID,
-                                'serial_no' => $purchaseOrderCount
+                                'serial_no' => $purchaseOrderCount,
+                                'is_email_sent' => false
                             ];
                             $purchaseOrderData['vendors'][$vendorId]['component_data'] = array();
                         }
@@ -239,7 +244,6 @@ class PurchaseOrderRequestController extends BaseController
 
                 }else{
                     /*disapprove*/
-
                     PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
                         ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
                 }
@@ -248,13 +252,13 @@ class PurchaseOrderRequestController extends BaseController
                 foreach ($purchaseOrderDatum as $vendorId => $purchaseOrderDataArray){
                     $purchaseOrderRequest = PurchaseOrderRequest::findOrFail($purchaseOrderDataArray['purchase_order_data']['purchase_order_request_id']);
                     $purchaseOrder = PurchaseOrder::create($purchaseOrderDataArray['purchase_order_data']);
-                    if($slug == 'clients'){
+                    /*if($slug == 'clients'){
                         $vendorInfo = Client::findOrFail($purchaseOrder->client_id)->toArray();
                     }else{
                         $vendorInfo = Vendor::findOrFail($purchaseOrder->vendor_id)->toArray();
                     }
                     $vendorInfo['materials'] = array();
-                    $iterator = 0;
+                    $iterator = 0;*/
                     foreach ($purchaseOrderDataArray['component_data'] as $purchaseOrderComponentData){
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
                         $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_component_id']);
@@ -317,7 +321,7 @@ class PurchaseOrderRequestController extends BaseController
                         $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
                         $notificationString .= 'PO number: '.$purchaseOrder->format_id;
                         $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'c-p-o');
-                        $vendorInfo['materials'][$iterator]['item_name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
+                        /*$vendorInfo['materials'][$iterator]['item_name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
                         $vendorInfo['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
                         $vendorInfo['materials'][$iterator]['unit'] = Unit::where('id',$purchaseOrderComponent['unit_id'])->pluck('name')->first();
                         $vendorInfo['materials'][$iterator]['hsn_code'] = $purchaseOrderComponent['hsn_code'];
@@ -370,7 +374,7 @@ class PurchaseOrderRequestController extends BaseController
                         $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_cgst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
                         $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_sgst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
                         $vendorInfo['materials'][$iterator]['transportation_igst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_igst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
-                        $vendorInfo['materials'][$iterator]['transportation_total_amount'] = $vendorInfo['materials'][$iterator]['transportation_amount'] + $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_igst_amount'];
+                        $vendorInfo['materials'][$iterator]['transportation_total_amount'] = $vendorInfo['materials'][$iterator]['transportation_amount'] + $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_igst_amount'];*/
                         if(count($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages) > 0){
                             $purchaseOrderMainDirectoryName = sha1($purchaseOrderComponent['purchase_order_id']);
                             $purchaseOrderComponentDirectoryName = sha1($purchaseOrderComponent['id']);
@@ -401,10 +405,10 @@ class PurchaseOrderRequestController extends BaseController
                                 }
                             }
                         }
-                        $iterator++;
+//                        $iterator++;
                     }
                     /*Send Mail*/
-                    $projectSiteInfo = array();
+                    /*$projectSiteInfo = array();
                     $projectSiteInfo['project_name'] = $purchaseOrderRequest->purchaseRequest->projectSite->project->name;
                     $projectSiteInfo['project_site_name'] = $purchaseOrderRequest->purchaseRequest->projectSite->name;
                     $projectSiteInfo['project_site_address'] = $purchaseOrderRequest->purchaseRequest->projectSite->address;
@@ -427,8 +431,9 @@ class PurchaseOrderRequestController extends BaseController
                         File::makeDirectory(env('WEB_PUBLIC_PATH').$pdfDirectoryPath, $mode = 0777, true, true);
                     }
                     file_put_contents($pdfUploadPath,$pdfContent);
+                    $mailMessage = 'Please check the Purchase Order ('.$purchaseOrder->format_id.') attached herewith';
                     $mailData = ['path' => $pdfUploadPath, 'toMail' => $vendorInfo['email']];
-                    Mail::send('purchase.purchase-request.email.vendor-quotation', [], function($message) use ($mailData){
+                    Mail::send('purchase.purchase-request.email.vendor-quotation', ['mailMessage' => $mailMessage], function($message) use ($mailData){
                         $message->subject('Testing with attachment');
                         $message->to($mailData['toMail']);
                         $message->from(env('MAIL_USERNAME'));
@@ -452,7 +457,7 @@ class PurchaseOrderRequestController extends BaseController
                         ];
                     }
                     PurchaseRequestComponentVendorMailInfo::insert($mailInfoData);
-                    unlink($pdfUploadPath);
+                    unlink($pdfUploadPath);*/
                 }
             }
             $message = "Component status changed successfully";
