@@ -74,7 +74,6 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestList[$iterator]['component_names'] = implode(', ', $componentNamesArray);
                     $purchaseOrderRequestList[$iterator]['user_name'] = $purchaseOrderRequest->user->first_name . ' ' . $purchaseOrderRequest->user->last_name;
                     $purchaseOrderRequestList[$iterator]['date'] = date('l, d F Y', strtotime($purchaseOrderRequest['created_at']));
-//                    $purchaseOrderCount = PurchaseOrder::where('purchase_order_request_id', $purchaseOrderRequest['id'])->count();
                     $purchaseOrderRequestList[$iterator]['purchase_order_done'] = false;
                     $iterator++;
                 }
