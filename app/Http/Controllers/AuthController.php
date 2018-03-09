@@ -151,6 +151,7 @@ class AuthController extends BaseController
                 $submoduleInfo = Module::join('permissions','permissions.module_id','=','modules.id')
                     ->where('permissions.is_mobile', true)
                     ->select('modules.id as sub_module_id','modules.name as sub_module_name','modules.slug as sub_module_tag','permissions.id as permission_id','permissions.name as permission_name','modules.module_id as module_id')
+                    ->orderBy('sub_module_id')
                     ->distinct('permission_id')
                     ->get()
                     ->toArray();
@@ -160,6 +161,7 @@ class AuthController extends BaseController
                     ->where('user_has_permissions.user_id', $user->id)
                     ->where('permissions.is_mobile', true)
                     ->select('modules.id as sub_module_id','modules.name as sub_module_name','modules.slug as sub_module_tag','permissions.id as permission_id','permissions.name as permission_name','modules.module_id as module_id')
+                    ->orderBy('sub_module_id')
                     ->distinct('permission_id')
                     ->get()
                     ->toArray();
