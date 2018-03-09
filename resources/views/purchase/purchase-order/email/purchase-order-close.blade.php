@@ -9,7 +9,7 @@
 <html>
 <body>
 Dear Sir,<br>
-&nbsp &nbsp &nbsp &nbsp &nbsp We have received the following material against the PO {{$purchaseOrder->format_id}} : <br>
+<span style="margin-left: 5%"> We have received the following material against the PO {{$purchaseOrder->format_id}} : </span><br>
 <table id="itemTable" style="font-size: 12px;">
     <tr style="text-align: center">
         <th style="width: 8px">
@@ -49,17 +49,17 @@ Dear Sir,<br>
     @endfor
 </table>
 <br>
-&nbsp &nbsp &nbsp &nbsp &nbsp We hereby close the above mentioned PO.<br>
+<span style="margin-left: 5%"> We hereby close the above mentioned PO.</span><br>
 <br>
-&nbsp &nbsp &nbsp &nbsp &nbsp *This is an auto generated message.<br>
-&nbsp &nbsp &nbsp &nbsp &nbsp *Please revert back at purchase.manishaconstruction@gmail.com for any queries.<br>
-<br>
-Thanking you,
-Purchase Manager,
-Manisha Construction
-Siddhi Towers, Above Rupee Bank,
-5th floor, Opp. Parmar Pavan Bldg,
-Kondhwa, Pune - 411048
-Contact No:- 020 26831325/26
+<span style="margin-left: 5%"> *This is an auto generated message.</span><br>
+<span style="margin-left: 5%"> *Please revert back at purchase.manishaconstruction@gmail.com for any queries.</span><br>
+<br><br>
+<span>Thanking you,</span><br>
+<span>Purchase Manager,</span><br>
+<span>Manisha Construction,</span><br>
+<span>Siddhi Tower, Above Rupee Bank,</span><br>
+<span>5th Floor, Opp. Parmar Pavan Bldg,</span><br>
+<span>Kondhwa, Pune - 411048</span><br>
+<span>Contact No. - 02026831325/26</span><br>
 </body>
 </html>
