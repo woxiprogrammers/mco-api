@@ -302,6 +302,7 @@ class NotificationController extends BaseController{
                             ->where('permissions.name','approve-purchase-order-request')
                             ->where('user_project_site_relation.user_id', $user->id)
                             ->where('purchase_requests.project_site_id', $projectSiteId)
+                            ->whereNull('purchase_order_requests.is_approved')
                             ->count('purchase_order_requests.id');
                     }else{
                         $purchaseOrderRequestCreateCount = PurchaseOrderRequest::join('purchase_requests','purchase_requests.id','=','purchase_order_requests.purchase_request_id')
@@ -312,6 +313,7 @@ class NotificationController extends BaseController{
                             ->where('user_project_site_relation.user_id', $user->id)
                             ->where('purchase_requests.project_site_id', $projectSiteId)
                             ->where('purchase_order_requests.created_at','>=', $lastLogin)
+                            ->whereNull('purchase_order_requests.is_approved')
                             ->count('purchase_order_requests.id');
                     }
                 }

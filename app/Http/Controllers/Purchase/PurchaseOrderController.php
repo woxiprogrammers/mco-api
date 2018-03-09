@@ -36,11 +36,13 @@ use App\PurchasePeticashTransactionImage;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequests;
 use App\User;
+use App\Vendor;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class PurchaseOrderController extends BaseController{
@@ -738,9 +740,20 @@ class PurchaseOrderController extends BaseController{
 
     public function changeStatus(Request $request){
         try{
-            PurchaseOrder::where('id',$request['purchase_order_id'])->update([
+            $purchaseOrder = PurchaseOrder::where('id',$request['purchase_order_id'])->first();
+            $purchaseOrder->update([
                 'purchase_order_status_id' => PurchaseOrderStatus::where('slug',$request['change_status_to_slug'])->pluck('id')->first()
             ]);
+            if($request['change_status_to_slug'] == 'close'){
+                $mail_id = Vendor::where('id',$purchaseOrder['vendor_id'])->pluck('email')->first();
+                $mailData = ['toMail' => $mail_id];
+                $purchaseOrderComponent = $purchaseOrder->purchaseOrderComponent;
+                Mail::send('purchase.purchase-order.email.purchase-order-close', ['purchaseOrder' => $purchaseOrder,'purchaseOrderComponent' => $purchaseOrderComponent], function($message) use ($mailData,$purchaseOrder){
+                    $message->subject('PO '.$purchaseOrder->purchaseRequest->format_id.'has been closed');
+                    $message->to($mailData['toMail']);
+                    $message->from(env('MAIL_USERNAME'));
+                });
+            }
             $message = 'Status changed successfully';
             $status = 200;
         }catch(\Exception $e){
