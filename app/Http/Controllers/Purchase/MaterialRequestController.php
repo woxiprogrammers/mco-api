@@ -14,6 +14,7 @@ use App\MaterialRequests;
 use App\MaterialVersion;
 use App\Module;
 use App\Permission;
+use App\ProductMaterialRelation;
 use App\PurchaseOrderComponent;
 use App\PurchaseRequestComponentStatuses;
 use App\Quotation;
@@ -76,11 +77,12 @@ use PurchaseTrait;
                         $quotationMaterialId = Material::whereIn('id',array_column($quotation->quotation_materials->toArray(),'material_id'))
                             ->where('name','ilike','%'.$request->keyword.'%')->pluck('id');
                         $quotationMaterials = QuotationMaterial::where('quotation_id',$quotation->id)->whereIn('material_id',$quotationMaterialId)->get();
+                        //dd($quotationMaterials);
                         $quotationMaterialSlug = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
                         $materialRequestID = MaterialRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
                         $adminApproveComponentStatusId = PurchaseRequestComponentStatuses::where('slug','admin-approved')->pluck('id')->first();
                         foreach($quotationMaterials as $key => $quotationMaterial){
-                            $usedMaterial = MaterialRequestComponents::whereIn('material_request_id',$materialRequestID)->where('component_type_id',$quotationMaterialSlug->id)->where('component_status_id',$adminApproveComponentStatusId)->where('name',$quotationMaterial->material->name)->orderBy('created_at','asc')->get();
+                            $usedMaterial = MaterialRequestComponents::whereIn('material_request_id',$materialRequestID)->where('component_type_id',$quotationMaterialSlug->id)->where('component_status_id',$adminApproveComponentStatusId)->where('name','ilike',$quotationMaterial->material->name)->orderBy('created_at','asc')->get();
                             $totalQuantityUsed = 0;
                             foreach($usedMaterial as $index => $material){
                                 if($material->unit_id == $quotationMaterial->unit_id){
@@ -97,7 +99,29 @@ use PurchaseTrait;
                                     }
                                 }
                             }
-                            $materialVersions = MaterialVersion::where('material_id',$quotationMaterial['material_id'])->where('unit_id',$quotationMaterial['unit_id'])->pluck('id');
+                            $materialVersions = MaterialVersion::where('material_id',$quotationMaterial['material_id'])->pluck('id');
+                           /* //dd($materialVersions);
+                            $quotationProducts = QuotationProduct::where('quotation_products.quotation_id',$quotation->id)->get();
+                            $material_quantity = 0;
+                            foreach($quotationProducts as $key7 => $quotationProduct){
+                                dd($quotationProduct);
+                                $materialVersionQuantity = ProductMaterialRelation::where('product_version_id',$quotationProduct['$quotationProduct'])->
+                                $material_quantity +=
+dd($quotationProduct);
+                            }*/
+                            $quotation->id = 7;
+                            $quotationProducts = QuotationProduct::where('quotation_id',$quotation->id)->get();
+                            foreach($quotationProducts as $key7 =>  $quotationProduct){
+                                dd($quotationProduct);
+                                $materialQuantity = ProductMaterialRelation::join('material_versions','material_versions.id','=','product_material_relation.material_version_id')
+                                    ->join('units','units.id','=','material_versions.unit_id')
+                                    ->join('materials','materials.id','=','material_versions.material_id')
+                                    ->where('product_material_relation.product_version_id', $quotationProduct['product_version_id'])
+                                    ->where('materials.id',$quotationMaterial['material_id'])
+                                    ->select('material_versions.id as id','materials.id as material_id','materials.name as name','material_versions.unit_id as unit_id','product_material_relation.material_quantity as quantity','units.name as unit','materials.unit_id as material_unit_id')->get();
+                            dd($materialQuantity);
+                            }
+
                             $material_quantity = QuotationProduct::where('quotation_products.quotation_id',$quotation->id)
                                 ->join('product_material_relation','quotation_products.product_version_id','=','product_material_relation.product_version_id')
                                 ->whereIn('product_material_relation.material_version_id',$materialVersions)

@@ -91,7 +91,7 @@ class AuthController extends BaseController
             ];
             Log::critical(json_encode($data));
             $response = [
-                'message' => 'Something went wrong'
+                'message' => $e->getMessage()
             ];
             $status = 500;
         }
