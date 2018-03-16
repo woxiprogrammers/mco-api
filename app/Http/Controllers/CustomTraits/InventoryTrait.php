@@ -377,19 +377,87 @@ trait InventoryTrait{
             $status = 200;
             $message = "Success";
             $inventoryComponentTransfer = InventoryComponentTransfers::where('grn',$request['grn'])->with('inventoryComponent')->first();
-            $data['is_material'] = $inventoryComponentTransfer['inventoryComponent']['is_material'];
+            $data['inventory_component_transfer_id'] = $inventoryComponentTransfer['id'];
             $data['material_name'] = $inventoryComponentTransfer['inventoryComponent']['name'];
             $data['quantity'] = $inventoryComponentTransfer['quantity'];
             $data['unit_id'] = $inventoryComponentTransfer['unit_id'];
             $data['unit_name'] = $inventoryComponentTransfer->unit->name;
             $data['reference_id'] = $inventoryComponentTransfer['inventoryComponent']['reference_id'];
-            $inventoryComponentId = InventoryComponent::where('project_site_id',$request['project_site_id_to'])->where('name',$data['material_name'])->pluck('id')->first();
-            $data['inventory_component_id'] = ($inventoryComponentId != null) ? $inventoryComponentId : 0;
-            $data['project_site_id_from'] = $inventoryComponentTransfer['inventoryComponent']['project_site_id'];
-            $data['project_site_name_from'] = $inventoryComponentTransfer['inventoryComponent']->projectSite->name;
+            $data['rate_per_unit'] = $inventoryComponentTransfer['rate_per_unit'];
+            $data['cgst_percentage'] = $inventoryComponentTransfer['cgst_percentage'];
+            $data['sgst_percentage'] = $inventoryComponentTransfer['sgst_percentage'];
+            $data['igst_percentage'] = $inventoryComponentTransfer['igst_percentage'];
+            $data['cgst_amount'] = $inventoryComponentTransfer['cgst_amount'];
+            $data['sgst_amount'] = $inventoryComponentTransfer['sgst_amount'];
+            $data['igst_amount'] = $inventoryComponentTransfer['igst_amount'];
+            $data['total'] = $inventoryComponentTransfer['total'];
+            $data['vendor_id'] = $inventoryComponentTransfer['vendor_id'];
+            $data['vendor_name'] = $inventoryComponentTransfer->vendor->name;
+            $data['transportation_amount'] = $inventoryComponentTransfer['transportation_amount'] ;
+            $transportation_cgst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_cgst_percent']) / 100;
+            $transportation_sgst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_sgst_percent']) / 100;
+            $transportation_igst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_igst_percent']) / 100;
+            $data['transportation_tax_amount'] = $transportation_cgst_amount + $transportation_sgst_amount + $transportation_igst_amount;
+            $data['driver_name'] = $inventoryComponentTransfer['driver_name'];
+            $data['vehicle_number'] = $inventoryComponentTransfer['vehicle_number'];
+            $data['mobile'] = $inventoryComponentTransfer['mobile'];
+            $data['project_site_id'] = $inventoryComponentTransfer['inventoryComponent']['project_site_id'];
+            $data['project_details'] = $inventoryComponentTransfer['source_name'];
         }catch(\Exception $e){
             $data = [
                 'action' => 'Get GRN Details',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            $status = 500;
+            $response = array();
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+/*    public function generateGRN(Request $request){
+        try{
+            dd($request->all());
+            $status = 200;
+            $message = "Success";
+            $data = array();
+        }catch(\Exception $e){
+            $message = "Something went wrong";
+            $data = [
+                'action' => 'Generate GRN',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            $status = 500;
+            $response = array();
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+        }*/
+
+    public function getSiteOutGRN(Request $request){
+        try{
+            $status = 200;
+            $message = "Success";
+            $grns = InventoryComponentTransfers::join('inventory_components','inventory_components.id','=','inventory_component_transfers.inventory_component_id')
+                        ->where('transfer_type_id',InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->pluck('id')->first())
+                        ->where('inventory_component_transfers.inventory_component_transfer_status_id',InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first())
+                        ->where('inventory_components.project_site_id','!=',$request['project_site_id'])
+                        ->whereNull('related_transfer_id')->select('inventory_component_transfers.id','inventory_component_transfers.grn')->get();
+            $data['grn'] = $grns;
+        }catch(\Exception $e){
+            $message = "Something went wrong";
+            $data = [
+                'action' => 'Generate GRN',
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
