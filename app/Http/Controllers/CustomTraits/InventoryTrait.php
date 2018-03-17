@@ -451,11 +451,12 @@ trait InventoryTrait{
                                                 'quantity' => $request['quantity'],
                                                 'unit_id' => $relatedInventoryComponentTransferData['unit_id'],
                                                 'source_name' => $sourceName,
-                                                'grn' => $grn,
+                                                'bill_number' => $relatedInventoryComponentTransferData['bill_number'],
+                                                'bill_amount' => $relatedInventoryComponentTransferData['bill_amount'],
                                                 'vehicle_number' => $relatedInventoryComponentTransferData['vehicle_number'],
                                                 'in_time' => $currentDate,
-                                                'date' => $currentDate,
                                                 'user_id' => $user['id'],
+                                                'grn' => $grn,
                                                 'inventory_component_transfer_status_id' => InventoryComponentTransferStatus::where('slug','grn-generated')->pluck('id')->first(),
                                                 'rate_per_unit' => $relatedInventoryComponentTransferData['rate_per_unit'],
                                                 'cgst_percentage' => $relatedInventoryComponentTransferData['cgst_percentage'],
@@ -533,7 +534,7 @@ trait InventoryTrait{
         }catch(\Exception $e){
             $message = "Something went wrong";
             $data = [
-                'action' => 'Get site out GRN's,
+                'action' => 'Get site out GRNs',
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
@@ -554,8 +555,10 @@ trait InventoryTrait{
             $status = 200;
             $message = "Success";
             $inventoryComponentTransfer = InventoryComponentTransfers::where('id',$request['inventory_component_transfer_id'])->first();
+            $now = Carbon::now();
             $inventoryComponentTransfer->update([
-                'out_time' => Carbon::now(),
+                'out_time' => $now,
+                'date' => $now,
                 'inventory_component_transfer_status_id' => InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first(),
                 'remark' => $request['remark']
             ]);
@@ -576,6 +579,26 @@ trait InventoryTrait{
                     }
                 }
             }
+            $fromProjectSitesArray = explode('-', $inventoryComponentTransfer->source_name);
+            $projectSiteId = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
+                ->where('project_sites.name','ilike', trim($fromProjectSitesArray[1]))
+                ->where('projects.name','ilike', trim($fromProjectSitesArray[0]))
+                ->pluck('project_sites.id')->first();
+            $fromInventoryComponentId = InventoryComponent::where('project_site_id', $projectSiteId)
+                ->where('name','ilike', $inventoryComponentTransfer->inventoryComponent->name)
+                ->pluck('id')->first();
+            $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->plcuk('id')->first();
+            $lastOutInventoryComponentTransfer = InventoryComponentTransfers::where('inventory_component_id', $fromInventoryComponentId)
+                ->where('transfer_type_id', $siteOutTransferTypeId)
+                ->where('source_name','ilike',$inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $webTokens = [$lastOutInventoryComponentTransfer->user->web_fcm_token];
+            $mobileTokens = [$lastOutInventoryComponentTransfer->user->mobile_fcm_token];
+            $notificationString = 'From '.$inventoryComponentTransfer->source_name.' stock received to ';
+            $notificationString .= $inventoryComponentTransfer->inventoryComponent->projectSite->project->name.' - '.$inventoryComponentTransfer->inventoryComponent->projectSite->name.' ';
+            $notificationString .= $inventoryComponentTransfer->inventoryComponent->name.' - '.$inventoryComponentTransfer->quantity.' and '.$inventoryComponentTransfer->unit->name;
+            $this->sendPushNotification('Manisha Construction', $notificationString,$webTokens,$mobileTokens,'c-m-s-i-t');
 
         }catch(\Exception $e){
             $message = "Something went wrong";
