@@ -21,6 +21,7 @@ $app->post('save-image',array('uses' => 'ImageController@saveImages'));
 $app->group(['prefix' => 'inventory'],function () use($app){
     $app->post('generate-grn', array('uses' => 'Inventory\InventoryManageController@generateGRN'));
     $app->post('get-site-out-GRN', array('uses' => 'Inventory\InventoryManageController@getSiteOutGRN'));
+    $app->post('post-grn-transfer', array('uses' => 'Inventory\InventoryManageController@postGrnInventoryTransfer'));
     $app->post('create-transfer', array('uses' => 'Inventory\InventoryManageController@createInventoryTransfer'));
     $app->post('request-component-listing', array('uses' => 'Inventory\InventoryManageController@getSiteTransferRequestListing'));
     $app->post('component/auto-suggest', array('uses' => 'Inventory\InventoryManageController@autoSuggest'));

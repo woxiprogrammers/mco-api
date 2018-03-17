@@ -500,9 +500,9 @@ trait InventoryTrait{
             }
             $status = 200;
             $message = "Success";
-            $data = array();
+            $data['grn'] = $grn;
+            $data['inventory_component_id'] = $inventoryComponentTransfer['id'];
         }catch(\Exception $e){
-            $grn = '';
             $message = "Something went wrong";
             $data = [
                 'action' => 'Generate GRN',
@@ -514,7 +514,7 @@ trait InventoryTrait{
             Log::critical(json_encode($data));
         }
         $response = [
-            'data' => $grn,
+            'data' => $data,
             'message' => $message
         ];
         return response()->json($response,$status);
@@ -533,7 +533,7 @@ trait InventoryTrait{
         }catch(\Exception $e){
             $message = "Something went wrong";
             $data = [
-                'action' => 'Generate GRN',
+                'action' => 'Get site out GRN's,
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];
@@ -543,6 +543,52 @@ trait InventoryTrait{
         }
         $response = [
             'data' => $data,
+            'message' => $message
+        ];
+        return response()->json($response,$status);
+    }
+
+    public function postGrnInventoryTransfer(Request $request){
+        try{
+            $user = Auth::user();
+            $status = 200;
+            $message = "Success";
+            $inventoryComponentTransfer = InventoryComponentTransfers::where('id',$request['inventory_component_transfer_id'])->first();
+            $inventoryComponentTransfer->update([
+                'out_time' => Carbon::now(),
+                'inventory_component_transfer_status_id' => InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first(),
+                'remark' => $request['remark']
+            ]);
+            if ($request->has('images')) {
+                $sha1UserId = sha1($user['id']);
+                $sha1InventoryTransferId = sha1($inventoryComponentTransfer['id']);
+                $sha1InventoryComponentId = sha1($inventoryComponentTransfer['inventory_component_id']);
+                foreach ($request['images'] as $key1 => $imageName) {
+                    $tempUploadFile = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
+                    if (File::exists($tempUploadFile)) {
+                        $imageUploadNewPath = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_IMAGE_UPLOAD') . $sha1InventoryComponentId . DIRECTORY_SEPARATOR . 'transfers' . DIRECTORY_SEPARATOR . $sha1InventoryTransferId;
+                        if (!file_exists($imageUploadNewPath)) {
+                            File::makeDirectory($imageUploadNewPath, $mode = 0777, true, true);
+                        }
+                        $imageUploadNewPath .= DIRECTORY_SEPARATOR . $imageName;
+                        File::move($tempUploadFile, $imageUploadNewPath);
+                        InventoryComponentTransferImage::create(['name' => $imageName, 'inventory_component_transfer_id' => $inventoryComponentTransfer['id']]);
+                    }
+                }
+            }
+
+        }catch(\Exception $e){
+            $message = "Something went wrong";
+            $data = [
+                'action' => 'Post GRN Inventory component transfer',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            $status = 500;
+            $response = array();
+            Log::critical(json_encode($data));
+        }
+        $response = [
             'message' => $message
         ];
         return response()->json($response,$status);
