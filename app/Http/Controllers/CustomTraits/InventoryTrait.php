@@ -378,6 +378,7 @@ trait InventoryTrait{
             $message = "Success";
             $inventoryComponentTransfer = InventoryComponentTransfers::where('grn',$request['grn'])->with('inventoryComponent')->first();
             $data['related_inventory_component_transfer_id'] = $inventoryComponentTransfer['id'];
+            $data['is_material'] = $inventoryComponentTransfer['inventoryComponent']['is_material'];
             $data['material_name'] = $inventoryComponentTransfer['inventoryComponent']['name'];
             $data['quantity'] = $inventoryComponentTransfer['quantity'];
             $data['unit_id'] = $inventoryComponentTransfer['unit_id'];
