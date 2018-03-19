@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\Http\Controllers\CustomTraits\UnitTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransfers;
@@ -29,6 +30,7 @@ class InventoryManageController extends BaseController
 {
 use InventoryTrait;
 use UnitTrait;
+use NotificationTrait;
     public function __construct()
     {
         $this->middleware('jwt.auth');

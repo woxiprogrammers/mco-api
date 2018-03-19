@@ -13,6 +13,7 @@ use App\ProjectSite;
 use App\Unit;
 use App\UnitConversion;
 use App\User;
+use App\Vendor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -393,9 +394,10 @@ trait InventoryTrait{
             $data['igst_amount'] = $inventoryComponentTransfer['igst_amount'];
             $data['total'] = $inventoryComponentTransfer['total'];
             $data['vendor_id'] = $inventoryComponentTransfer['vendor_id'];
-            $data['vendor_name'] = $inventoryComponentTransfer->vendor->name;
-            $data['company_name'] = $inventoryComponentTransfer->vendor->company;
-            $data['transportation_amount'] = $inventoryComponentTransfer['transportation_amount'] ;
+            $vendor = Vendor::where('id',$inventoryComponentTransfer['vendor_id'])->first();
+            $data['vendor_name'] = $vendor['name'];
+            $data['company_name'] = $vendor['company'];
+            $data['transportation_amount'] = ($inventoryComponentTransfer['transportation_amount'] == null) ? 0 : $inventoryComponentTransfer['transportation_amount'] ;
             $transportation_cgst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_cgst_percent']) / 100;
             $transportation_sgst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_sgst_percent']) / 100;
             $transportation_igst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_igst_percent']) / 100;
@@ -581,7 +583,7 @@ trait InventoryTrait{
                     }
                 }
             }
-            $fromProjectSitesArray = explode('-', $inventoryComponentTransfer->source_name);
+            /*$fromProjectSitesArray = explode('-', $inventoryComponentTransfer->source_name);
             $projectSiteId = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
                 ->where('project_sites.name','ilike', trim($fromProjectSitesArray[1]))
                 ->where('projects.name','ilike', trim($fromProjectSitesArray[0]))
@@ -594,7 +596,8 @@ trait InventoryTrait{
                 ->where('transfer_type_id', $siteOutTransferTypeId)
                 ->where('source_name','ilike',$inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name)
                 ->orderBy('created_at', 'desc')
-                ->first();
+                ->first();*/
+            $lastOutInventoryComponentTransfer = InventoryComponentTransfers::where('id',$inventoryComponentTransfer['related_transfer_id'])->first();
             $webTokens = [$lastOutInventoryComponentTransfer->user->web_fcm_token];
             $mobileTokens = [$lastOutInventoryComponentTransfer->user->mobile_fcm_token];
             $notificationString = 'From '.$inventoryComponentTransfer->source_name.' stock received to ';
