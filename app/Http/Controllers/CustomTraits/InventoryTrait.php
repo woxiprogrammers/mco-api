@@ -193,7 +193,7 @@ trait InventoryTrait{
                 $fromInventoryComponentId = InventoryComponent::where('project_site_id', $projectSiteId)
                                             ->where('name','ilike', $inventoryComponentTransfer->inventoryComponent->name)
                                             ->pluck('id')->first();
-                $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->plcuk('id')->first();
+                $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->pluck('id')->first();
                 $lastOutInventoryComponentTransfer = InventoryComponentTransfers::where('inventory_component_id', $fromInventoryComponentId)
                                                                     ->where('transfer_type_id', $siteOutTransferTypeId)
                                                                     ->where('source_name','ilike',$inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name)
@@ -394,6 +394,7 @@ trait InventoryTrait{
             $data['total'] = $inventoryComponentTransfer['total'];
             $data['vendor_id'] = $inventoryComponentTransfer['vendor_id'];
             $data['vendor_name'] = $inventoryComponentTransfer->vendor->name;
+            $data['company_name'] = $inventoryComponentTransfer->vendor->company;
             $data['transportation_amount'] = $inventoryComponentTransfer['transportation_amount'] ;
             $transportation_cgst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_cgst_percent']) / 100;
             $transportation_sgst_amount = ($inventoryComponentTransfer['transportation_amount'] * $inventoryComponentTransfer['transportation_sgst_percent']) / 100;
@@ -588,7 +589,7 @@ trait InventoryTrait{
             $fromInventoryComponentId = InventoryComponent::where('project_site_id', $projectSiteId)
                 ->where('name','ilike', $inventoryComponentTransfer->inventoryComponent->name)
                 ->pluck('id')->first();
-            $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->plcuk('id')->first();
+            $siteOutTransferTypeId = InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->pluck('id')->first();
             $lastOutInventoryComponentTransfer = InventoryComponentTransfers::where('inventory_component_id', $fromInventoryComponentId)
                 ->where('transfer_type_id', $siteOutTransferTypeId)
                 ->where('source_name','ilike',$inventoryComponentTransfer->inventoryComponent->projectSite->project->name.'-'.$inventoryComponentTransfer->inventoryComponent->projectSite->name)
