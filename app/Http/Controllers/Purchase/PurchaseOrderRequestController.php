@@ -171,7 +171,6 @@ class PurchaseOrderRequestController extends BaseController
                 'clients' => array()
             ];
             $user = Auth::user();
-            $assetComponentTypeIds = MaterialRequestComponentTypes::whereIn('slug',['new-material','system-asset'])->pluck('id')->toArray();
             $purchaseOrderCount = PurchaseOrder::whereDate('created_at', Carbon::now())->count();
             $projectSiteId = PurchaseRequests::join('purchase_order_requests','purchase_requests.id','=','purchase_order_requests.purchase_request_id')
                                 ->join('purchase_order_request_components','purchase_order_request_components.purchase_order_request_id','=','purchase_order_requests.id')
@@ -180,6 +179,8 @@ class PurchaseOrderRequestController extends BaseController
                                 ->first();
             $newAssetTypeId = MaterialRequestComponentTypes::where('slug','new-asset')->pluck('id')->first();
             $newMaterialTypeId = MaterialRequestComponentTypes::where('slug','new-material')->pluck('id')->first();
+            $disapprovedVendorId = [];
+            $purchaseRequestFormatId = null;
             foreach ($request['purchase_order_request_components'] as $key => $purchase_order_request_component) {
                 if ($purchase_order_request_component['is_approved'] == true) {
                     /*Approve and create purchase order*/
@@ -246,19 +247,22 @@ class PurchaseOrderRequestController extends BaseController
                     /*disapprove*/
                     PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
                         ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
+                    $purchaseOrderRequestComponentVendorId = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                                                                ->where('purchase_order_request_components.id', $purchase_order_request_component['id'])
+                                                                ->where('purchase_request_component_vendor_relation.is_client', false)
+                                                                ->pluck('purchase_request_component_vendor_relation.vendor_id')
+                                                                ->first();
+                    if(!in_array($purchaseOrderRequestComponentVendorId, $disapprovedVendorId) && ($purchaseOrderRequestComponentVendorId != null)){
+                        $disapprovedVendorId[] = $purchaseOrderRequestComponentVendorId;
+                    }
                 }
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
                 foreach ($purchaseOrderDatum as $vendorId => $purchaseOrderDataArray){
-                    $purchaseOrderRequest = PurchaseOrderRequest::findOrFail($purchaseOrderDataArray['purchase_order_data']['purchase_order_request_id']);
                     $purchaseOrder = PurchaseOrder::create($purchaseOrderDataArray['purchase_order_data']);
-                    /*if($slug == 'clients'){
-                        $vendorInfo = Client::findOrFail($purchaseOrder->client_id)->toArray();
-                    }else{
-                        $vendorInfo = Vendor::findOrFail($purchaseOrder->vendor_id)->toArray();
+                    if(!isset($purchaseRequestFormatId)){
+                        $purchaseRequestFormatId = $purchaseOrder->purchaseRequest->format_id;
                     }
-                    $vendorInfo['materials'] = array();
-                    $iterator = 0;*/
                     foreach ($purchaseOrderDataArray['component_data'] as $purchaseOrderComponentData){
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
                         $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_component_id']);
@@ -321,60 +325,6 @@ class PurchaseOrderRequestController extends BaseController
                         $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
                         $notificationString .= 'PO number: '.$purchaseOrder->format_id;
                         $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'c-p-o');
-                        /*$vendorInfo['materials'][$iterator]['item_name'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
-                        $vendorInfo['materials'][$iterator]['quantity'] = $purchaseOrderComponent['quantity'];
-                        $vendorInfo['materials'][$iterator]['unit'] = Unit::where('id',$purchaseOrderComponent['unit_id'])->pluck('name')->first();
-                        $vendorInfo['materials'][$iterator]['hsn_code'] = $purchaseOrderComponent['hsn_code'];
-                        $vendorInfo['materials'][$iterator]['rate'] = $purchaseOrderComponent['rate_per_unit'];
-                        $vendorInfo['materials'][$iterator]['subtotal'] = MaterialProductHelper::customRound(($purchaseOrderComponent['quantity'] * $purchaseOrderComponent['rate_per_unit']));
-                        if($purchaseOrderComponent['cgst_percentage'] == null || $purchaseOrderComponent['cgst_percentage'] == ''){
-                            $vendorInfo['materials'][$iterator]['cgst_percentage'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['cgst_percentage'] = $purchaseOrderComponent['cgst_percentage'];
-                        }
-                        $vendorInfo['materials'][$iterator]['cgst_amount'] = $vendorInfo['materials'][$iterator]['subtotal'] * ($vendorInfo['materials'][$iterator]['cgst_percentage']/100);
-                        if($purchaseOrderComponent['sgst_percentage'] == null || $purchaseOrderComponent['sgst_percentage'] == ''){
-                            $vendorInfo['materials'][$iterator]['sgst_percentage'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['sgst_percentage'] = $purchaseOrderComponent['sgst_percentage'];
-                        }
-                        $vendorInfo['materials'][$iterator]['sgst_amount'] = $vendorInfo['materials'][$iterator]['subtotal'] * ($vendorInfo['materials'][$iterator]['sgst_percentage']/100);
-                        if($purchaseOrderComponent['igst_percentage'] == null || $purchaseOrderComponent['igst_percentage'] == ''){
-                            $vendorInfo['materials'][$iterator]['igst_percentage'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['igst_percentage'] = $purchaseOrderComponent['igst_percentage'];
-                        }
-                        $vendorInfo['materials'][$iterator]['igst_amount'] = $vendorInfo['materials'][$iterator]['subtotal'] * ($vendorInfo['materials'][$iterator]['igst_percentage']/100);
-                        $vendorInfo['materials'][$iterator]['total'] = $vendorInfo['materials'][$iterator]['subtotal'] + $vendorInfo['materials'][$iterator]['cgst_amount'] + $vendorInfo['materials'][$iterator]['sgst_amount'] + $vendorInfo['materials'][$iterator]['igst_amount'];
-                        if($purchaseOrderComponent['expected_delivery_date'] == null || $purchaseOrderComponent['expected_delivery_date'] == ''){
-                            $vendorInfo['materials'][$iterator]['due_date'] = '';
-                        }else{
-                            $vendorInfo['materials'][$iterator]['due_date'] = 'Due on '.date('j/n/Y',strtotime($purchaseOrderComponent['expected_delivery_date']));
-                        }
-                        if($purchaseOrderRequestComponent['transportation_amount'] == null || $purchaseOrderRequestComponent['transportation_amount'] == ''){
-                            $vendorInfo['materials'][$iterator]['transportation_amount'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['transportation_amount'] = $purchaseOrderRequestComponent['transportation_amount'];
-                        }
-                        if($purchaseOrderRequestComponent['transportation_cgst_percentage'] == null || $purchaseOrderRequestComponent['transportation_cgst_percentage'] == ''){
-                            $vendorInfo['materials'][$iterator]['transportation_cgst_percentage'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['transportation_cgst_percentage'] = $purchaseOrderRequestComponent['transportation_cgst_percentage'];
-                        }
-                        if($purchaseOrderRequestComponent['transportation_sgst_percentage'] == null || $purchaseOrderRequestComponent['transportation_sgst_percentage'] == ''){
-                            $vendorInfo['materials'][$iterator]['transportation_sgst_percentage'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['transportation_sgst_percentage'] = $purchaseOrderRequestComponent['transportation_sgst_percentage'];
-                        }
-                        if($purchaseOrderRequestComponent['transportation_igst_percentage'] == null || $purchaseOrderRequestComponent['transportation_igst_percentage'] == ''){
-                            $vendorInfo['materials'][$iterator]['transportation_igst_percentage'] = 0;
-                        }else{
-                            $vendorInfo['materials'][$iterator]['transportation_igst_percentage'] = $purchaseOrderRequestComponent['transportation_igst_percentage'];
-                        }
-                        $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_cgst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
-                        $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_sgst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
-                        $vendorInfo['materials'][$iterator]['transportation_igst_amount'] = ($vendorInfo['materials'][$iterator]['transportation_igst_percentage'] * $vendorInfo['materials'][$iterator]['transportation_amount']) / 100 ;
-                        $vendorInfo['materials'][$iterator]['transportation_total_amount'] = $vendorInfo['materials'][$iterator]['transportation_amount'] + $vendorInfo['materials'][$iterator]['transportation_cgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_sgst_amount'] + $vendorInfo['materials'][$iterator]['transportation_igst_amount'];*/
                         if(count($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages) > 0){
                             $purchaseOrderMainDirectoryName = sha1($purchaseOrderComponent['purchase_order_id']);
                             $purchaseOrderComponentDirectoryName = sha1($purchaseOrderComponent['id']);
@@ -405,59 +355,25 @@ class PurchaseOrderRequestController extends BaseController
                                 }
                             }
                         }
-//                        $iterator++;
                     }
-                    /*Send Mail*/
-                    /*$projectSiteInfo = array();
-                    $projectSiteInfo['project_name'] = $purchaseOrderRequest->purchaseRequest->projectSite->project->name;
-                    $projectSiteInfo['project_site_name'] = $purchaseOrderRequest->purchaseRequest->projectSite->name;
-                    $projectSiteInfo['project_site_address'] = $purchaseOrderRequest->purchaseRequest->projectSite->address;
-                    if($purchaseOrderRequest->purchaseRequest->projectSite->city_id == null){
-                        $projectSiteInfo['project_site_city'] = '';
-                    }else{
-                        $projectSiteInfo['project_site_city'] = $purchaseOrderRequest->purchaseRequest->projectSite->city->name;
-                    }
-                    $pdf = App::make('dompdf.wrapper');
-                    $pdfFlag = "purchase-order-listing-download";
-                    $pdf->loadHTML(view('purchase.purchase-request.pdf.vendor-quotation')->with(compact('vendorInfo','projectSiteInfo','pdfFlag')));
-                    $pdfDirectoryPath = env('PURCHASE_VENDOR_ASSIGNMENT_PDF_FOLDER');
-                    $pdfFileName = sha1($vendorId).'.pdf';
-                    $pdfUploadPath = env('WEB_PUBLIC_PATH').$pdfDirectoryPath.'/'.$pdfFileName;
-                    $pdfContent = $pdf->stream();
-                    if(file_exists($pdfUploadPath)){
-                        unlink($pdfUploadPath);
-                    }
-                    if (!file_exists($pdfDirectoryPath)) {
-                        File::makeDirectory(env('WEB_PUBLIC_PATH').$pdfDirectoryPath, $mode = 0777, true, true);
-                    }
-                    file_put_contents($pdfUploadPath,$pdfContent);
-                    $mailMessage = 'Please check the Purchase Order ('.$purchaseOrder->format_id.') attached herewith';
-                    $mailData = ['path' => $pdfUploadPath, 'toMail' => $vendorInfo['email']];
-                    Mail::send('purchase.purchase-request.email.vendor-quotation', ['mailMessage' => $mailMessage], function($message) use ($mailData){
-                        $message->subject('Testing with attachment');
-                        $message->to($mailData['toMail']);
+                }
+            }
+            if(count($disapprovedVendorId) > 0){
+                $disapprovedVendorId = array_unique($disapprovedVendorId);
+                foreach($disapprovedVendorId as $vendorId){
+                    $mailInfoData = [
+                        'user_id' => Auth::user()->id,
+                        'type_slug' => 'disapprove-purchase-order',
+                        'vendor_id' => $vendorId,
+                        'is_client' => false
+                    ];
+                    $vendorEmail = Vendor::where('id', $vendorId)->pluck('email')->first();
+                    Mail::send('purchase.purchase-order.email.purchase-order-disapprove', ['purchaseRequestFormatId' => $purchaseRequestFormatId], function($message) use ($vendorEmail, $purchaseRequestFormatId){
+                        $message->subject('Disapproval of Quotation ('.$purchaseRequestFormatId.')');
+                        $message->to($vendorEmail);
                         $message->from(env('MAIL_USERNAME'));
-                        $message->attach($mailData['path']);
                     });
-                    if($purchaseOrder->is_client_order == true){
-                        $mailInfoData = [
-                            'user_id' => Auth::user()->id,
-                            'type_slug' => 'for-purchase-order',
-                            'client_id' => $purchaseOrder->client_id,
-                            'created_at' => Carbon::now(),
-                            'updated_at' => Carbon::now()
-                        ];
-                    }else{
-                        $mailInfoData = [
-                            'user_id' => Auth::user()->id,
-                            'type_slug' => 'for-purchase-order',
-                            'vendor_id' => $purchaseOrder->vendor_id,
-                            'created_at' => Carbon::now(),
-                            'updated_at' => Carbon::now()
-                        ];
-                    }
-                    PurchaseRequestComponentVendorMailInfo::insert($mailInfoData);
-                    unlink($pdfUploadPath);*/
+                    PurchaseRequestComponentVendorMailInfo::create($mailInfoData);
                 }
             }
             $message = "Component status changed successfully";
