@@ -14,6 +14,8 @@ use App\PeticashSiteApprovedAmount;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
+use App\Project;
+use App\ProjectSite;
 use App\PurchasePeticashTransaction;
 use App\User;
 use Carbon\Carbon;
@@ -94,14 +96,14 @@ class SalaryController extends BaseController{
     public function createSalary(Request $request){
         try{
             $user = Auth::user();
-
             $salaryData = $request->except('token','images','type');
             $salaryData['reference_user_id'] = $user['id'];
             $salaryData['peticash_transaction_type_id'] = PeticashTransactionType::where('slug','ilike',$request['type'])->pluck('id')->first();
             $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $salaryData['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $salaryData['created_at'] = $salaryData['updated_at'] = Carbon::now();
-            $salaryTransactionId = PeticashSalaryTransaction::insertGetId($salaryData);
+            $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
+            $salaryTransactionId = $salaryTransaction['id'];
             $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
             $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
             $peticashSiteApprovedAmount->update(['salary_amount_approved' => $updatedPeticashSiteApprovedAmount]);
@@ -116,6 +118,24 @@ class SalaryController extends BaseController{
                     break;
                 }
             }
+            $officeSiteId = ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first();
+            if($request['project_site_id'] == $officeSiteId){
+                $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)
+                    ->where('project_site_id','!=',$officeSiteId)->get();
+                if($request['type'] == 'advance'){
+                    $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
+                }else{
+                    $distributedSiteWiseAmount = ($salaryTransaction['payable_amount'] + $salaryTransaction['pf'] + $salaryTransaction['pt'] + $salaryTransaction['tds'] + $salaryTransaction['esic']) / count($activeProjectSites) ;
+                }
+                foreach ($activeProjectSites as $key => $projectSite){
+                    $distributedSalaryAmount = $projectSite['distributed_salary_amount'] + $distributedSiteWiseAmount;
+                    $projectSite->update([
+                        'distributed_salary_amount' => $distributedSalaryAmount
+                    ]);
+                }
+            }
+
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
