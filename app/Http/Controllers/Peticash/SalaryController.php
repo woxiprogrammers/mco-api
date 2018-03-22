@@ -110,7 +110,6 @@ class SalaryController extends BaseController{
     public function createSalary(Request $request){
         try{
             $user = Auth::user();
-
             $salaryData = $request->except('token','images','type');
             $salaryData['reference_user_id'] = $user['id'];
             $salaryData['peticash_transaction_type_id'] = PeticashTransactionType::where('slug','ilike',$request['type'])->pluck('id')->first();
@@ -133,23 +132,17 @@ class SalaryController extends BaseController{
                     break;
                 }
             }
-            if($request['project_site_id'] == ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first()){
+            $officeSiteId = ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first();
+            if($request['project_site_id'] == $officeSiteId){
                 $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
-                    ->where('projects.is_active',true)->get();
-                Log::info('active site count');
-                Log::info(count($activeProjectSites));
+                    ->where('projects.is_active',true)
+                    ->where('project_site_id','!=',$officeSiteId)->get();
                 if($request['type'] == 'advance'){
                     $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
-                    Log::info('inside amount');
-                    Log::info($distributedSiteWiseAmount);
                 }else{
                     $distributedSiteWiseAmount = ($salaryTransaction['payable_amount'] + $salaryTransaction['pf'] + $salaryTransaction['pt'] + $salaryTransaction['tds'] + $salaryTransaction['esic']) / count($activeProjectSites) ;
-                    Log::info('inside salary');
-                    Log::info($distributedSiteWiseAmount);
                 }
                 foreach ($activeProjectSites as $key => $projectSite){
-                    Log::info('ds value');
-                    Log::info($projectSite['distributed_salary_amount']);
                     $distributedSalaryAmount = $projectSite['distributed_salary_amount'] + $distributedSiteWiseAmount;
                     $projectSite->update([
                         'distributed_salary_amount' => $distributedSalaryAmount
