@@ -14,6 +14,8 @@ use App\PeticashSiteApprovedAmount;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
+use App\Project;
+use App\ProjectSite;
 use App\PurchasePeticashTransaction;
 use App\User;
 use Carbon\Carbon;
@@ -62,12 +64,26 @@ class SalaryController extends BaseController{
                 $salaryTransactions = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('id','amount','payable_amount','peticash_transaction_type_id','pf','pt','esic','tds','created_at')->get();
                 $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
                 $advanceSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount');
+                Log::info('$advanceSalaryTotal');
+                Log::info($advanceSalaryTotal);
                 $actualSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount');
+                Log::info('$actualSalaryTotal');
+                Log::info($actualSalaryTotal);
                 $payableSalaryTotal = $salaryTransactions->sum('payable_amount');
+                Log::info('$payableSalaryTotal');
+                Log::info($payableSalaryTotal);
                 $pfTotal = $salaryTransactions->sum('pf');
+                Log::info('$pfTotal');
+                Log::info($pfTotal);
                 $ptTotal = $salaryTransactions->sum('pt');
+                Log::info('$ptTotal');
+                Log::info($ptTotal);
                 $esicTotal = $salaryTransactions->sum('esic');
+                Log::info('$esicTotal');
+                Log::info($esicTotal);
                 $tdsTotal = $salaryTransactions->sum('tds');
+                Log::info('$tdsTotal');
+                Log::info($tdsTotal);
                 $data[$iterator]['balance'] = $actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal-$pfTotal-$ptTotal-$esicTotal-$tdsTotal ;
                 $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
                 $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
@@ -101,7 +117,8 @@ class SalaryController extends BaseController{
             $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $salaryData['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $salaryData['created_at'] = $salaryData['updated_at'] = Carbon::now();
-            $salaryTransactionId = PeticashSalaryTransaction::insertGetId($salaryData);
+            $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
+            $salaryTransactionId = $salaryTransaction['id'];
             $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
             $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
             $peticashSiteApprovedAmount->update(['salary_amount_approved' => $updatedPeticashSiteApprovedAmount]);
@@ -115,6 +132,27 @@ class SalaryController extends BaseController{
                     $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
                     break;
                 }
+            }
+            $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
+                ->where('projects.is_active',true)->get();
+            Log::info('active site count');
+            Log::info(count($activeProjectSites));
+            if($request['type'] == 'advance'){
+                $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
+                Log::info('inside amount');
+                Log::info($distributedSiteWiseAmount);
+            }else{
+                $distributedSiteWiseAmount = ($salaryTransaction['payable_amount'] + $salaryTransaction['pf'] + $salaryTransaction['pt'] + $salaryTransaction['tds'] + $salaryTransaction['esic']) / count($activeProjectSites) ;
+                Log::info('inside salary');
+                Log::info($distributedSiteWiseAmount);
+            }
+            foreach ($activeProjectSites as $key => $projectSite){
+                Log::info('ds value');
+                Log::info($projectSite['distributed_salary_amount']);
+                $distributedSalaryAmount = $projectSite['distributed_salary_amount'] + $distributedSiteWiseAmount;
+                $projectSite->update([
+                    'distributed_salary_amount' => $distributedSalaryAmount
+                ]);
             }
             if(array_has($request,'images')){
                 $user = Auth::user();
