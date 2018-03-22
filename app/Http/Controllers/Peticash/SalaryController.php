@@ -133,27 +133,30 @@ class SalaryController extends BaseController{
                     break;
                 }
             }
-            $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
-                ->where('projects.is_active',true)->get();
-            Log::info('active site count');
-            Log::info(count($activeProjectSites));
-            if($request['type'] == 'advance'){
-                $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
-                Log::info('inside amount');
-                Log::info($distributedSiteWiseAmount);
-            }else{
-                $distributedSiteWiseAmount = ($salaryTransaction['payable_amount'] + $salaryTransaction['pf'] + $salaryTransaction['pt'] + $salaryTransaction['tds'] + $salaryTransaction['esic']) / count($activeProjectSites) ;
-                Log::info('inside salary');
-                Log::info($distributedSiteWiseAmount);
+            if($request['project_site_id'] == ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first()){
+                $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)->get();
+                Log::info('active site count');
+                Log::info(count($activeProjectSites));
+                if($request['type'] == 'advance'){
+                    $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
+                    Log::info('inside amount');
+                    Log::info($distributedSiteWiseAmount);
+                }else{
+                    $distributedSiteWiseAmount = ($salaryTransaction['payable_amount'] + $salaryTransaction['pf'] + $salaryTransaction['pt'] + $salaryTransaction['tds'] + $salaryTransaction['esic']) / count($activeProjectSites) ;
+                    Log::info('inside salary');
+                    Log::info($distributedSiteWiseAmount);
+                }
+                foreach ($activeProjectSites as $key => $projectSite){
+                    Log::info('ds value');
+                    Log::info($projectSite['distributed_salary_amount']);
+                    $distributedSalaryAmount = $projectSite['distributed_salary_amount'] + $distributedSiteWiseAmount;
+                    $projectSite->update([
+                        'distributed_salary_amount' => $distributedSalaryAmount
+                    ]);
+                }
             }
-            foreach ($activeProjectSites as $key => $projectSite){
-                Log::info('ds value');
-                Log::info($projectSite['distributed_salary_amount']);
-                $distributedSalaryAmount = $projectSite['distributed_salary_amount'] + $distributedSiteWiseAmount;
-                $projectSite->update([
-                    'distributed_salary_amount' => $distributedSalaryAmount
-                ]);
-            }
+
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
