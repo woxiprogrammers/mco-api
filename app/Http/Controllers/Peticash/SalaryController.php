@@ -111,7 +111,7 @@ class SalaryController extends BaseController{
             if($request['project_site_id'] == $officeSiteId){
                 $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
                     ->where('projects.is_active',true)
-                    ->where('project_sites.project_site_id','!=',$officeSiteId)->get();
+                    ->where('project_sites.id','!=',$officeSiteId)->get();
                 if($request['type'] == 'advance'){
                     $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
                 }else{
