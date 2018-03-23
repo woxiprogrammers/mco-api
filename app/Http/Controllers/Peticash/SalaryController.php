@@ -107,17 +107,6 @@ class SalaryController extends BaseController{
             $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
             $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
             $peticashSiteApprovedAmount->update(['salary_amount_approved' => $updatedPeticashSiteApprovedAmount]);
-            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
-            $remainingSalary = $request['amount'];
-            foreach ($sitePeticashTransfers as $peticashTransfer){
-                if($peticashTransfer->amount < $remainingSalary){
-                    $remainingSalary = $remainingSalary - $peticashTransfer->amount;
-                    $peticashTransfer->update(['amount' => 0]);
-                }elseif($peticashTransfer->amount >= $remainingSalary){
-                    $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
-                    break;
-                }
-            }
             $officeSiteId = ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first();
             if($request['project_site_id'] == $officeSiteId){
                 $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
@@ -538,7 +527,6 @@ class SalaryController extends BaseController{
 
     public function deletePaymentVoucherPdf(Request $request){
         try{
-           // dd($request['pdf_path']);
             $ds = DIRECTORY_SEPARATOR;
             $webUploadPath = env('WEB_PUBLIC_PATH');
             $file_to_be_deleted = $webUploadPath.$ds.$request['pdf_path'];

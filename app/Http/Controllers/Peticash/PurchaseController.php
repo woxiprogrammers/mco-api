@@ -15,6 +15,7 @@ use App\PaymentType;
 use App\PeticashSiteTransfer;
 use App\PeticashStatus;
 use App\PeticashTransactionType;
+use App\ProjectSite;
 use App\PurchasePeticashTransaction;
 use App\PurchasePeticashTransactionImage;
 use App\Quotation;
@@ -105,6 +106,23 @@ use NotificationTrait;
                 }
             }
 
+            //Office Site distribution
+
+            $officeSiteId = ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first();
+            if($request['project_site_id'] == $officeSiteId){
+                $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
+                    ->where('projects.is_active',true)
+                    ->where('project_sites.id','!=',$officeSiteId)->get();
+                $distributedSiteWiseAmount =  $purchaseTransactionData['bill_amount'] / count($activeProjectSites);
+                foreach ($activeProjectSites as $key => $projectSite){
+                    $distributedPurchaseAmount = $projectSite['distributed_purchase_peticash_amount'] + $distributedSiteWiseAmount;
+                    $projectSite->update([
+                        'distributed_purchase_peticash_amount' => $distributedPurchaseAmount
+                    ]);
+                }
+            }
+
+            // Inventory Insertion
             $alreadyPresent = InventoryComponent::where('name','ilike',$purchaseTransactionData['name'])->where('project_site_id',$purchaseTransactionData['project_site_id'])->first();
             if($alreadyPresent != null){
                 $inventoryComponentId = $alreadyPresent['id'];
@@ -306,17 +324,6 @@ use NotificationTrait;
             }
             $transactionData['out_time'] = $now;
             $purchasePeticashTransaction->update($transactionData);
-            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$purchasePeticashTransaction['project_site_id'])->where('amount','>',0)->get();
-            $remainingSalary = $purchasePeticashTransaction['bill_amount'];
-            foreach ($sitePeticashTransfers as $peticashTransfer){
-                if($peticashTransfer->amount < $remainingSalary){
-                    $remainingSalary = $remainingSalary - $peticashTransfer->amount;
-                    $peticashTransfer->update(['amount' => 0]);
-                }elseif($peticashTransfer->amount >= $remainingSalary){
-                    $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
-                    break;
-                }
-            }
             if(array_has($request,'images')){
                 $user = Auth::user();
                 $sha1UserId = sha1($user['id']);
