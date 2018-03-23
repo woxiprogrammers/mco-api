@@ -107,7 +107,7 @@ class SalaryController extends BaseController{
             $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
             $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
             $peticashSiteApprovedAmount->update(['salary_amount_approved' => $updatedPeticashSiteApprovedAmount]);
-            $sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
+            /*$sitePeticashTransfers = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->where('amount','>',0)->get();
             $remainingSalary = $request['amount'];
             foreach ($sitePeticashTransfers as $peticashTransfer){
                 if($peticashTransfer->amount < $remainingSalary){
@@ -117,12 +117,12 @@ class SalaryController extends BaseController{
                     $peticashTransfer->update(['amount' => ($peticashTransfer->amount - $remainingSalary)]);
                     break;
                 }
-            }
+            }*/
             $officeSiteId = ProjectSite::where('name',env('OFFICE_PROJECT_SITE_NAME'))->pluck('id')->first();
             if($request['project_site_id'] == $officeSiteId){
                 $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
                     ->where('projects.is_active',true)
-                    ->where('project_site_id','!=',$officeSiteId)->get();
+                    ->where('project_sites.project_site_id','!=',$officeSiteId)->get();
                 if($request['type'] == 'advance'){
                     $distributedSiteWiseAmount =  $salaryTransaction['amount'] / count($activeProjectSites);
                 }else{
