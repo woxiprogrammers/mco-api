@@ -112,10 +112,10 @@ use NotificationTrait;
             if($request['project_site_id'] == $officeSiteId){
                 $activeProjectSites = ProjectSite::join('projects','projects.id','=','project_sites.project_id')
                     ->where('projects.is_active',true)
-                    ->where('project_sites.project_site_id','!=',$officeSiteId)->get();
+                    ->where('project_sites.id','!=',$officeSiteId)->get();
                 $distributedSiteWiseAmount =  $purchaseTransactionData['bill_amount'] / count($activeProjectSites);
                 foreach ($activeProjectSites as $key => $projectSite){
-                    $distributedPurchaseAmount = $projectSite['distributed_salary_amount'] + $distributedSiteWiseAmount;
+                    $distributedPurchaseAmount = $projectSite['distributed_purchase_peticash_amount'] + $distributedSiteWiseAmount;
                     $projectSite->update([
                         'distributed_purchase_peticash_amount' => $distributedPurchaseAmount
                     ]);
