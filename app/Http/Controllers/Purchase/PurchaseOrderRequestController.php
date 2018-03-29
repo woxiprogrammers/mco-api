@@ -179,7 +179,6 @@ class PurchaseOrderRequestController extends BaseController
                                 ->first();
             $newAssetTypeId = MaterialRequestComponentTypes::where('slug','new-asset')->pluck('id')->first();
             $newMaterialTypeId = MaterialRequestComponentTypes::where('slug','new-material')->pluck('id')->first();
-            $disapprovedVendorId = [];
             $purchaseRequestFormatId = null;
             foreach ($request['purchase_order_request_components'] as $key => $purchase_order_request_component) {
                 if ($purchase_order_request_component['is_approved'] == true) {
@@ -247,14 +246,6 @@ class PurchaseOrderRequestController extends BaseController
                     /*disapprove*/
                     PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
                         ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
-                    $purchaseOrderRequestComponentVendorId = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
-                                                                ->where('purchase_order_request_components.id', $purchase_order_request_component['id'])
-                                                                ->where('purchase_request_component_vendor_relation.is_client', false)
-                                                                ->pluck('purchase_request_component_vendor_relation.vendor_id')
-                                                                ->first();
-                    if(!in_array($purchaseOrderRequestComponentVendorId, $disapprovedVendorId) && ($purchaseOrderRequestComponentVendorId != null)){
-                        $disapprovedVendorId[] = $purchaseOrderRequestComponentVendorId;
-                    }
                 }
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
@@ -356,24 +347,6 @@ class PurchaseOrderRequestController extends BaseController
                             }
                         }
                     }
-                }
-            }
-            if(count($disapprovedVendorId) > 0){
-                $disapprovedVendorId = array_unique($disapprovedVendorId);
-                foreach($disapprovedVendorId as $vendorId){
-                    $mailInfoData = [
-                        'user_id' => Auth::user()->id,
-                        'type_slug' => 'disapprove-purchase-order',
-                        'vendor_id' => $vendorId,
-                        'is_client' => false
-                    ];
-                    $vendorEmail = Vendor::where('id', $vendorId)->pluck('email')->first();
-                    Mail::send('purchase.purchase-order.email.purchase-order-disapprove', ['purchaseRequestFormatId' => $purchaseRequestFormatId], function($message) use ($vendorEmail, $purchaseRequestFormatId){
-                        $message->subject('Disapproval of Quotation ('.$purchaseRequestFormatId.')');
-                        $message->to($vendorEmail);
-                        $message->from(env('MAIL_USERNAME'));
-                    });
-                    PurchaseRequestComponentVendorMailInfo::create($mailInfoData);
                 }
             }
             $message = "Component status changed successfully";
