@@ -119,11 +119,18 @@ class PurchaseOrderRequestController extends BaseController
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->igst_percentage / 100));
+                if($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor != null){
+                    $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company;
+                    $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id;
+                }else{
+                    $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client->company;
+                    $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client_id;
+                }
                 $purchaseOrderRequestComponents[$purchaseRequestComponentId]['vendor_relations'][] = [
                     'purchase_order_request_component_id' => $purchaseOrderRequestComponent->id,
                     'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
-                    'vendor_name' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company,
-                    'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
+                    'vendor_name' => $vendorName,
+                    'vendor_id' => $vendorId,
                     'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
                     'rate_with_tax' => (string)$rateWithTax,
                     'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity']),
@@ -210,6 +217,9 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                            $purchaseOrderComponentData['rate_per_unit'] = 0;
+                        }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['clients'][$clientId]['component_data'][] = $purchaseOrderComponentData;
                     }else{
@@ -238,6 +248,9 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                            $purchaseOrderComponentData['rate_per_unit'] = 0;
+                        }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['vendors'][$vendorId]['component_data'][] = $purchaseOrderComponentData;
                     }
