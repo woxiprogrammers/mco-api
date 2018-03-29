@@ -106,6 +106,7 @@ class PurchaseOrderRequestController extends BaseController
             $purchaseOrderRequestComponentData = PurchaseOrderRequestComponent::where('purchase_order_request_id', $request['purchase_order_request_id'])->get();
             foreach ($purchaseOrderRequestComponentData as $purchaseOrderRequestComponent) {
                 $purchaseRequestComponentId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
+                Log::info($purchaseRequestComponentId);
                 if(!array_key_exists($purchaseRequestComponentId,$purchaseOrderRequestComponents)){
                     $materialRequestComponent = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchaseRequestComponent->materialRequestComponent;
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['material_request_component_id'] = $materialRequestComponent['id'];
@@ -115,15 +116,24 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderCount = PurchaseOrderComponent::where('purchase_request_component_id',$purchaseRequestComponentId)->count();
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderCount > 0) ? true : false;
                 }
+                Log::info('after if');
+                Log::info($purchaseOrderRequestComponent);
                 $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->igst_percentage / 100));
+                if($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor != null){
+                    $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company;
+                    $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id;
+                }else{
+                    $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client->company;
+                    $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client_id;
+                }
                 $purchaseOrderRequestComponents[$purchaseRequestComponentId]['vendor_relations'][] = [
                     'purchase_order_request_component_id' => $purchaseOrderRequestComponent->id,
                     'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
-                    'vendor_name' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company,
-                    'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
+                    'vendor_name' => $vendorName,
+                    'vendor_id' => $vendorId,
                     'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
                     'rate_with_tax' => (string)$rateWithTax,
                     'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity']),
@@ -140,6 +150,7 @@ class PurchaseOrderRequestController extends BaseController
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100
                 ];
+                Log::info(json_encode($purchaseOrderRequestComponents));
             }
             $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
             $status = 200;
@@ -210,6 +221,9 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                            $purchaseOrderComponentData['rate_per_unit'] = 0;
+                        }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['clients'][$clientId]['component_data'][] = $purchaseOrderComponentData;
                     }else{
@@ -238,6 +252,9 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                            $purchaseOrderComponentData['rate_per_unit'] = 0;
+                        }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['vendors'][$vendorId]['component_data'][] = $purchaseOrderComponentData;
                     }
