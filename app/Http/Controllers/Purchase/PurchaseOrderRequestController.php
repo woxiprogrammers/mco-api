@@ -106,7 +106,6 @@ class PurchaseOrderRequestController extends BaseController
             $purchaseOrderRequestComponentData = PurchaseOrderRequestComponent::where('purchase_order_request_id', $request['purchase_order_request_id'])->get();
             foreach ($purchaseOrderRequestComponentData as $purchaseOrderRequestComponent) {
                 $purchaseRequestComponentId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
-                Log::info($purchaseRequestComponentId);
                 if(!array_key_exists($purchaseRequestComponentId,$purchaseOrderRequestComponents)){
                     $materialRequestComponent = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchaseRequestComponent->materialRequestComponent;
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['material_request_component_id'] = $materialRequestComponent['id'];
@@ -116,8 +115,6 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderCount = PurchaseOrderComponent::where('purchase_request_component_id',$purchaseRequestComponentId)->count();
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderCount > 0) ? true : false;
                 }
-                Log::info('after if');
-                Log::info($purchaseOrderRequestComponent);
                 $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
@@ -150,7 +147,6 @@ class PurchaseOrderRequestController extends BaseController
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100
                 ];
-                Log::info(json_encode($purchaseOrderRequestComponents));
             }
             $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
             $status = 200;
