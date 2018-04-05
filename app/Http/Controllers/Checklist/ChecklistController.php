@@ -223,9 +223,18 @@ class ChecklistController extends BaseController
 
                             }else{
                                 $previousChecklist = ProjectSiteUserChecklistAssignment::where('id',$latestChecklist['project_site_user_checklist_assignment_id'])->first();
-                                if($previousChecklist['checklist_status_id'] == $checklistStatus['id'] && ($previousChecklist['assigned_to'] == $user['id'] || $previousChecklist['assigned_by'] == $user['id'])){
-                                    if(!in_array($latestChecklist['id'],$userLatestChecklistIds)){
+                                if(($previousChecklist['assigned_to'] == $user['id'] || $previousChecklist['assigned_by'] == $user['id'])){
+                                    /*if(!in_array($latestChecklist['id'],$userLatestChecklistIds)){
                                         $userLatestChecklistIds[$iterator] = $latestChecklist['id'];
+                                    }*/
+				    if($checklistStatus->slug == 'review'){
+                                        if(($previousChecklist['checklist_status_id'] == $checklistStatus['id'] || $previousChecklist['checklist_status_id'] == $recheckStatusId) && !in_array($latestChecklist['id'],$userLatestChecklistIds)){
+                                            $userLatestChecklistIds[$iterator] = $previousChecklist['id'];
+                                        }
+                                    }else{
+                                        if($previousChecklist['checklist_status_id'] == $checklistStatus['id'] && !in_array($latestChecklist['id'],$userLatestChecklistIds)){
+                                            $userLatestChecklistIds[$iterator] = $previousChecklist['id'];
+                                        }
                                     }
                                 }
 
@@ -537,11 +546,11 @@ class ChecklistController extends BaseController
             $projectSiteUserChecklistAssignment['project_site_user_checklist_assignment_id'] = $parentProjectSiteUserChecklistAssignment['id'];
             $projectSiteUserChecklistAssignmentData = ProjectSiteUserChecklistAssignment::create($projectSiteUserChecklistAssignment);
             $projectSite = $projectSiteUserChecklistAssignmentData->projectSiteChecklist->project_site;
-            $webTokens = $projectSiteUserChecklistAssignment->assignedToUser->web_fcm_token;
-            $mobileTokens = $projectSiteUserChecklistAssignment->assignedToUser->mobile_fcm_token;
+            $webTokens = $projectSiteUserChecklistAssignmentData->assignedToUser->web_fcm_token;
+            $mobileTokens = $projectSiteUserChecklistAssignmentData->assignedToUser->mobile_fcm_token;
             $notificationString = $projectSite->project->name.' , '.$projectSite->name.' - ';
-            $projectSiteChecklist = $projectSiteUserChecklistAssignment->projectSiteChecklist;
-            $notificationString .= 'From '.$projectSiteUserChecklistAssignment->assignedByUser->first_name.' '.$projectSiteUserChecklistAssignment->assignedByUser->last_name.' ';
+            $projectSiteChecklist = $projectSiteUserChecklistAssignmentData->projectSiteChecklist;
+            $notificationString .= 'From '.$projectSiteUserChecklistAssignmentData->assignedByUser->first_name.' '.$projectSiteUserChecklistAssignmentData->assignedByUser->last_name.' ';
             $notificationString .= 'assigned checklist. '.$projectSiteChecklist->checklistCategory->mainCategory->name.', '.$projectSiteChecklist->checklistCategory->name.', ';
             $notificationString .= $projectSiteChecklist->quotationFloor->name.', '. $projectSiteChecklist->title;
             $this->sendPushNotification('Manisha Construction', $notificationString,$webTokens,$mobileTokens,'c-chk-u-a');
