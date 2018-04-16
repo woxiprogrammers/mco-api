@@ -119,11 +119,18 @@ class PurchaseOrderRequestController extends BaseController
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->sgst_percentage / 100));
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->igst_percentage / 100));
+                if($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor != null){
+                    $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company;
+                    $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id;
+                }else{
+                    $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client->company;
+                    $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client_id;
+                }
                 $purchaseOrderRequestComponents[$purchaseRequestComponentId]['vendor_relations'][] = [
                     'purchase_order_request_component_id' => $purchaseOrderRequestComponent->id,
                     'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
-                    'vendor_name' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor->company,
-                    'vendor_id' => $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->vendor_id,
+                    'vendor_name' => $vendorName,
+                    'vendor_id' => $vendorId,
                     'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
                     'rate_with_tax' => (string)$rateWithTax,
                     'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity']),
@@ -178,7 +185,6 @@ class PurchaseOrderRequestController extends BaseController
                                 ->first();
             $newAssetTypeId = MaterialRequestComponentTypes::where('slug','new-asset')->pluck('id')->first();
             $newMaterialTypeId = MaterialRequestComponentTypes::where('slug','new-material')->pluck('id')->first();
-            $disapprovedVendorId = [];
             $purchaseRequestFormatId = null;
             foreach ($request['purchase_order_request_components'] as $key => $purchase_order_request_component) {
                 if ($purchase_order_request_component['is_approved'] == true) {
@@ -210,6 +216,9 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                            $purchaseOrderComponentData['rate_per_unit'] = 0;
+                        }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['clients'][$clientId]['component_data'][] = $purchaseOrderComponentData;
                     }else{
@@ -238,6 +247,9 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                            $purchaseOrderComponentData['rate_per_unit'] = 0;
+                        }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['vendors'][$vendorId]['component_data'][] = $purchaseOrderComponentData;
                     }
@@ -246,14 +258,6 @@ class PurchaseOrderRequestController extends BaseController
                     /*disapprove*/
                     PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
                         ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
-                    $purchaseOrderRequestComponentVendorId = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
-                                                                ->where('purchase_order_request_components.id', $purchase_order_request_component['id'])
-                                                                ->where('purchase_request_component_vendor_relation.is_client', false)
-                                                                ->pluck('purchase_request_component_vendor_relation.vendor_id')
-                                                                ->first();
-                    if(!in_array($purchaseOrderRequestComponentVendorId, $disapprovedVendorId) && ($purchaseOrderRequestComponentVendorId != null)){
-                        $disapprovedVendorId[] = $purchaseOrderRequestComponentVendorId;
-                    }
                 }
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
@@ -357,24 +361,6 @@ class PurchaseOrderRequestController extends BaseController
                     }
                 }
             }
-            /*if(count($disapprovedVendorId) > 0){
-                $disapprovedVendorId = array_unique($disapprovedVendorId);
-                foreach($disapprovedVendorId as $vendorId){
-                    $mailInfoData = [
-                        'user_id' => Auth::user()->id,
-                        'type_slug' => 'disapprove-purchase-order',
-                        'vendor_id' => $vendorId,
-                        'is_client' => false
-                    ];
-                    $vendorEmail = Vendor::where('id', $vendorId)->pluck('email')->first();
-                    Mail::send('purchase.purchase-order.email.purchase-order-disapprove', ['purchaseRequestFormatId' => $purchaseRequestFormatId], function($message) use ($vendorEmail, $purchaseRequestFormatId){
-                        $message->subject('Disapproval of Quotation ('.$purchaseRequestFormatId.')');
-                        $message->to($vendorEmail);
-                        $message->from(env('MAIL_USERNAME'));
-                    });
-                    PurchaseRequestComponentVendorMailInfo::create($mailInfoData);
-                }
-            }*/
             $message = "Component status changed successfully";
             $status = 200;
         }catch (\Exception $e){
