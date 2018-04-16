@@ -100,7 +100,7 @@ class PurchaseOrderController extends BaseController{
                     $purchaseOrderList[$iterator]['project'] = $project->name;
                     $purchaseOrderList[$iterator]['date'] = date($purchaseOrder['created_at']);
                     $purchaseOrderComponents = $purchaseOrder->purchaseOrderComponent;
-                    $quantity = $purchaseOrderComponents->sum('quantity');
+                    $quantity = ($purchaseOrderComponents->sum('quantity') + ($purchaseOrderComponents->sum('quantity') * (10/100)));
                     $consumedQuantity = 0;
                     foreach($purchaseOrderComponents as $purchaseOrderComponent){
                         $consumedQuantity += $purchaseOrderComponent->purchaseOrderTransactionComponent->sum('quantity');
