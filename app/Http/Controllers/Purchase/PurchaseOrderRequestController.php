@@ -170,8 +170,7 @@ class PurchaseOrderRequestController extends BaseController
 
     use PurchaseTrait;
     use NotificationTrait;
-    public function changeStatus(Request $request)
-    {
+    public function changeStatus(Request $request){
         try{
             $purchaseOrderData = [
                 'vendors' => array(),
