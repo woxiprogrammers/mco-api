@@ -188,7 +188,7 @@ class PurchaseOrderRequestController extends BaseController
             $newMaterialTypeId = MaterialRequestComponentTypes::where('slug','new-material')->pluck('id')->first();
             $purchaseRequestFormatId = null;
             foreach ($request['purchase_order_request_components'] as $key => $purchase_order_request_component) {
-                if ($purchase_order_request_component['is_approved'] == true) {
+                if ($purchase_order_request_component['is_approved'] == 'true') {
                     /*Approve and create purchase order*/
                     $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchase_order_request_component['id']);
                     if($purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->is_client == true){
@@ -217,7 +217,7 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
-                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || $purchaseOrderComponentData['rate_per_unit'] == ''){
                             $purchaseOrderComponentData['rate_per_unit'] = 0;
                         }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
