@@ -248,7 +248,7 @@ class PurchaseOrderRequestController extends BaseController
                                 'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
                                 'sgst_amount','igst_amount','total')
                             ->first()->toArray();
-                        if($purchaseOrderComponentData['rate_per_unit'] == null || !$purchaseOrderComponentData['rate_per_unit'] == ''){
+                        if($purchaseOrderComponentData['rate_per_unit'] == null || $purchaseOrderComponentData['rate_per_unit'] == ''){
                             $purchaseOrderComponentData['rate_per_unit'] = 0;
                         }
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
