@@ -133,6 +133,7 @@ class PurchaseOrderRequestController extends BaseController
                     'vendor_id' => $vendorId,
                     'rate_without_tax' => (string)$purchaseOrderRequestComponent->rate_per_unit,
                     'rate_with_tax' => (string)$rateWithTax,
+                    'gst' => (string)($rateWithTax - $purchaseOrderRequestComponent->rate_per_unit),
                     'total_with_tax' => (string)($rateWithTax * $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity']),
                     'expected_delivery_date' => $purchaseOrderRequestComponent->expected_delivery_date,
                     'transportation_amount' => $purchaseOrderRequestComponent->transportation_amount,
@@ -142,6 +143,10 @@ class PurchaseOrderRequestController extends BaseController
                     'transportation_sgst_amount' =>  ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100,
                     'transportation_igst_percentage' => $purchaseOrderRequestComponent->transportation_igst_percentage,
                     'transportation_igst_amount' => ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100,
+                    'transportation_gst' => (string)(($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_cgst_percentage) /100
+                                                + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100
+                                                + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100),
+
                     'total_transportation_amount' => $purchaseOrderRequestComponent->transportation_amount
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_cgst_percentage) /100
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100
@@ -170,8 +175,7 @@ class PurchaseOrderRequestController extends BaseController
 
     use PurchaseTrait;
     use NotificationTrait;
-    public function changeStatus(Request $request)
-    {
+    public function changeStatus(Request $request){
         try{
             $purchaseOrderData = [
                 'vendors' => array(),
