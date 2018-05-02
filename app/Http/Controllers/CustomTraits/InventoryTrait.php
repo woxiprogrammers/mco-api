@@ -79,6 +79,7 @@ trait InventoryTrait{
 
     public function createInventoryTransfer(Request $request){
     try{
+        $user = Auth::user();
         switch ($request['name']){
             case 'site' :
                     if($request->has('inventory_component_id')){
@@ -111,12 +112,14 @@ trait InventoryTrait{
                     }else{
                         $data['rate_per_unit'] = $baseInventoryComponentTransfer['rate_per_unit'];
                     }
+                    $requestData['user_id'] = $user['id'];
                     $inventoryComponentTransferDataId = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
                 break;
 
             case 'user' :
                 $requestData = $request->only('inventory_component_id','quantity','unit_id','remark','source_name');
                 $requestData['date'] = Carbon::now();
+                $requestData['user_id'] = $user['id'];
                 $inventoryComponentTransferDataId = $this->create($requestData,$request['name'],$request['type'],'from-api',$request['images']);
                 break;
         }
@@ -218,7 +221,7 @@ trait InventoryTrait{
                     $sha1UserId = sha1($user['id']);
                     $sha1InventoryTransferId = sha1($inventoryComponentTransferDataId);
                     $sha1InventoryComponentId = sha1($request['inventory_component_id']);
-                    foreach ($request['images'] as $key1 => $imageName) {
+                    foreach ($images as $key1 => $imageName) {
                         $tempUploadFile = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
                         if (File::exists($tempUploadFile)) {
                             $imageUploadNewPath = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_IMAGE_UPLOAD') . $sha1InventoryComponentId . DIRECTORY_SEPARATOR . 'transfers' . DIRECTORY_SEPARATOR . $sha1InventoryTransferId;
