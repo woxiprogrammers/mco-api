@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Inventory;
 use App\Asset;
 use App\FuelAssetReading;
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
@@ -30,6 +31,7 @@ class AssetManagementController extends BaseController
     }
 
     use InventoryTrait;
+    use NotificationTrait;
     public function getAssetListing(Request $request){
         try{
             $message = "Success";
@@ -293,7 +295,8 @@ class AssetManagementController extends BaseController
                     'quantity' => $data['top_up'],
                     'unit_id' => Unit::where('slug','litre')->pluck('id')->first(),
                     'source_name' => $user->first_name.' '.$user->last_name,
-                    'user_id' => $user->id
+                    'user_id' => $user->id,
+                    'inventory_component_transfer_status_id' => InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first()
                 ];
                 $this->create($inventoryTransferData,'user','OUT','from-api');
             }
