@@ -49,7 +49,6 @@ use NotificationTrait;
                 $materialRequestComponentId = $this->createMaterialRequest($request->except('material_request_component_id'),$user,$is_purchase_request = true);
                 if($request->has('material_request_component')){
                     $iterator = 0;
-                    $materialRequestComponentId = array();
                     foreach($request['material_request_component'] as $key => $materialRequestData){
                         $materialRequestComponentId[] = $request['material_request_component'][$iterator]['id'];
                         $iterator++;

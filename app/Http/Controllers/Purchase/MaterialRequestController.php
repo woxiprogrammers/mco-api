@@ -131,7 +131,7 @@ use PurchaseTrait;
                     }
                     if(count($materialList) == 0){
                         $materialList[$iterator]['material_name'] = null;
-                        $materialList[$iterator]['unit_quantity'] = Unit::where('is_active',true)->select('id as unit_id','name as unit_name')->get()->toArray();
+                        $materialList[$iterator]['unit_quantity'] = Unit::where('is_active',true)->select('id as unit_id','name as unit_name')->orderBy('name','asc')->get()->toArray();
                         $j = 0;
                         foreach($materialList[$iterator]['unit_quantity'] as $key2 => $unit){
                             $materialList[$iterator]['unit_quantity'][$j]['quantity'] = null;
