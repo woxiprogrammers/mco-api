@@ -18,7 +18,7 @@ class UnitController extends BaseController{
         try{
             $message = 'Success';
             $status = 200;
-            $data = Unit::select('id','name','slug','is_active')->get();
+            $data = Unit::select('id','name','slug','is_active')->orderBy('name','asc')->get();
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;

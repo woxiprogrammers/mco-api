@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Inventory;
 use App\Asset;
 use App\FuelAssetReading;
 use App\Http\Controllers\CustomTraits\InventoryTrait;
+use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\InventoryComponent;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
@@ -30,6 +31,7 @@ class AssetManagementController extends BaseController
     }
 
     use InventoryTrait;
+    use NotificationTrait;
     public function getAssetListing(Request $request){
         try{
             $message = "Success";
@@ -75,11 +77,11 @@ class AssetManagementController extends BaseController
                                 $startTime = Carbon::parse($reading['start_time']);
                                 $endTime = Carbon::parse($reading['stop_time']);
                                 $totalWorkHour += $endTime->diffInHours($startTime);
-                                if($reading['litre_per_unit'] != null){
+                                if($reading['fuel_per_unit'] != null){
                                     if($totalDieselConsume == null){
                                         $totalDieselConsume = 0;
                                     }
-                                    $totalDieselConsume += ($reading['litre_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
+                                    $totalDieselConsume += ($reading['fuel_per_unit'] * ((((int)$reading['stop_reading']) - ((int)$reading['start_reading']))));
                                 }
                                 if($reading['electricity_per_unit'] != null){
                                     if($totalElectricityConsumed == null){
@@ -91,7 +93,7 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['assets_units'] = (float)$assetUnits;
                             $inventoryListingData[$iterator]['total_work_hour'] = (float)$totalWorkHour;
                             $inventoryListingData[$iterator]['total_diesel_consume'] = (float)$totalDieselConsume;
-                            $inventoryListingData[$iterator]['litre_per_unit'] = (float)$inventoryComponent->asset->litre_per_unit;
+                            $inventoryListingData[$iterator]['litre_per_unit'] = (float)$inventoryComponent->asset->fuel_per_unit;
                             $inventoryListingData[$iterator]['electricity_per_unit'] = (float)$inventoryComponent->asset->electricity_per_unit;
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
@@ -293,7 +295,8 @@ class AssetManagementController extends BaseController
                     'quantity' => $data['top_up'],
                     'unit_id' => Unit::where('slug','litre')->pluck('id')->first(),
                     'source_name' => $user->first_name.' '.$user->last_name,
-                    'user_id' => $user->id
+                    'user_id' => $user->id,
+                    'inventory_component_transfer_status_id' => InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first()
                 ];
                 $this->create($inventoryTransferData,'user','OUT','from-api');
             }
