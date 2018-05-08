@@ -223,14 +223,15 @@ use NotificationTrait;
                     $purchaseRequestList[$iterator]['purchase_request_id'] = $purchaseRequest['id'];
                     $purchaseRequestList[$iterator]['purchase_request_format'] = $this->getPurchaseIDFormat('purchase-request',$request['project_site_id'],$purchaseRequest['created_at'],$purchaseRequest['serial_no']);
                     $purchaseRequestList[$iterator]['date'] = date('l, d F Y',strtotime($purchaseRequest['created_at']));
-                    $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequest->purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
+                    $purchaseRequestComponents = $purchaseRequest->purchaseRequestComponents;
+                    $material_name = MaterialRequestComponents::whereIn('id',array_column($purchaseRequestComponents->toArray(),'material_request_component_id'))->distinct('id')->select('name')->take(5)->get();
                     $purchaseRequestList[$iterator]['materials'] = $material_name->implode('name', ', ');
                     $purchaseRequestList[$iterator]['component_status_name'] = $purchaseRequest->purchaseRequestComponentStatuses->slug;
                     $createdByUser = User::where('id',$purchaseRequest['user_id'])->select('first_name','last_name')->first();
                     $purchaseRequestList[$iterator]['created_by'] = $createdByUser['first_name'].' '.$createdByUser['last_name'];
                     $purchase_component_status_id = $purchaseRequest['purchase_component_status_id'];
                     if($purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-admin-disapproved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-approved' || $purchaseRequestList[$iterator]['component_status_name'] == 'p-r-manager-disapproved'){
-                        $materialRequestComponentId = $purchaseRequest->purchaseRequestComponents->pluck('material_request_component_id')->first();
+                        $materialRequestComponentId = $purchaseRequestComponents->pluck('material_request_component_id')->first();
                         $userId = MaterialRequestComponentHistory::where('material_request_component_id',$materialRequestComponentId)->where('component_status_id',$purchase_component_status_id)->pluck('user_id')->first();
                         $user = User::where('id',$userId)->select('first_name','last_name')->first();
                         $purchaseRequestList[$iterator]['approved_by'] = $user['first_name'].' '.$user['last_name'];
@@ -238,7 +239,7 @@ use NotificationTrait;
                         $purchaseRequestList[$iterator]['approved_by'] = '';
                     }
                     $isPurchaseOrderCreated = PurchaseOrder::where('purchase_request_id',$purchaseRequest['id'])->count();
-                    $purchaseRequestComponentIds = $purchaseRequest->purchaseRequestComponents->pluck('id')->toArray();
+                    $purchaseRequestComponentIds = $purchaseRequestComponents->pluck('id')->toArray();
                     $vendorAssignedCount = PurchaseRequestComponentVendorRelation::whereIn('purchase_request_component_id',$purchaseRequestComponentIds)->count();
                     $purchaseOrderRequestCount = PurchaseOrderRequest::where('purchase_request_id',$purchaseRequest['id'])->count();
                     if($isPurchaseOrderCreated > 0){
