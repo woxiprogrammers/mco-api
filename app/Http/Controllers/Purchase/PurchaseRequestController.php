@@ -15,8 +15,11 @@ use App\MaterialRequestComponentVersion;
 use App\MaterialRequests;
 use App\Module;
 use App\Permission;
+use App\PurchaseOrder;
+use App\PurchaseOrderRequest;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
+use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
 use App\Quotation;
 use App\User;
@@ -233,6 +236,19 @@ use NotificationTrait;
                         $purchaseRequestList[$iterator]['approved_by'] = $user['first_name'].' '.$user['last_name'];
                     }else{
                         $purchaseRequestList[$iterator]['approved_by'] = '';
+                    }
+                    $isPurchaseOrderCreated = PurchaseOrder::where('purchase_request_id',$purchaseRequest['id'])->count();
+                    $purchaseRequestComponentIds = $purchaseRequest->purchaseRequestComponents->pluck('id')->toArray();
+                    $vendorAssignedCount = PurchaseRequestComponentVendorRelation::whereIn('purchase_request_component_id',$purchaseRequestComponentIds)->count();
+                    $purchaseOrderRequestCount = PurchaseOrderRequest::where('purchase_request_id',$purchaseRequest['id'])->count();
+                    if($isPurchaseOrderCreated > 0){
+                        $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Order Created";
+                    }elseif($purchaseOrderRequestCount > 0){
+                        $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Order Requested";
+                    }elseif($vendorAssignedCount > 0){
+                        $purchaseRequestList[$iterator]['purchase_request_status'] = "Vendor Assigned";
+                    }else{
+                        $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Request Created";
                     }
                     $iterator++;
                 }
