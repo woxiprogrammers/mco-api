@@ -23,6 +23,7 @@ use App\PurchaseOrderRequest;
 use App\PurchaseOrderRequestComponent;
 use App\PurchaseOrderStatus;
 use App\PurchaseRequestComponents;
+use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequestComponentVendorMailInfo;
 use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
@@ -327,8 +328,18 @@ class PurchaseOrderRequestController extends BaseController
                             ->whereIn('purchase_request_components.id', $purchaseRequestComponentIds)
                             ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
                             ->get()->toArray();
-                        $webTokens = array_merge($webTokens, array_column($materialRequestUserToken,'web_fcm_token'));
-                        $mobileTokens = array_merge($mobileTokens, array_column($materialRequestUserToken,'mobile_fcm_token'));
+
+                        $materialRequestComponentIds = PurchaseRequestComponents::whereIn('id',$purchaseRequestComponentIds)->pluck('material_request_component_id')->toArray();
+                        $purchaseRequestApproveStatusesId = PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id');
+                        $purchaseRequestApproveUserToken = User::join('material_request_component_history_table','material_request_component_history_table.user_id','=','users.id')
+                            ->whereIn('material_request_component_history_table.material_request_component_id',$materialRequestComponentIds)
+                            ->whereIn('material_request_component_history_table.component_status_id',$purchaseRequestApproveStatusesId)
+                            ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                            ->get()->toArray();
+                        $materialRequestUserToken = array_merge($materialRequestUserToken,$purchaseRequestApproveUserToken);
+                        $materialRequestUserToken = array_unique($materialRequestUserToken);
+                        $webTokens = array_merge($webTokens, array_column($materialRequestUserToken,'web_fcm_function'));
+                        $mobileTokens = array_merge($mobileTokens, array_column($materialRequestUserToken,'mobile_fcm_function'));
                         $notificationString = '3 -'.$purchaseOrder->purchaseRequest->projectSite->project->name.' '.$purchaseOrder->purchaseRequest->projectSite->name;
                         $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
                         $notificationString .= 'PO number: '.$purchaseOrder->format_id;
