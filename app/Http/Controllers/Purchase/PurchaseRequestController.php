@@ -23,6 +23,7 @@ use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
 use App\Quotation;
 use App\User;
+use App\UserHasPermission;
 use App\UserLastLogin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -163,8 +164,8 @@ use NotificationTrait;
                 $materialRequestComponentVersion = MaterialRequestComponentVersion::create($materialRequestComponentVersionData);
             }
             $componentStatus = PurchaseRequestComponentStatuses::where('id',$request['change_component_status_id_to'])->pluck('slug')->first();
+            $purchaseRequest = PurchaseRequests::findOrFail($request['purchase_request_id']);
             if(in_array($componentStatus,['p-r-manager-disapproved','p-r-admin-disapproved'])){
-                $purchaseRequest = PurchaseRequests::findOrFail($request['purchase_request_id']);
                 $webTokens = [$purchaseRequest->onBehalfOfUser->web_fcm_token];
                 $mobileTokens = [$purchaseRequest->onBehalfOfUser->mobile_fcm_token];
                 $MRcreatedUsersTokens = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
@@ -181,6 +182,20 @@ use NotificationTrait;
                 $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Material Disapproved.';
                 $notificationString .= ' '.$request->remark;
                 $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'d-p-r');
+            }elseif(in_array($componentStatus,['p-r-admin-approved','p-r-manager-approved'])){
+                $vendorAssignmentAclUserToken = UserHasPermission::join('permissions','permissions.id','=','user_has_permissions.permission_id')
+                    ->join('users','users.id','=','user_has_permissions.user_id')
+                    ->join('user_project_site_relation','user_project_site_relation.user_id','users.id')
+                    ->where('permissions.name','create-vendor-assignment')
+                    ->where('user_project_site_relation.project_site_id',$purchaseRequest['project_site_id'])
+                    ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                    ->get()->toArray();
+                $webTokens = array_column($vendorAssignmentAclUserToken,'web_fcm_function');
+                $mobileTokens = array_column($vendorAssignmentAclUserToken,'mobile_fcm_function');
+                $notificationString = '3 -'.$purchaseRequest->projectSite->project->name.' '.$purchaseRequest->projectSite->name;
+                $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Request Approved.';
+                $notificationString .= 'PR number: '.$purchaseRequest->format_id;
+                $this->sendPushNotification('Manisha Construction',$notificationString,array_unique($webTokens),array_unique($mobileTokens),'p-r-a');
             }
             $status = 200;
             $message = "Status Updated Successfully";
