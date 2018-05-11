@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Peticash;
 
+use App\BankInfo;
 use App\Employee;
 use App\EmployeeImage;
 use App\EmployeeImageType;
@@ -102,7 +103,18 @@ class SalaryController extends BaseController{
             $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $salaryData['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $salaryData['created_at'] = $salaryData['updated_at'] = Carbon::now();
-            $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
+            if($request['paid_from'] == 'bank'){
+                $bank = BankInfo::where('id',$request['bank_id'])->first();
+                $salaryData['payment_type_id'] = $request['payment_id'];
+                $salaryData['bank_id'] = $request['bank_id'];
+                $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
+                $bankData['balance_amount'] = $bank['balance_amount'] - $request['amount'];
+                $bankData['total_amount'] = $bank['total_amount'] - $request['amount'];
+                $bank->update($bankData);
+            }else{
+                $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
+            }
+//            $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
             $salaryTransactionId = $salaryTransaction['id'];
             $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
             $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
