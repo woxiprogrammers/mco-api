@@ -19,6 +19,8 @@ use App\PurchaseOrderRequest;
 use App\PurchaseOrderTransaction;
 use App\Project;
 use App\ProjectSite;
+use App\PurchaseRequestComponentStatuses;
+use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
 use App\UserHasRole;
 use App\UserLastLogin;
@@ -136,12 +138,13 @@ class NotificationController extends BaseController{
     public function getSiteWiseNotificationCount($user, $projectSiteId){
         try{
             $materialRequestCreateCount = $materialRequestDisapprovedCount = 0;
-            $purchaseRequestCreateCount = $purchaseRequestDisapprovedCount = 0;
+            $purchaseRequestCreateCount = $purchaseRequestDisapprovedCount = $purchaseRequestApprovedCount = 0;
             $purchaseOrderCreatedCount = $purchaseOrderBillCreateCount = 0;
             $purchaseOrderRequestCreateCount = $materialSiteOutTransferCreateCount = 0;
             $materialSiteOutTransferApproveCount = $checklistAssignedCount = 0;
             $checklistAssignedCount = $reviewChecklistCount = 0;
             $peticashSalaryRequestCount = $peticashSalaryApprovedCount = 0;
+
             if(!in_array($user->roles[0]->role->slug, ['admin','superadmin'])){
                 if($user->customHasPermission('approve-material-request')){
                     $materialRequestCreateCount = MaterialRequests::join('material_request_components','material_requests.id','=','material_request_components.material_request_id')
@@ -187,6 +190,33 @@ class NotificationController extends BaseController{
                             ->count('material_request_component_history_table.id');
                     }
 
+                }
+                if($user->customHasPermission('create-vendor-assignment') ){
+                    $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
+                        ->where('modules.slug','purchase-request')
+                        ->where('user_last_logins.user_id',$user->id)
+                        ->pluck('user_last_logins.last_login')
+                        ->first();
+                    if($lastLogin == null){
+                        $purchaseRequestIds = PurchaseRequestComponentVendorRelation::join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                            ->join('purchase_requests','purchase_requests.id','=','purchase_request_components.purchase_request_id')
+                            ->where('purchase_requests.project_site_id',$projectSiteId)
+                            ->distinct('purchase_requests.id')
+                            ->pluck('purchase_requests.id');
+                        $purchaseRequestApprovedCount = PurchaseRequests::whereIn('purchase_component_status_id',PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id'))
+                            ->whereNotIn('id',$purchaseRequestIds)
+                            ->count();
+                    }else{
+                        $purchaseRequestIds = PurchaseRequestComponentVendorRelation::join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                            ->join('purchase_requests','purchase_requests.id','=','purchase_request_components.purchase_request_id')
+                            ->where('purchase_requests.project_site_id',$projectSiteId)
+                            ->where('purchase_request_component_vendor_relation.created_at','>=',$lastLogin)
+                            ->distinct('purchase_requests.id')
+                            ->pluck('purchase_requests.id');
+                        $purchaseRequestApprovedCount = PurchaseRequests::whereIn('purchase_component_status_id',PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id'))
+                            ->whereNotIn('id',$purchaseRequestIds)
+                            ->count();
+                    }
                 }
                 if($user->customHasPermission('create-material-request') || $user->customHasPermission('approve-material-request') || $user->customHasPermission('create-purchase-request') || $user->customHasPermission('approve-purchase-request')){
                     $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
@@ -423,6 +453,7 @@ class NotificationController extends BaseController{
                 'material_request_disapproved_count' => $materialRequestDisapprovedCount,
                 'purchase_request_create_count' => $purchaseRequestCreateCount,
                 'purchase_request_disapproved_count' => $purchaseRequestDisapprovedCount,
+                'purchase_request_approved_count' => $purchaseRequestApprovedCount,
                 'purchase_order_create_count' => $purchaseOrderCreatedCount,
                 'purchase_order_bill_create_count' => $purchaseOrderBillCreateCount,
                 'purchase_order_request_create_count' => $purchaseOrderRequestCreateCount,
@@ -446,6 +477,7 @@ class NotificationController extends BaseController{
                 'material_request_disapproved_count' => 0,
                 'purchase_request_create_count' => 0,
                 'purchase_request_disapproved_count' => 0,
+                'purchase_request_approved_count' => 0,
                 'purchase_order_create_count' => 0,
                 'purchase_order_bill_create_count' => 0,
                 'purchase_order_request_create_count' => 0,
