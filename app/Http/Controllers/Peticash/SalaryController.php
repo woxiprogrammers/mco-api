@@ -100,21 +100,20 @@ class SalaryController extends BaseController{
             $salaryData = $request->except('token','images','type');
             $salaryData['reference_user_id'] = $user['id'];
             $salaryData['peticash_transaction_type_id'] = PeticashTransactionType::where('slug','ilike',$request['type'])->pluck('id')->first();
-            $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
             $salaryData['peticash_status_id'] = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $salaryData['created_at'] = $salaryData['updated_at'] = Carbon::now();
             if($request['paid_from'] == 'bank'){
                 $bank = BankInfo::where('id',$request['bank_id'])->first();
-                $salaryData['payment_type_id'] = $request['payment_id'];
+                $salaryData['payment_type_id'] = PaymentType::where('slug',$request['payment_mode_slug'])->pluck('id')->first();
                 $salaryData['bank_id'] = $request['bank_id'];
                 $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
                 $bankData['balance_amount'] = $bank['balance_amount'] - $request['amount'];
                 $bankData['total_amount'] = $bank['total_amount'] - $request['amount'];
                 $bank->update($bankData);
             }else{
+                $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
                 $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
             }
-//            $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
             $salaryTransactionId = $salaryTransaction['id'];
             $peticashSiteApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->first();
             $updatedPeticashSiteApprovedAmount = $peticashSiteApprovedAmount['salary_amount_approved'] - $request['amount'];
@@ -197,6 +196,12 @@ class SalaryController extends BaseController{
                     $transactions[$iterator]['salary_amount'] = (int)$transactionDetail['amount'];
                     $transactions[$iterator]['payable_amount'] = (int)$transactionDetail['payable_amount'];
                 }
+                if($transactionDetail['bank_id'] != null){
+                    $transactions[$iterator]['bank_name'] = BankInfo::where('id',$transactionDetail['bank_id'])->pluck('bank_name')->first();
+                }else{
+                    $transactions[$iterator]['bank_name'] = '';
+                }
+                $transactions[$iterator]['payment_type_name'] = $transactionDetail->paymentType->name;
                 $transactions[$iterator]['date'] = $transactionDetail['date'];
                 $transactions[$iterator]['type'] = $transactionDetail->peticashTransactionType->name;
                 $transactions[$iterator]['transaction_status_id'] = $transactionDetail['peticash_status_id'];
@@ -467,11 +472,15 @@ class SalaryController extends BaseController{
                     $data['payable_amount'] = (string)$payable_amount;
                 }
             }
-            $peticashApprovedAmount =PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
-            if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
-                $data['approved_amount'] = $peticashApprovedAmount;
+            if($request->has('bank_id')){
+                $data['approved_amount'] = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount');
             }else{
-                $data['approved_amount'] = '0';
+                $peticashApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
+                if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
+                    $data['approved_amount'] = $peticashApprovedAmount;
+                }else{
+                    $data['approved_amount'] = '0';
+                }
             }
         }catch(\Exception $e){
             $message = "Fail";
