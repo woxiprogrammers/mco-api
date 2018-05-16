@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Peticash;
 
 use App\BankInfo;
+use App\BillReconcileTransaction;
+use App\BillTransaction;
 use App\Employee;
 use App\EmployeeImage;
 use App\EmployeeImageType;
@@ -17,6 +19,7 @@ use App\PeticashStatus;
 use App\PeticashTransactionType;
 use App\Project;
 use App\ProjectSite;
+use App\ProjectSiteAdvancePayment;
 use App\PurchasePeticashTransaction;
 use App\User;
 use Carbon\Carbon;
@@ -108,7 +111,6 @@ class SalaryController extends BaseController{
                 $salaryData['bank_id'] = $request['bank_id'];
                 $salaryTransaction = PeticashSalaryTransaction::create($salaryData);
                 $bankData['balance_amount'] = $bank['balance_amount'] - $request['amount'];
-                $bankData['total_amount'] = $bank['total_amount'] - $request['amount'];
                 $bank->update($bankData);
             }else{
                 $salaryData['payment_type_id'] = PaymentType::where('slug','peticash')->pluck('id')->first();
@@ -428,6 +430,9 @@ class SalaryController extends BaseController{
             $message = 'Success';
             $status = 200;
             $data = array();
+            $projectSiteAdvancedAmount = ProjectSiteAdvancePayment::where('paid_from_slug','cash')->sum('amount');
+            $salesBillCashAmount = BillReconcileTransaction::where('paid_from_slug','cash')->sum('amount');
+            $salesBillTransactions = BillTransaction::where('paid_from_slug','cash')->sum('total');
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
                 $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
                 $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
@@ -442,7 +447,7 @@ class SalaryController extends BaseController{
                                                     ->where('project_site_id',$request['project_site_id'])
                                                     ->where('peticash_status_id',$approvedPeticashStatusId)
                                                     ->sum('bill_amount');
-                $data['remaining_amount'] = $data['allocated_amount'] - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount']);
+                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount']);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
