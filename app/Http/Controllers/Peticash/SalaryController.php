@@ -478,7 +478,7 @@ class SalaryController extends BaseController{
                 }
             }
             if($request->has('bank_id')){
-                $data['approved_amount'] = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount');
+                $data['approved_amount'] = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount')->first();
             }else{
                 $peticashApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
                 if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
