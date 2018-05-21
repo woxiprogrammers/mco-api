@@ -197,14 +197,16 @@ class NotificationController extends BaseController{
                         ->where('user_last_logins.user_id',$user->id)
                         ->pluck('user_last_logins.last_login')
                         ->first();
+                    $purchaseApprovedStatusIds = PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id')->toArray();
                     if($lastLogin == null){
                         $purchaseRequestIds = PurchaseRequestComponentVendorRelation::join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
                             ->join('purchase_requests','purchase_requests.id','=','purchase_request_components.purchase_request_id')
                             ->where('purchase_requests.project_site_id',$projectSiteId)
                             ->distinct('purchase_requests.id')
                             ->pluck('purchase_requests.id');
-                        $purchaseRequestApprovedCount = PurchaseRequests::whereIn('purchase_component_status_id',PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id'))
+                        $purchaseRequestApprovedCount = PurchaseRequests::whereIn('purchase_component_status_id',$purchaseApprovedStatusIds)
                             ->whereNotIn('id',$purchaseRequestIds)
+                            ->where('project_site_id', $projectSiteId)
                             ->count();
                     }else{
                         $purchaseRequestIds = PurchaseRequestComponentVendorRelation::join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
@@ -213,8 +215,9 @@ class NotificationController extends BaseController{
                             ->where('purchase_request_component_vendor_relation.created_at','>=',$lastLogin)
                             ->distinct('purchase_requests.id')
                             ->pluck('purchase_requests.id');
-                        $purchaseRequestApprovedCount = PurchaseRequests::whereIn('purchase_component_status_id',PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id'))
+                        $purchaseRequestApprovedCount = PurchaseRequests::whereIn('purchase_component_status_id',$purchaseApprovedStatusIds)
                             ->whereNotIn('id',$purchaseRequestIds)
+                            ->where('project_site_id', $projectSiteId)
                             ->count();
                     }
                 }
