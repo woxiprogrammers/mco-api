@@ -54,8 +54,8 @@ use NotificationTrait;
             $approvedStatusId = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
             foreach($inventoryComponents as $key => $inventoryComponent){
                 $inventoryTransferTypes = InventoryComponentTransfers::where('inventory_component_id',$inventoryComponent['id'])->pluck('transfer_type_id')->toArray();
-                $isQuotationMaterial = 0;
-                if($quotation->id != null){
+                $isQuotationMaterial = null;
+                if($quotation != null){
                     $isQuotationMaterial = QuotationMaterial::where('quotation_id',$quotation->id)->where('material_id',$inventoryComponent['reference_id'])->select('rate_per_unit','unit_id')->first();
                 }
                 $units = array();
