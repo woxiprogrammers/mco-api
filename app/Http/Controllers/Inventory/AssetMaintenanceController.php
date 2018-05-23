@@ -29,6 +29,7 @@ class AssetMaintenanceController extends BaseController{
 
         public function createAssetMaintenanceRequest(Request $request){
         try{
+Log::info(json_encode($request->all()));
             $status = 200;
             $message = "Asset Maintenance Request created successfully";
             $user = Auth::user();
@@ -44,11 +45,11 @@ class AssetMaintenanceController extends BaseController{
                 'user_id' => $user['id'],
                 'remark' => $assetMaintenance['remark']
             ]);
-
-            if($request->has('image')){
+		Log::info(json_encode($request['image']));
+            if($request->has('images')){
                 $sha1UserId = sha1($user['id']);
                 $assetDirectoryName = sha1($assetMaintenance['id']);
-                foreach($request['image'] as $key1 => $imageName){
+                foreach($request['images'] as $key1 => $imageName){
                     $tempUploadFile = env('WEB_PUBLIC_PATH').env('REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD').$sha1UserId.DIRECTORY_SEPARATOR.$imageName;
                     if(File::exists($tempUploadFile)){
                         $imageUploadNewPath = env('WEB_PUBLIC_PATH').env('ASSET_MAINTENANCE_REQUEST_IMAGE_UPLOAD').$assetDirectoryName;
