@@ -198,12 +198,6 @@ class SalaryController extends BaseController{
                     $transactions[$iterator]['salary_amount'] = (int)$transactionDetail['amount'];
                     $transactions[$iterator]['payable_amount'] = (int)$transactionDetail['payable_amount'];
                 }
-                if($transactionDetail['bank_id'] != null){
-                    $transactions[$iterator]['bank_name'] = BankInfo::where('id',$transactionDetail['bank_id'])->pluck('bank_name')->first();
-                }else{
-                    $transactions[$iterator]['bank_name'] = '';
-                }
-                $transactions[$iterator]['payment_type_name'] = $transactionDetail->paymentType->name;
                 $transactions[$iterator]['date'] = $transactionDetail['date'];
                 $transactions[$iterator]['type'] = $transactionDetail->peticashTransactionType->name;
                 $transactions[$iterator]['transaction_status_id'] = $transactionDetail['peticash_status_id'];
@@ -387,7 +381,16 @@ class SalaryController extends BaseController{
             $data['pf'] = $salaryTransactionData['pf'];
             $data['pt'] = $salaryTransactionData['pt'];
             $data['esic'] = $salaryTransactionData['esic'];
-            $data['payment_type'] = $salaryTransactionData->paymentType->name;
+	        if($salaryTransactionData['payment_type_id'] != null){
+                $data['payment_type'] = $salaryTransactionData->paymentType->name;
+            }else{
+                $data['payment_type'] = '';
+            }
+            if($salaryTransactionData['bank_id'] != null){
+                $data['bank_name'] = BankInfo::where('id',$salaryTransactionData['bank_id'])->pluck('bank_name')->first();
+            }else{
+                $data['bank_name'] = '';
+            }
             $transactionImages = PeticashSalaryTransactionImages::where('peticash_salary_transaction_id',$request['peticash_transaction_id'])->get();
             if(count($transactionImages) > 0){
                 $data['list_of_images'] = $this->getUploadedImages($transactionImages,$request['peticash_transaction_id']);
