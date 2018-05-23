@@ -29,7 +29,6 @@ class AssetMaintenanceController extends BaseController{
 
         public function createAssetMaintenanceRequest(Request $request){
         try{
-Log::info(json_encode($request->all()));
             $status = 200;
             $message = "Asset Maintenance Request created successfully";
             $user = Auth::user();
@@ -45,7 +44,6 @@ Log::info(json_encode($request->all()));
                 'user_id' => $user['id'],
                 'remark' => $assetMaintenance['remark']
             ]);
-		Log::info(json_encode($request['image']));
             if($request->has('images')){
                 $sha1UserId = sha1($user['id']);
                 $assetDirectoryName = sha1($assetMaintenance['id']);
