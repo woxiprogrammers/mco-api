@@ -93,7 +93,7 @@ class PurchaseOrderController extends BaseController{
                         $purchaseOrderList[$iterator]['is_client_order'] = true;
                     }else{
                         $purchaseOrderList[$iterator]['vendor_id'] = $purchaseOrder['vendor_id'];
-                        $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->name;
+                        $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->company;
                         $purchaseOrderList[$iterator]['is_client_order'] = false;
                     }
                     $purchaseOrderList[$iterator]['client_name'] = $project->client->company;
@@ -190,10 +190,17 @@ class PurchaseOrderController extends BaseController{
             $purchaseOrderList['purchase_order_id'] = $purchaseOrder['id'];
             $projectSite = $purchaseOrder->purchaseRequest->projectSite;
             $purchaseOrderList['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSite['id'],$purchaseOrder['created_at'],$purchaseOrder['serial_no']);
-            $purchaseOrderList['vendor_id'] = $purchaseOrder['vendor_id'];
-            $vendor = $purchaseOrder->vendor;
-            $purchaseOrderList['vendor_name'] = $vendor->name;
-            $purchaseOrderList['vendor_mobile'] = $vendor->mobile;
+            if($purchaseOrder->is_client_order == true){
+                $purchaseOrderList['vendor_id'] = $purchaseOrder['client_id'];
+                $purchaseOrderList['vendor_name'] = $purchaseOrder->client->company;
+                $purchaseOrderList['vendor_mobile'] = $purchaseOrder->client->mobile;
+                $purchaseOrderList['is_client_order'] = true;
+            }else{
+                $purchaseOrderList['vendor_id'] = $purchaseOrder['vendor_id'];
+                $purchaseOrderList['vendor_name'] = $purchaseOrder->vendor->company;
+                $purchaseOrderList['vendor_mobile'] = $purchaseOrder->vendor->mobile;
+                $purchaseOrderList['is_client_order'] = false;
+            }
             $purchaseOrderList['date'] = date($purchaseOrder['created_at']);
             $iterator = 0;
             foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
