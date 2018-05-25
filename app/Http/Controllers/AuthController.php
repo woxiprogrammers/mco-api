@@ -243,7 +243,7 @@ class AuthController extends BaseController
 
     public function getAppVersion(Request $request){
         try{
-            $status = 500;
+            $status = 200;
             $response  = [
                 'min_app_version' => env('MIN_APP_VERSION')
             ];
