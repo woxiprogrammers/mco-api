@@ -26,7 +26,7 @@ class AuthController extends BaseController
 {
     public function __construct()
     {
-        $this->middleware('jwt.auth',['except' => ['login']]);
+        $this->middleware('jwt.auth',['except' => ['login','getAppVersion']]);
         if(!Auth::guest()) {
             $this->user = Auth::user();
         }
@@ -239,6 +239,24 @@ class AuthController extends BaseController
             ];
             Log::critical(json_encode($data));
         }
+    }
+
+    public function getAppVersion(Request $request){
+        try{
+            $status = 500;
+            $response  = [
+                'min_app_version' => env('MIN_APP_VERSION')
+            ];
+        }catch (\Exception $e){
+            $data = [
+                'action' => 'Get App Version',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            $status = 500;
+            $response = null;
+        }
+        return response()->json($response, $status);
     }
 }
 

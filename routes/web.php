@@ -14,7 +14,7 @@
 $app->get('/', function () use ($app) {
     return $app->version();
 });
-
+$app->get('/app-version', array('uses' => 'AuthController@getAppVersion'));
 $app->post('/login',array('uses' => 'AuthController@login'));
 $app->post('/dashboard',array('uses' => 'AuthController@dashboard'));
 $app->post('save-image',array('uses' => 'ImageController@saveImages'));
