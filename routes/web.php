@@ -72,6 +72,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestListing'));
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestDetail'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseOrderRequestController@changeStatus'));
+        $app->post('disapprove-component',array('uses' => 'Purchase\PurchaseOrderRequestController@disapproveComponent'));
     });
     $app->group(['prefix' => 'purchase-order'], function () use ($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderListing'));

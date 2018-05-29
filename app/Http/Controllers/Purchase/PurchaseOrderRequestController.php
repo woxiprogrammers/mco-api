@@ -396,4 +396,29 @@ class PurchaseOrderRequestController extends BaseController
         return response()->json($response, $status);
     }
 
+    public function disapproveComponent(Request $request){
+        try{
+            $status = 200;
+            $purchaseOrderRequestComponentId = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                ->join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                ->where('purchase_request_components.material_request_component_id', $request->material_request_component_id)
+                ->pluck('purchase_order_request_components.id');
+            PurchaseOrderRequestComponent::whereIn('id', $purchaseOrderRequestComponentId)->update(['is_approved' => false]);
+            $message = "Material / Asset remove successfully !!";
+        }catch (\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Disapprove Purchase Order Request component',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response, $status);
+    }
+
 }
