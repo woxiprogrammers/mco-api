@@ -113,8 +113,18 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['name'] = ucwords($materialRequestComponent->name);
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'] = $purchaseOrderRequestComponent->quantity;
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['unit'] = $purchaseOrderRequestComponent->unit->name;
-                    $purchaseOrderCount = PurchaseOrderComponent::where('purchase_request_component_id',$purchaseRequestComponentId)->count();
-                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderCount > 0) ? true : false;
+                    $purchaseRequestComponentVendorRelationIds = PurchaseRequestComponentVendorRelation::where('purchase_request_component_id', $purchaseRequestComponentId)->pluck('id')->toArray();
+                    $totalPurchaseOrderRequestComponentIds = PurchaseOrderRequestComponent::where('purchase_order_request_id', $request['purchase_order_request_id'])
+                                                                        ->whereIn('purchase_request_component_vendor_relation_id', $purchaseRequestComponentVendorRelationIds)
+                                                                        ->pluck('purchase_order_request_components.id')->toArray();
+                    $processedPurchaseOrderRequestCompCount = PurchaseOrderRequestComponent::whereIn('id', $totalPurchaseOrderRequestComponentIds)
+                                                                        ->whereNull('is_approved')
+                                                                        ->count('id');
+                    if($processedPurchaseOrderRequestCompCount == 0){
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = true;
+                    }else{
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = false;
+                    }
                 }
                 $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
