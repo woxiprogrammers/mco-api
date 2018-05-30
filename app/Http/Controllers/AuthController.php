@@ -110,14 +110,7 @@ class AuthController extends BaseController
                 $user = Auth::user();
                 $message = "You are already logged in.";
                 $status = 200;
-                $newPermissions = UserHasPermission::where('user_id',$user->id)->where('created_at','>',$request->logged_in_at)->get();
-                if(count($newPermissions) <= 0){
-                    $status = 201;
-                    $message = 'You have No New Permissions';
-                    $data = null;
-                }else{
-                    $data = $this->getData($user);
-                }
+                $data = $this->getData($user);
             }else{
                 $token = null;
                 $message = "Invalid credentials";
