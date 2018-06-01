@@ -53,7 +53,7 @@ class PurchaseOrderRequestController extends BaseController
     {
         try {
             $purchaseRequestIds = PurchaseRequests::where('project_site_id', $request['project_site_id'])->pluck('id');
-            $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
+            $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->where('ready_to_approve', true)->orderBy('created_at','desc')->get();
             $iterator = 0;
             $purchaseOrderRequestList = array();
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
