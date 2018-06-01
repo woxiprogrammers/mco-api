@@ -79,6 +79,7 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseOrderController@changeStatus'));
+        $app->post('authenticate-purchase-order-close',array('uses' => 'Purchase\PurchaseOrderController@authenticatePOClose'));
         $app->post('generate-grn',array('uses' => 'Purchase\PurchaseOrderController@generateGRN'));
         $app->post('create-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderTransaction'));
         /*$app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));*/

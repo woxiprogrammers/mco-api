@@ -56,12 +56,12 @@ class PurchaseOrderRequestController extends BaseController
             $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
             $iterator = 0;
             $purchaseOrderRequestList = array();
-            $allPurchaseRequestComponentIds = PurchaseOrderComponent::pluck('purchase_request_component_id')->toArray();
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
-                $purchaseRequestComponentVendorRealtionIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'purchase_request_component_vendor_relation_id');
-                $purchaseRequestComponentIds = array_unique(PurchaseRequestComponentVendorRelation::whereIn('id',$purchaseRequestComponentVendorRealtionIds)->pluck('purchase_request_component_id')->toArray());
-                $arrayDiff = array_diff($purchaseRequestComponentIds,$allPurchaseRequestComponentIds);
-                if(count($arrayDiff) > 0){
+                $totalComponentCount = count($purchaseOrderRequest->purchaseOrderRequestComponents->toArray());
+                $processedComponentCount = PurchaseOrderRequestComponent::where('purchase_order_request_id', $purchaseOrderRequest->id)
+                                                            ->whereNull('is_approved')
+                                                            ->count();
+                if($totalComponentCount > $processedComponentCount){
                     $purchaseOrderRequestList[$iterator]['purchase_order_request_id'] = $purchaseOrderRequest['id'];
                     $purchaseOrderRequestList[$iterator]['purchase_request_id'] = $purchaseOrderRequest['purchase_request_id'];
                     $purchaseOrderRequestList[$iterator]['purchase_request_format_id'] = $purchaseOrderRequest->purchaseRequest->format_id;
@@ -137,6 +137,27 @@ class PurchaseOrderRequestController extends BaseController
                     $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client->company;
                     $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client_id;
                 }
+                $images = array();
+                $pdf = array();
+                foreach($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages as $purchaseOrderRequestComponentImage){
+                    $mainDirectoryPath = env('PURCHASE_ORDER_REQUEST_IMAGE_UPLOAD').sha1($request['purchase_order_request_id']);
+                    $componentDirectoryName = sha1($purchaseOrderRequestComponentImage->purchase_order_request_component_id);
+                    if($purchaseOrderRequestComponentImage['is_vendor_approval'] == true){
+                        $path = $mainDirectoryPath.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$componentDirectoryName.DIRECTORY_SEPARATOR.$purchaseOrderRequestComponentImage->name;
+                    }else{
+                        $path = $mainDirectoryPath.DIRECTORY_SEPARATOR.'client_approval_images'.DIRECTORY_SEPARATOR.$componentDirectoryName.DIRECTORY_SEPARATOR.$purchaseOrderRequestComponentImage->name;
+                    }
+                    $ext = pathinfo($purchaseOrderRequestComponentImage['name'],PATHINFO_EXTENSION);
+                    if($ext == 'pdf' || $ext == 'PDF'){
+                        $pdf[] = [
+                            'path' => $path
+                        ];
+                    }else{
+                        $images[] = [
+                            'path' => $path
+                        ];
+                    }
+                }
                 $purchaseOrderRequestComponents[$purchaseRequestComponentId]['vendor_relations'][] = [
                     'purchase_order_request_component_id' => $purchaseOrderRequestComponent->id,
                     'component_vendor_relation_id' => $purchaseOrderRequestComponent->purchase_request_component_vendor_relation_id,
@@ -161,7 +182,9 @@ class PurchaseOrderRequestController extends BaseController
                     'total_transportation_amount' => $purchaseOrderRequestComponent->transportation_amount
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_cgst_percentage) /100
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100
-                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100
+                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100,
+                    'images' => $images,
+                    'pdf' => $pdf
                 ];
             }
             $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
