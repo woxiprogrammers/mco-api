@@ -59,7 +59,7 @@ class PurchaseOrderRequestController extends BaseController
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
                 $totalComponentCount = count($purchaseOrderRequest->purchaseOrderRequestComponents->toArray());
                 $processedComponentCount = PurchaseOrderRequestComponent::where('purchase_order_request_id', $purchaseOrderRequest->id)
-                                                            ->whereNull('is_approved')
+                                                            ->whereNotNull('is_approved')
                                                             ->count();
                 if($totalComponentCount > $processedComponentCount){
                     $purchaseOrderRequestList[$iterator]['purchase_order_request_id'] = $purchaseOrderRequest['id'];
