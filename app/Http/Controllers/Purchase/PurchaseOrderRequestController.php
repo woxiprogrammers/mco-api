@@ -140,7 +140,7 @@ class PurchaseOrderRequestController extends BaseController
                 $images = array();
                 $pdf = array();
                 foreach($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages as $purchaseOrderRequestComponentImage){
-                    $mainDirectoryPath = env('PURCHASE_ORDER_REQUEST_IMAGE_UPLOAD').sha1($request['purchase_order_request_id']);
+                    $mainDirectoryPath = env('PURCHASE_ORDER_REQUEST_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.sha1($request['purchase_order_request_id']);
                     $componentDirectoryName = sha1($purchaseOrderRequestComponentImage->purchase_order_request_component_id);
                     if($purchaseOrderRequestComponentImage['is_vendor_approval'] == true){
                         $path = $mainDirectoryPath.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$componentDirectoryName.DIRECTORY_SEPARATOR.$purchaseOrderRequestComponentImage->name;
