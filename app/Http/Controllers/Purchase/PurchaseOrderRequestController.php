@@ -188,6 +188,7 @@ class PurchaseOrderRequestController extends BaseController
                 ];
             }
             $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
+            $data['pdf_thumbnail_url'] = '/assets/global/img/pdf.jpg';
             $status = 200;
             $message = "Success";
         } catch (\Exception $e) {
