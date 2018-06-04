@@ -14,7 +14,7 @@
 $app->get('/', function () use ($app) {
     return $app->version();
 });
-
+$app->get('/app-version', array('uses' => 'AuthController@getAppVersion'));
 $app->post('/login',array('uses' => 'AuthController@login'));
 $app->post('/dashboard',array('uses' => 'AuthController@dashboard'));
 $app->post('save-image',array('uses' => 'ImageController@saveImages'));
@@ -72,12 +72,14 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestListing'));
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestDetail'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseOrderRequestController@changeStatus'));
+        $app->post('disapprove-component',array('uses' => 'Purchase\PurchaseOrderRequestController@disapproveComponent'));
     });
     $app->group(['prefix' => 'purchase-order'], function () use ($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderListing'));
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseOrderController@changeStatus'));
+        $app->post('authenticate-purchase-order-close',array('uses' => 'Purchase\PurchaseOrderController@authenticatePOClose'));
         $app->post('generate-grn',array('uses' => 'Purchase\PurchaseOrderController@generateGRN'));
         $app->post('create-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderTransaction'));
         /*$app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));*/
