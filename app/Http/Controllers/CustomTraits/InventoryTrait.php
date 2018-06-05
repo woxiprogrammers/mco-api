@@ -492,7 +492,7 @@ trait InventoryTrait{
             if ($request->has('images')) {
                 $sha1UserId = sha1($user['id']);
                 $sha1InventoryTransferId = sha1($inventoryComponentTransfer['id']);
-                $sha1InventoryComponentId = sha1($request['inventory_component_id']);
+                $sha1InventoryComponentId = sha1($inventoryComponentTransfer['inventory_component_id']);
                 foreach ($request['images'] as $key1 => $imageName) {
                     $tempUploadFile = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
                     if (File::exists($tempUploadFile)) {

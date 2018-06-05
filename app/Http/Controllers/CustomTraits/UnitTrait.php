@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CustomTraits;
 
 
 use App\UnitConversion;
+use Illuminate\Support\Facades\Log;
 
 trait UnitTrait{
     public function unitConversion($unit_from_id,$unit_to_id,$quantity_from){
