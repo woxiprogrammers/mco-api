@@ -57,7 +57,7 @@ class AuthController extends BaseController
                         }
                     }else{
                         $message = "Project Site not assigned";
-                        $status = 204;
+                        $status = 404;
                     }
 
                 }else{
@@ -81,7 +81,7 @@ class AuthController extends BaseController
                         }
                     }else{
                         $message = "Project Site not assigned";
-                        $status = 204;
+                        $status = 404;
                     }
 
                 }else{
