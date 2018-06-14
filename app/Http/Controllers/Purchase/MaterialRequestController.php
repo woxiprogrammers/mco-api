@@ -135,7 +135,7 @@ use PurchaseTrait;
                     $structureMaterialSlug = MaterialRequestComponentTypes::where('slug','structure-material')->first();
                     foreach($structureMaterials as $key1 => $material){
                         $materialList[$iterator]['material_name'] = $material->name;
-                        $materialList[$iterator]['unit_quantity'][0]['quantity'] = null;
+                        $materialList[$iterator]['unit_quantity'][0]['quantity'] = 0;
                         $materialList[$iterator]['unit_quantity'][0]['unit_id'] = $material->unit_id;
                         $materialList[$iterator]['unit_quantity'][0]['unit_name'] = $material->unit->name;
                         $unitConversionIds1 = UnitConversion::where('unit_1_id',$material->unit_id)->pluck('unit_2_id');
@@ -154,11 +154,11 @@ use PurchaseTrait;
                         $iterator++;
                     }
                     if(count($materialList) == 0){
-                        $materialList[$iterator]['material_name'] = null;
+                        $materialList[$iterator]['material_name'] = 0;
                         $materialList[$iterator]['unit_quantity'] = Unit::where('is_active',true)->select('id as unit_id','name as unit_name')->orderBy('name','asc')->get()->toArray();
                         $j = 0;
                         foreach($materialList[$iterator]['unit_quantity'] as $key2 => $unit){
-                            $materialList[$iterator]['unit_quantity'][$j]['quantity'] = null;
+                            $materialList[$iterator]['unit_quantity'][$j]['quantity'] = 0;
                             $j++;
                         }
                         $newMaterialSlug = MaterialRequestComponentTypes::where('slug','new-material')->first();
