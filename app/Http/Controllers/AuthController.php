@@ -41,17 +41,25 @@ class AuthController extends BaseController
             $loginDate = null;
             if($request->has(['email','password'])){
                 $credentials = $request->only('email','password');
+
                 if( $token = JWTAuth::attempt($credentials) ){
                     $user = Auth::user();
-                    if($user['is_active'] == true){
-                        $message = "Logged in successfully!!";
-                        $status = 200;
-                        $data = $this->getData($user);
-                        $loginDate = Carbon::now();
+                    $userProjectSiteCount = UserProjectSiteRelation::where('user_id',$user['id'])->count();
+                    if($userProjectSiteCount > 0){
+                        if($user['is_active'] == true){
+                            $message = "Logged in successfully!!";
+                            $status = 200;
+                            $data = $this->getData($user);
+                            $loginDate = Carbon::now();
+                        }else{
+                            $status = 401;
+                            $message = "User is not activated yet. Please activate user first.";
+                        }
                     }else{
-                        $status = 401;
-                        $message = "User is not activated yet. Please activate user first.";
+                        $message = "Project Site not assigned";
+                        $status = 404;
                     }
+
                 }else{
                     $message = "Invalid credentials";
                     $status = 401;
@@ -60,15 +68,22 @@ class AuthController extends BaseController
                 $credentials = $request->only('mobile','password');
                 if( $token = JWTAuth::attempt($credentials) ){
                     $user = Auth::user();
-                    if($user['is_active'] == true){
-                        $message = "Logged in successfully!!";
-                        $status = 200;
-                        $data = $this->getData($user);
-                        $loginDate = Carbon::now();
+                    $userProjectSiteCount = UserProjectSiteRelation::where('user_id',$user['id'])->count();
+                    if($userProjectSiteCount > 0){
+                        if($user['is_active'] == true){
+                            $message = "Logged in successfully!!";
+                            $status = 200;
+                            $data = $this->getData($user);
+                            $loginDate = Carbon::now();
+                        }else{
+                            $status = 401;
+                            $message = "User is not activated yet. Please activate user first.";
+                        }
                     }else{
-                        $status = 401;
-                        $message = "User is not activated yet. Please activate user first.";
+                        $message = "Project Site not assigned";
+                        $status = 404;
                     }
+
                 }else{
                     $message = "Invalid credentials";
                     $status = 401;
