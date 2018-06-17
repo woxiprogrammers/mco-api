@@ -72,6 +72,10 @@ class ImageController extends BaseController{
                     $tempUploadPath = env('WEB_PUBLIC_PATH').env('POST_GRN_REQUEST_MAINTENANCE_TEMP_IMAGE_UPLOAD');
                     break;
 
+                case 'dpr' :
+                    $tempUploadPath = env('WEB_PUBLIC_PATH').env('DPR_TEMP_UPLOAD');
+                    break;
+
                 default :
                     $tempUploadPath = '';
             }

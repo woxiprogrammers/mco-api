@@ -347,6 +347,7 @@ use NotificationTrait;
                 }else{
                     $material_list[$iterator]['list_of_images'][0]['image_url'] = null;
                 }
+                $material_list[$iterator]['history_messages'] = array();
                 $iterator++;
             }
             $data['item_list'] = $material_list;
