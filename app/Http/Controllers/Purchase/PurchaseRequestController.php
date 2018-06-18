@@ -347,6 +347,14 @@ use NotificationTrait;
                 }else{
                     $material_list[$iterator]['list_of_images'][0]['image_url'] = null;
                 }
+                $material_list[$iterator]['history_messages'] = array();
+                $materialRequestComponentVersions = MaterialRequestComponentVersion::where('material_request_component_id', $materialRequestComponent['id'])->where('show_p_r_detail', true)->get();
+                foreach ($materialRequestComponentVersions as $materialRequestComponentVersion){
+                    $versionUser = User::findOrFail($materialRequestComponentVersion->user_id);
+                    $material_list[$iterator]['history_messages'][] = [
+                        'message' => date('l, d F Y',strtotime($materialRequestComponentVersion['created_at'])).' '.$materialRequestComponentVersion['quantity'].' '.$materialRequestComponentVersion->unit->name.' P. R. created by '.$versionUser->first_name.' '.$versionUser->last_name.' '.$materialRequestComponentVersion->remark
+                    ];
+                }
                 $iterator++;
             }
             $data['item_list'] = $material_list;
