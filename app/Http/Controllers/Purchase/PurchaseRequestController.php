@@ -352,7 +352,7 @@ use NotificationTrait;
                 foreach ($materialRequestComponentVersions as $materialRequestComponentVersion){
                     $versionUser = User::findOrFail($materialRequestComponentVersion->user_id);
                     $material_list[$iterator]['history_messages'][] = [
-                        'message' => date('l, d F Y',strtotime($materialRequestComponentVersion['created_at'])).' '.$materialRequestComponentVersion['quantity'].' '.$materialRequestComponentVersion->unit->name.' P. R. created by '.$versionUser->first_name.' '.$versionUser->last_name.' '.$materialRequestComponentVersion->remark
+                        'message' => date('l, d F Y',strtotime($materialRequestComponentVersion['created_at'])).' '.$materialRequestComponentVersion['quantity'].' '.$materialRequestComponentVersion->unit->name.' P. R. approved by '.$versionUser->first_name.' '.$versionUser->last_name.' '.$materialRequestComponentVersion->remark
                     ];
                 }
                 $iterator++;
