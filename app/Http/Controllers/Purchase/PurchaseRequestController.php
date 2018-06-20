@@ -17,6 +17,7 @@ use App\Module;
 use App\Permission;
 use App\PurchaseOrder;
 use App\PurchaseOrderRequest;
+use App\PurchaseOrderRequestComponent;
 use App\PurchaseRequestComponents;
 use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequestComponentVendorRelation;
@@ -256,16 +257,18 @@ use NotificationTrait;
                     $isPurchaseOrderCreated = PurchaseOrder::where('purchase_request_id',$purchaseRequest['id'])->count();
                     $purchaseRequestComponentIds = $purchaseRequestComponents->pluck('id')->toArray();
                     $vendorAssignedCount = PurchaseRequestComponentVendorRelation::whereIn('purchase_request_component_id',$purchaseRequestComponentIds)->count();
-                    $purchaseOrderRequestCount = PurchaseOrderRequest::where('purchase_request_id',$purchaseRequest['id'])->count();
+                    $purchaseOrderRequestIds = PurchaseOrderRequest::where('purchase_request_id',$purchaseRequest['id'])->pluck('id');
                     if($isPurchaseOrderCreated > 0){
                         $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Order Created";
-                    }elseif($purchaseOrderRequestCount > 0){
+                    }elseif(count($purchaseOrderRequestIds) > 0){
                         $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Order Requested";
                     }elseif($vendorAssignedCount > 0){
                         $purchaseRequestList[$iterator]['purchase_request_status'] = "Vendor Assigned";
                     }else{
                         $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Request Created";
                     }
+                    $purchaseOrderRequestComponentDisapprovedCount = PurchaseOrderRequestComponent::whereIn('purchase_order_request_id',$purchaseOrderRequestIds)->where('is_approved',false)->count();
+                    $purchaseRequestList[$iterator]['is_disapproved'] = ($purchaseOrderRequestComponentDisapprovedCount > 0) ? true : false;
                     $iterator++;
                 }
             }
@@ -340,6 +343,8 @@ use NotificationTrait;
                 $material_list[$iterator]['quantity'] = $materialRequestComponent['quantity'];
                 $material_list[$iterator]['unit_id'] = $materialRequestComponent['unit_id'];
                 $material_list[$iterator]['unit_name'] = $materialRequestComponent->unit->name;
+                $purchaseRequestComponentId = PurchaseRequestComponents::where('material_request_component_id',$materialRequestComponent['id'])->pluck('id');
+                $purchaseRequestComponentVendorRelationId =
                 $material_list[$iterator]['list_of_images'] = array();
                 $materialRequestComponentImages = $materialRequestComponent->materialRequestComponentImages;
                 if(count($materialRequestComponentImages) > 0){
