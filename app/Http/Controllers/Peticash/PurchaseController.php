@@ -155,10 +155,10 @@ use NotificationTrait;
             $transferData['grn'] = $purchaseTransactionData['grn'];
             $transferData['user_id'] = $user['id'];
             $createdTransferInId = $this->create($transferData,$name,'IN','from-purchase');
-            if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
+            /*if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
                 $createdTransferOutId = $this->create($transferData, 'user', 'OUT', 'from-purchase');
                 $sha1InventoryTransferOutId = sha1($createdTransferOutId);
-            }
+            }*/
             $purchasePeticashTransactionImages = PurchasePeticashTransactionImage::where('purchase_peticash_transaction_id',$purchaseTransactionData['id'])->get();
             if(count($purchasePeticashTransactionImages) > 0){
                 $sha1PurchaseTransactionId = sha1($purchaseTransactionData['id']);
@@ -176,7 +176,7 @@ use NotificationTrait;
                     File::copy($tempUploadFile,$imageUploadNewPathForInventoryIn);
                     InventoryComponentTransferImage::create(['name' => $images['name'],'inventory_component_transfer_id' => $createdTransferInId]);
 
-                    if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
+                    /*if ($componentTypeSlug == 'quotation-material' || $componentTypeSlug == 'new-material' || $componentTypeSlug == 'structure-material') {
                         $imageUploadNewPathForInventoryOut = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_IMAGE_UPLOAD') . $sha1InventoryComponentId . DIRECTORY_SEPARATOR . 'transfers' . DIRECTORY_SEPARATOR . $sha1InventoryTransferOutId;
                         if (!file_exists($imageUploadNewPathForInventoryOut)) {
                             File::makeDirectory($imageUploadNewPathForInventoryOut, $mode = 0777, true, true);
@@ -184,7 +184,7 @@ use NotificationTrait;
                         $imageUploadNewPathForInventoryOut .= DIRECTORY_SEPARATOR.$images['name'];
                         File::copy($tempUploadFile,$imageUploadNewPathForInventoryOut);
                         InventoryComponentTransferImage::create(['name' => $images['name'],'inventory_component_transfer_id' => $createdTransferInId]);
-                    }
+                    }*/
                 }
             }
             $data = array();
