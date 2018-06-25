@@ -14,10 +14,11 @@
 $app->get('/', function () use ($app) {
     return $app->version();
 });
-
+$app->get('/app-version', array('uses' => 'AuthController@getAppVersion'));
 $app->post('/login',array('uses' => 'AuthController@login'));
 $app->post('/dashboard',array('uses' => 'AuthController@dashboard'));
 $app->post('save-image',array('uses' => 'ImageController@saveImages'));
+
 $app->group(['prefix' => 'inventory'],function () use($app){
     $app->post('generate-grn', array('uses' => 'Inventory\InventoryManageController@generateGRN'));
     $app->post('get-site-out-GRN', array('uses' => 'Inventory\InventoryManageController@getSiteOutGRN'));
@@ -50,6 +51,7 @@ $app->group(['prefix' => 'inventory'],function () use($app){
         });
     });
 });
+
 $app->group(['prefix' => 'purchase'],function () use($app){
     $app->get('get-purchase-request-status',array('uses' => 'Purchase\MaterialRequestController@getPurchaseRequestComponentStatus'));
     $app->post('get-history',array('uses' => 'Purchase\MaterialRequestController@getPurchaseRequestHistory'));
@@ -70,12 +72,14 @@ $app->group(['prefix' => 'purchase'],function () use($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestListing'));
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderRequestController@getPurchaseOrderRequestDetail'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseOrderRequestController@changeStatus'));
+        $app->post('disapprove-component',array('uses' => 'Purchase\PurchaseOrderRequestController@disapproveComponent'));
     });
     $app->group(['prefix' => 'purchase-order'], function () use ($app){
         $app->post('listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderListing'));
         $app->post('detail',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderDetail'));
         $app->post('material-listing',array('uses' => 'Purchase\PurchaseOrderController@getPurchaseOrderMaterialListing'));
         $app->post('change-status',array('uses' => 'Purchase\PurchaseOrderController@changeStatus'));
+        $app->post('authenticate-purchase-order-close',array('uses' => 'Purchase\PurchaseOrderController@authenticatePOClose'));
         $app->post('generate-grn',array('uses' => 'Purchase\PurchaseOrderController@generateGRN'));
         $app->post('create-transaction',array('uses' => 'Purchase\PurchaseOrderController@createPurchaseOrderTransaction'));
         /*$app->post('edit-bill-transaction',array('uses' => 'Purchase\PurchaseOrderController@editPurchaseOrderBillTransaction'));*/
@@ -86,11 +90,13 @@ $app->group(['prefix' => 'purchase'],function () use($app){
 });
 
 $app->post('auto-suggest',array('uses' => 'Purchase\MaterialRequestController@autoSuggest'));
+
 $app->group(['prefix' => 'users'], function () use($app){
     $app->group(['prefix' => 'purchase'], function () use($app){
             $app->post('purchase-request/approval-acl', array('uses' => 'User\PurchaseController@getPurchaseRequestApprovalACl'));
     });
 });
+
 $app->group(['prefix' => 'peticash'], function () use($app){
     $app->post('transaction/listing', array('uses' => 'Peticash\SalaryController@getTransactionListing'));
     $app->post('statistics', array('uses' => 'Peticash\SalaryController@getStatistics'));
@@ -109,6 +115,7 @@ $app->group(['prefix' => 'peticash'], function () use($app){
         $app->post('transaction-detail', array('uses' => 'Peticash\PurchaseController@getTransactionDetails'));
     });
 });
+
 $app->group(['prefix' => 'checklist'], function () use($app){
     $app->post('category', array('uses' => 'Checklist\ChecklistController@getCategoryListing'));
     $app->post('floor', array('uses' => 'Checklist\ChecklistController@getFloorListing'));
@@ -125,13 +132,17 @@ $app->group(['prefix' => 'checklist'], function () use($app){
 });
 
 $app->get('system-units' , array('uses' => 'UnitController@getAllSystemUnits'));
+
 $app->get('system-project-sites' , array('uses' => 'ProjectSiteController@getAllProjectSites'));
+
 $app->get('system-miscellaneous-categories' , array('uses' => 'MiscellaneousCategoryController@getAllMiscellaneousCategory'));
+
 $app->group(['prefix' => 'awareness'], function () use($app){
     $app->post('get-main-categories', array('uses' => 'Awareness\AwarenessManagementController@getMainCategories'));
     $app->post('get-sub-categories', array('uses' => 'Awareness\AwarenessManagementController@getSubCategories'));
     $app->post('listing', array('uses' => 'Awareness\AwarenessManagementController@listing'));
 });
+
 $app->group(['prefix' => 'drawing'], function () use($app){
     $app->post('get-main-categories', array('uses' => 'Drawing\DrawingController@getMainCategories'));
     $app->post('get-sub-categories', array('uses' => 'Drawing\DrawingController@getSubCategories'));
@@ -140,6 +151,7 @@ $app->group(['prefix' => 'drawing'], function () use($app){
     $app->post('get-comments', array('uses' => 'Drawing\DrawingController@getComments'));
     $app->post('get-all-image-versions', array('uses' => 'Drawing\DrawingController@getAllImageVersions'));
 });
+
 $app->group(['prefix' => 'notification'], function () use($app){
     $app->post('store-fcm-token',array('uses'=> 'Notification\NotificationController@storeFCMToken'));
     $app->post('get-counts',array('uses'=> 'Notification\NotificationController@getNotificationCounts'));
@@ -159,3 +171,4 @@ $app->group(['prefix' => 'dpr'], function () use($app){
     });
 });
 
+$app->get('system-banks' , array('uses' => 'BankController@getAllBanks'));

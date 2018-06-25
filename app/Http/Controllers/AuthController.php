@@ -26,7 +26,7 @@ class AuthController extends BaseController
 {
     public function __construct()
     {
-        $this->middleware('jwt.auth',['except' => ['login']]);
+        $this->middleware('jwt.auth',['except' => ['login','getAppVersion']]);
         if(!Auth::guest()) {
             $this->user = Auth::user();
         }
@@ -41,17 +41,25 @@ class AuthController extends BaseController
             $loginDate = null;
             if($request->has(['email','password'])){
                 $credentials = $request->only('email','password');
+
                 if( $token = JWTAuth::attempt($credentials) ){
                     $user = Auth::user();
-                    if($user['is_active'] == true){
-                        $message = "Logged in successfully!!";
-                        $status = 200;
-                        $data = $this->getData($user);
-                        $loginDate = Carbon::now();
+                    $userProjectSiteCount = UserProjectSiteRelation::where('user_id',$user['id'])->count();
+                    if($userProjectSiteCount > 0){
+                        if($user['is_active'] == true){
+                            $message = "Logged in successfully!!";
+                            $status = 200;
+                            $data = $this->getData($user);
+                            $loginDate = Carbon::now();
+                        }else{
+                            $status = 401;
+                            $message = "User is not activated yet. Please activate user first.";
+                        }
                     }else{
-                        $status = 401;
-                        $message = "User is not activated yet. Please activate user first.";
+                        $message = "Project Site not assigned";
+                        $status = 404;
                     }
+
                 }else{
                     $message = "Invalid credentials";
                     $status = 401;
@@ -60,15 +68,22 @@ class AuthController extends BaseController
                 $credentials = $request->only('mobile','password');
                 if( $token = JWTAuth::attempt($credentials) ){
                     $user = Auth::user();
-                    if($user['is_active'] == true){
-                        $message = "Logged in successfully!!";
-                        $status = 200;
-                        $data = $this->getData($user);
-                        $loginDate = Carbon::now();
+                    $userProjectSiteCount = UserProjectSiteRelation::where('user_id',$user['id'])->count();
+                    if($userProjectSiteCount > 0){
+                        if($user['is_active'] == true){
+                            $message = "Logged in successfully!!";
+                            $status = 200;
+                            $data = $this->getData($user);
+                            $loginDate = Carbon::now();
+                        }else{
+                            $status = 401;
+                            $message = "User is not activated yet. Please activate user first.";
+                        }
                     }else{
-                        $status = 401;
-                        $message = "User is not activated yet. Please activate user first.";
+                        $message = "Project Site not assigned";
+                        $status = 404;
                     }
+
                 }else{
                     $message = "Invalid credentials";
                     $status = 401;
@@ -110,14 +125,7 @@ class AuthController extends BaseController
                 $user = Auth::user();
                 $message = "You are already logged in.";
                 $status = 200;
-                $newPermissions = UserHasPermission::where('user_id',$user->id)->where('created_at','>',$request->logged_in_at)->get();
-                if(count($newPermissions) <= 0){
-                    $status = 201;
-                    $message = 'You have No New Permissions';
-                    $data = null;
-                }else{
-                    $data = $this->getData($user);
-                }
+                $data = $this->getData($user);
             }else{
                 $token = null;
                 $message = "Invalid credentials";
@@ -159,7 +167,7 @@ class AuthController extends BaseController
                 $submoduleInfo = Module::join('permissions','permissions.module_id','=','modules.id')
                     ->join('user_has_permissions','user_has_permissions.permission_id','=','permissions.id')
                     ->where('user_has_permissions.user_id', $user->id)
-                    ->where('permissions.is_mobile', true)
+                    ->where('user_has_permissions.is_mobile', true)
                     ->select('modules.id as sub_module_id','modules.name as sub_module_name','modules.slug as sub_module_tag','permissions.id as permission_id','permissions.name as permission_name','modules.module_id as module_id')
                     ->orderBy('sub_module_id')
                     ->distinct('permission_id')
@@ -239,6 +247,24 @@ class AuthController extends BaseController
             ];
             Log::critical(json_encode($data));
         }
+    }
+
+    public function getAppVersion(Request $request){
+        try{
+            $status = 200;
+            $response  = [
+                'min_app_version' => env('MIN_APP_VERSION')
+            ];
+        }catch (\Exception $e){
+            $data = [
+                'action' => 'Get App Version',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            $status = 500;
+            $response = null;
+        }
+        return response()->json($response, $status);
     }
 }
 

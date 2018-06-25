@@ -41,6 +41,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Lumen\Routing\Controller as BaseController;
@@ -93,7 +94,7 @@ class PurchaseOrderController extends BaseController{
                         $purchaseOrderList[$iterator]['is_client_order'] = true;
                     }else{
                         $purchaseOrderList[$iterator]['vendor_id'] = $purchaseOrder['vendor_id'];
-                        $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->name;
+                        $purchaseOrderList[$iterator]['vendor_name'] = $purchaseOrder->vendor->company;
                         $purchaseOrderList[$iterator]['is_client_order'] = false;
                     }
                     $purchaseOrderList[$iterator]['client_name'] = $project->client->company;
@@ -190,10 +191,17 @@ class PurchaseOrderController extends BaseController{
             $purchaseOrderList['purchase_order_id'] = $purchaseOrder['id'];
             $projectSite = $purchaseOrder->purchaseRequest->projectSite;
             $purchaseOrderList['purchase_order_format_id'] = $this->getPurchaseIDFormat('purchase-order',$projectSite['id'],$purchaseOrder['created_at'],$purchaseOrder['serial_no']);
-            $purchaseOrderList['vendor_id'] = $purchaseOrder['vendor_id'];
-            $vendor = $purchaseOrder->vendor;
-            $purchaseOrderList['vendor_name'] = $vendor->name;
-            $purchaseOrderList['vendor_mobile'] = $vendor->mobile;
+            if($purchaseOrder->is_client_order == true){
+                $purchaseOrderList['vendor_id'] = $purchaseOrder['client_id'];
+                $purchaseOrderList['vendor_name'] = $purchaseOrder->client->company;
+                $purchaseOrderList['vendor_mobile'] = $purchaseOrder->client->mobile;
+                $purchaseOrderList['is_client_order'] = true;
+            }else{
+                $purchaseOrderList['vendor_id'] = $purchaseOrder['vendor_id'];
+                $purchaseOrderList['vendor_name'] = $purchaseOrder->vendor->company;
+                $purchaseOrderList['vendor_mobile'] = $purchaseOrder->vendor->mobile;
+                $purchaseOrderList['is_client_order'] = false;
+            }
             $purchaseOrderList['date'] = date($purchaseOrder['created_at']);
             $iterator = 0;
             foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
@@ -772,4 +780,29 @@ class PurchaseOrderController extends BaseController{
         return response()->json($response,$status);
     }
 
+    public function authenticatePOClose(Request $request){
+        try{
+            $password = $request->password;
+            if(Hash::check($password, env('CLOSE_PURCHASE_ORDER_PASSWORD'))){
+                $status = 200;
+                $message = 'Authentication successful !!';
+            }else{
+                $status = 401;
+                $message = 'You are not authorised to close this purchase order.';
+            }
+        }catch (\Exception $e){
+            $message = 'Fail';
+            $status = 500;
+            $data = [
+                'action' => 'Authenticate Purchase Order Close',
+                'exception' => $e->getMessage(),
+                'params' => $request->all()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message,
+        ];
+        return response()->json($response,$status);
+    }
 }

@@ -23,6 +23,7 @@ use App\PurchaseOrderRequest;
 use App\PurchaseOrderRequestComponent;
 use App\PurchaseOrderStatus;
 use App\PurchaseRequestComponents;
+use App\PurchaseRequestComponentStatuses;
 use App\PurchaseRequestComponentVendorMailInfo;
 use App\PurchaseRequestComponentVendorRelation;
 use App\PurchaseRequests;
@@ -52,15 +53,15 @@ class PurchaseOrderRequestController extends BaseController
     {
         try {
             $purchaseRequestIds = PurchaseRequests::where('project_site_id', $request['project_site_id'])->pluck('id');
-            $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->orderBy('created_at','desc')->get();
+            $purchaseOrderRequests = PurchaseOrderRequest::whereIn('purchase_request_id', $purchaseRequestIds)->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])->where('ready_to_approve', true)->orderBy('created_at','desc')->get();
             $iterator = 0;
             $purchaseOrderRequestList = array();
-            $allPurchaseRequestComponentIds = PurchaseOrderComponent::pluck('purchase_request_component_id')->toArray();
             foreach ($purchaseOrderRequests as $key => $purchaseOrderRequest) {
-                $purchaseRequestComponentVendorRealtionIds = array_column(($purchaseOrderRequest->purchaseOrderRequestComponents->toArray()),'purchase_request_component_vendor_relation_id');
-                $purchaseRequestComponentIds = array_unique(PurchaseRequestComponentVendorRelation::whereIn('id',$purchaseRequestComponentVendorRealtionIds)->pluck('purchase_request_component_id')->toArray());
-                $arrayDiff = array_diff($purchaseRequestComponentIds,$allPurchaseRequestComponentIds);
-                if(count($arrayDiff) > 0){
+                $totalComponentCount = count($purchaseOrderRequest->purchaseOrderRequestComponents->toArray());
+                $processedComponentCount = PurchaseOrderRequestComponent::where('purchase_order_request_id', $purchaseOrderRequest->id)
+                                                            ->whereNotNull('is_approved')
+                                                            ->count();
+                if($totalComponentCount > $processedComponentCount){
                     $purchaseOrderRequestList[$iterator]['purchase_order_request_id'] = $purchaseOrderRequest['id'];
                     $purchaseOrderRequestList[$iterator]['purchase_request_id'] = $purchaseOrderRequest['purchase_request_id'];
                     $purchaseOrderRequestList[$iterator]['purchase_request_format_id'] = $purchaseOrderRequest->purchaseRequest->format_id;
@@ -112,8 +113,18 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['name'] = ucwords($materialRequestComponent->name);
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['quantity'] = $purchaseOrderRequestComponent->quantity;
                     $purchaseOrderRequestComponents[$purchaseRequestComponentId]['unit'] = $purchaseOrderRequestComponent->unit->name;
-                    $purchaseOrderCount = PurchaseOrderComponent::where('purchase_request_component_id',$purchaseRequestComponentId)->count();
-                    $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = ($purchaseOrderCount > 0) ? true : false;
+                    $purchaseRequestComponentVendorRelationIds = PurchaseRequestComponentVendorRelation::where('purchase_request_component_id', $purchaseRequestComponentId)->pluck('id')->toArray();
+                    $totalPurchaseOrderRequestComponentIds = PurchaseOrderRequestComponent::where('purchase_order_request_id', $request['purchase_order_request_id'])
+                                                                        ->whereIn('purchase_request_component_vendor_relation_id', $purchaseRequestComponentVendorRelationIds)
+                                                                        ->pluck('purchase_order_request_components.id')->toArray();
+                    $processedPurchaseOrderRequestCompCount = PurchaseOrderRequestComponent::whereIn('id', $totalPurchaseOrderRequestComponentIds)
+                                                                        ->whereNull('is_approved')
+                                                                        ->count('id');
+                    if($processedPurchaseOrderRequestCompCount == 0){
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = true;
+                    }else{
+                        $purchaseOrderRequestComponents[$purchaseRequestComponentId]['is_approved'] = false;
+                    }
                 }
                 $rateWithTax = $purchaseOrderRequestComponent->rate_per_unit;
                 $rateWithTax += ($purchaseOrderRequestComponent->rate_per_unit * ($purchaseOrderRequestComponent->cgst_percentage / 100));
@@ -125,6 +136,27 @@ class PurchaseOrderRequestController extends BaseController
                 }else{
                     $vendorName = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client->company;
                     $vendorId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->client_id;
+                }
+                $images = array();
+                $pdf = array();
+                foreach($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages as $purchaseOrderRequestComponentImage){
+                    $mainDirectoryPath = env('PURCHASE_ORDER_REQUEST_IMAGE_UPLOAD').DIRECTORY_SEPARATOR.sha1($request['purchase_order_request_id']);
+                    $componentDirectoryName = sha1($purchaseOrderRequestComponentImage->purchase_order_request_component_id);
+                    if($purchaseOrderRequestComponentImage['is_vendor_approval'] == true){
+                        $path = $mainDirectoryPath.DIRECTORY_SEPARATOR.'vendor_quotation_images'.DIRECTORY_SEPARATOR.$componentDirectoryName.DIRECTORY_SEPARATOR.$purchaseOrderRequestComponentImage->name;
+                    }else{
+                        $path = $mainDirectoryPath.DIRECTORY_SEPARATOR.'client_approval_images'.DIRECTORY_SEPARATOR.$componentDirectoryName.DIRECTORY_SEPARATOR.$purchaseOrderRequestComponentImage->name;
+                    }
+                    $ext = pathinfo($purchaseOrderRequestComponentImage['name'],PATHINFO_EXTENSION);
+                    if($ext == 'pdf' || $ext == 'PDF'){
+                        $pdf[] = [
+                            'path' => $path
+                        ];
+                    }else{
+                        $images[] = [
+                            'path' => $path
+                        ];
+                    }
                 }
                 $purchaseOrderRequestComponents[$purchaseRequestComponentId]['vendor_relations'][] = [
                     'purchase_order_request_component_id' => $purchaseOrderRequestComponent->id,
@@ -150,10 +182,13 @@ class PurchaseOrderRequestController extends BaseController
                     'total_transportation_amount' => $purchaseOrderRequestComponent->transportation_amount
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_cgst_percentage) /100
                                                         + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_sgst_percentage) / 100
-                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100
+                                                        + ($purchaseOrderRequestComponent->transportation_amount * $purchaseOrderRequestComponent->transportation_igst_percentage) / 100,
+                    'images' => $images,
+                    'pdf' => $pdf
                 ];
             }
             $data['purchase_order_request_list'] = array_values($purchaseOrderRequestComponents);
+            $data['pdf_thumbnail_url'] = '/assets/global/img/pdf.jpg';
             $status = 200;
             $message = "Success";
         } catch (\Exception $e) {
@@ -315,24 +350,7 @@ class PurchaseOrderRequestController extends BaseController
                                 Asset::create($categoryAssetData);
                             }
                         }
-                        $webTokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->web_fcm_token];
-                        $mobileTokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->mobile_fcm_token];
-                        $purchaseRequestComponentIds = array_column(($purchaseOrder->purchaseOrderComponent->toArray()),'purchase_request_component_id');
-                        $materialRequestUserToken = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
-                            ->join('material_request_components','material_request_components.material_request_id','=','material_requests.id')
-                            ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
-                            ->join('purchase_order_components','purchase_order_components.purchase_request_component_id','=','purchase_request_components.id')
-                            ->join('purchase_orders','purchase_orders.id','=','purchase_order_components.purchase_order_id')
-                            ->where('purchase_orders.id', $purchaseOrder->id)
-                            ->whereIn('purchase_request_components.id', $purchaseRequestComponentIds)
-                            ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
-                            ->get()->toArray();
-                        $webTokens = array_merge($webTokens, array_column($materialRequestUserToken,'web_fcm_token'));
-                        $mobileTokens = array_merge($mobileTokens, array_column($materialRequestUserToken,'mobile_fcm_token'));
-                        $notificationString = '3 -'.$purchaseOrder->purchaseRequest->projectSite->project->name.' '.$purchaseOrder->purchaseRequest->projectSite->name;
-                        $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
-                        $notificationString .= 'PO number: '.$purchaseOrder->format_id;
-                        $this->sendPushNotification('Manisha Construction',$notificationString,$webTokens,$mobileTokens,'c-p-o');
+
                         if(count($purchaseOrderRequestComponent->purchaseOrderRequestComponentImages) > 0){
                             $purchaseOrderMainDirectoryName = sha1($purchaseOrderComponent['purchase_order_id']);
                             $purchaseOrderComponentDirectoryName = sha1($purchaseOrderComponent['id']);
@@ -364,8 +382,36 @@ class PurchaseOrderRequestController extends BaseController
                             }
                         }
                     }
+                    $webTokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->web_fcm_token];
+                    $mobileTokens = [$purchaseOrder->purchaseRequest->onBehalfOfUser->mobile_fcm_token];
+                    $purchaseRequestComponentIds = array_column(($purchaseOrder->purchaseOrderComponent->toArray()),'purchase_request_component_id');
+                    $materialRequestUserToken = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
+                        ->join('material_request_components','material_request_components.material_request_id','=','material_requests.id')
+                        ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')
+                        ->join('purchase_order_components','purchase_order_components.purchase_request_component_id','=','purchase_request_components.id')
+                        ->join('purchase_orders','purchase_orders.id','=','purchase_order_components.purchase_order_id')
+                        ->where('purchase_orders.id', $purchaseOrder->id)
+                        ->whereIn('purchase_request_components.id', $purchaseRequestComponentIds)
+                        ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                        ->get()->toArray();
+
+                    $materialRequestComponentIds = PurchaseRequestComponents::whereIn('id',$purchaseRequestComponentIds)->pluck('material_request_component_id')->toArray();
+                    $purchaseRequestApproveStatusesId = PurchaseRequestComponentStatuses::whereIn('slug',['p-r-manager-approved','p-r-admin-approved'])->pluck('id');
+                    $purchaseRequestApproveUserToken = User::join('material_request_component_history_table','material_request_component_history_table.user_id','=','users.id')
+                        ->whereIn('material_request_component_history_table.material_request_component_id',$materialRequestComponentIds)
+                        ->whereIn('material_request_component_history_table.component_status_id',$purchaseRequestApproveStatusesId)
+                        ->select('users.web_fcm_token as web_fcm_function','users.mobile_fcm_token as mobile_fcm_function')
+                        ->get()->toArray();
+                    $materialRequestUserToken = array_merge($materialRequestUserToken,$purchaseRequestApproveUserToken);
+                    $webTokens = array_merge($webTokens, array_column($materialRequestUserToken,'web_fcm_function'));
+                    $mobileTokens = array_merge($mobileTokens, array_column($materialRequestUserToken,'mobile_fcm_function'));
+                    $notificationString = '3 -'.$purchaseOrder->purchaseRequest->projectSite->project->name.' '.$purchaseOrder->purchaseRequest->projectSite->name;
+                    $notificationString .= ' '.$user['first_name'].' '.$user['last_name'].'Purchase Order Created.';
+                    $notificationString .= 'PO number: '.$purchaseOrder->format_id;
+                    $this->sendPushNotification('Manisha Construction',$notificationString,array_unique($webTokens),array_unique($mobileTokens),'c-p-o');
                 }
             }
+
             $message = "Component status changed successfully";
             $status = 200;
         }catch (\Exception $e){
@@ -373,6 +419,31 @@ class PurchaseOrderRequestController extends BaseController
             $status = 500;
             $data = [
                 'action' => 'Purchase Order Request change status',
+                'params' => $request->all(),
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        $response = [
+            'message' => $message
+        ];
+        return response()->json($response, $status);
+    }
+
+    public function disapproveComponent(Request $request){
+        try{
+            $status = 200;
+            $purchaseOrderRequestComponentId = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                ->join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                ->where('purchase_request_components.material_request_component_id', $request->material_request_component_id)
+                ->pluck('purchase_order_request_components.id');
+            PurchaseOrderRequestComponent::whereIn('id', $purchaseOrderRequestComponentId)->update(['is_approved' => false]);
+            $message = "Material / Asset remove successfully !!";
+        }catch (\Exception $e){
+            $message = "Fail";
+            $status = 500;
+            $data = [
+                'action' => 'Disapprove Purchase Order Request component',
                 'params' => $request->all(),
                 'exception' => $e->getMessage()
             ];

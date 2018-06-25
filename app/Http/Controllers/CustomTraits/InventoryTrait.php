@@ -492,7 +492,7 @@ trait InventoryTrait{
             if ($request->has('images')) {
                 $sha1UserId = sha1($user['id']);
                 $sha1InventoryTransferId = sha1($inventoryComponentTransfer['id']);
-                $sha1InventoryComponentId = sha1($request['inventory_component_id']);
+                $sha1InventoryComponentId = sha1($inventoryComponentTransfer['inventory_component_id']);
                 foreach ($request['images'] as $key1 => $imageName) {
                     $tempUploadFile = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
                     if (File::exists($tempUploadFile)) {
@@ -532,10 +532,13 @@ trait InventoryTrait{
         try{
             $status = 200;
             $message = "Success";
+            $projectSite = ProjectSite::where('id',$request['project_site_id'])->first();
+            $sourceName = $projectSite->project->name.'-'.$projectSite->name;
             $grns = InventoryComponentTransfers::join('inventory_components','inventory_components.id','=','inventory_component_transfers.inventory_component_id')
                         ->where('transfer_type_id',InventoryTransferTypes::where('slug','site')->where('type','ilike','out')->pluck('id')->first())
                         ->where('inventory_component_transfers.inventory_component_transfer_status_id',InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first())
                         ->where('inventory_components.project_site_id','!=',$request['project_site_id'])
+                        ->where('inventory_component_transfers.source_name',$sourceName)
                         ->whereNull('related_transfer_id')->select('inventory_component_transfers.id','inventory_component_transfers.grn')->get();
             $data['grn'] = $grns;
         }catch(\Exception $e){
