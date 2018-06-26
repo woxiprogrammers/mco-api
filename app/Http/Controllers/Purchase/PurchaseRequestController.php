@@ -267,8 +267,23 @@ use NotificationTrait;
                     }else{
                         $purchaseRequestList[$iterator]['purchase_request_status'] = "Purchase Request Created";
                     }
-                    $purchaseOrderRequestComponentDisapprovedCount = PurchaseOrderRequestComponent::whereIn('purchase_order_request_id',$purchaseOrderRequestIds)->where('is_approved',false)->count();
-                    $purchaseRequestList[$iterator]['is_disapproved'] = ($purchaseOrderRequestComponentDisapprovedCount > 0) ? true : false;
+                    $purchaseRequestList[$iterator]['is_disapproved']  = false;
+                    foreach($purchaseRequestComponentIds as $purchaseRequestComponentId){
+                        $purchaseOrderRequestComponentData = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                            ->join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                            ->where('purchase_request_components.id',$purchaseRequestComponentId)->orderBy('id','desc')->select('purchase_order_request_components.id','purchase_order_request_components.is_approved','purchase_order_request_components.approve_disapprove_by_user','purchase_order_request_components.purchase_request_component_vendor_relation_id')->get();
+                        $purchaseOrderRequestComponentNullIds = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                            ->join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                            ->where('purchase_request_components.id',$purchaseRequestComponentId)->orderBy('id','desc')->whereNull('is_approved')->pluck('purchase_order_request_components.id');
+                        if(count($purchaseOrderRequestComponentData) > 0){
+                            $disapprovedCount = $purchaseOrderRequestComponentData->where('is_approved',false)->whereNotIn('id',$purchaseOrderRequestComponentNullIds)->count();
+                            if($disapprovedCount == count($purchaseOrderRequestComponentData)){
+
+                                $purchaseRequestList[$iterator]['is_disapproved'] = true;
+                                break;
+                            }
+                        }
+                    }
                     $iterator++;
                 }
             }
@@ -343,9 +358,22 @@ use NotificationTrait;
                 $material_list[$iterator]['quantity'] = $materialRequestComponent['quantity'];
                 $material_list[$iterator]['unit_id'] = $materialRequestComponent['unit_id'];
                 $material_list[$iterator]['unit_name'] = $materialRequestComponent->unit->name;
-                $purchaseRequestComponentId = PurchaseRequestComponents::where('material_request_component_id',$materialRequestComponent['id'])->pluck('id');
-                $purchaseRequestComponentVendorRelationId =
-                $material_list[$iterator]['list_of_images'] = array();
+                $material_list[$iterator]['disapproved_by_user_name'] = '';
+                $purchaseOrderRequestComponentData = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                    ->join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                    ->where('purchase_request_components.material_request_component_id',$materialRequestComponent['id'])->orderBy('id','desc')->select('purchase_order_request_components.id','purchase_order_request_components.is_approved','purchase_order_request_components.approve_disapprove_by_user','purchase_order_request_components.purchase_request_component_vendor_relation_id')->get();
+                $purchaseOrderRequestComponentNullIds = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                    ->join('purchase_request_components','purchase_request_components.id','=','purchase_request_component_vendor_relation.purchase_request_component_id')
+                    ->where('purchase_request_components.material_request_component_id',$materialRequestComponent['id'])->orderBy('id','desc')->whereNull('is_approved')->pluck('purchase_order_request_components.id');
+                if(count($purchaseOrderRequestComponentData) > 0){
+                    $disapprovedCount = $purchaseOrderRequestComponentData->where('is_approved',false)->whereNotIn('id',$purchaseOrderRequestComponentNullIds)->count();
+                    if($disapprovedCount == count($purchaseOrderRequestComponentData)){
+                        $disapprovedUser = $purchaseOrderRequestComponentData->first()->user;
+                        $material_list[$iterator]['disapproved_by_user_name'] = $disapprovedUser['first_name'].' '.$disapprovedUser['last_name'];
+                    }
+
+                }
+               $material_list[$iterator]['list_of_images'] = array();
                 $materialRequestComponentImages = $materialRequestComponent->materialRequestComponentImages;
                 if(count($materialRequestComponentImages) > 0){
                     $material_list[$iterator]['list_of_images'] = $this->getUploadedImages($materialRequestComponentImages,$materialRequestComponent['id']);

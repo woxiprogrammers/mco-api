@@ -297,7 +297,7 @@ class PurchaseOrderRequestController extends BaseController
                 }else{
                     /*disapprove*/
                     PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
-                        ->update(['is_approved' => $purchase_order_request_component['is_approved']]);
+                        ->update(['is_approved' => $purchase_order_request_component['is_approved'], 'approve_disapprove_by_user' => $user['id']]);
                 }
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
