@@ -242,7 +242,7 @@ class SalaryController extends BaseController{
                     $salaryTransactionData = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])
                                             ->whereMonth('date', $request['month'])->whereYear('date', $request['year'])
                                             ->orderBy('date','desc')
-                                            ->select('id as salary_id','employee_id','project_site_id','peticash_transaction_type_id','amount','date','peticash_status_id','payment_type_id','created_at')
+                                            ->select('id as salary_id','employee_id','project_site_id','peticash_transaction_type_id','amount','date','peticash_status_id','payment_type_id','created_at','payable_amount')
                                             ->get();
                     $transactionsData = new Collection();
                     foreach($purchaseTrasactionData as $collection) {
@@ -270,7 +270,12 @@ class SalaryController extends BaseController{
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->employee->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
+    				if ($transactionData['peticash_transaction_type_id'] == 5) {	//salary
+	                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
+				} else {
+				    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
+
+				}
                             }
 
                             $jIterator++;
@@ -292,9 +297,14 @@ class SalaryController extends BaseController{
                             $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                             $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData->employee->name;
                             $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_amount'] = $transactionData['amount'];
-                            $jIterator++;
-                        }
+                    	    if ($transactionData['peticash_transaction_type_id'] == 5) { //salary
+                                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
+                            } else {
+                                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];                               
+                            }    
+
+			$jIterator++;
+                      }
                         $iterator++;
                     }
                     break;
@@ -513,9 +523,15 @@ class SalaryController extends BaseController{
             $data['project_site'] = $peticashSalaryTransaction->projectSite->name;
             $data['date'] = date('d/m/Y',strtotime($peticashSalaryTransaction->date));
             $data['paid_to'] = $peticashSalaryTransaction->employee->name;
-            $data['amount_in_words'] = ucwords(NumberHelper::getIndianCurrency($peticashSalaryTransaction->amount));
-            $data['particulars'] = $peticashSalaryTransaction->remark;
-            $data['amount'] = $peticashSalaryTransaction->amount;
+      	    $data['particulars'] = $peticashSalaryTransaction->remark;
+            if ($peticashSalaryTransaction->peticash_transaction_type_id == 5) {
+		$data['amount_in_words'] = ucwords(NumberHelper::getIndianCurrency($peticashSalaryTransaction->payable_amount));
+	        $data['amount'] = $peticashSalaryTransaction->payable_amount;
+ 	    } else {
+		$data['amount_in_words'] = ucwords(NumberHelper::getIndianCurrency($peticashSalaryTransaction->amount));
+                $data['amount'] = $peticashSalaryTransaction->amount;
+
+	    }
             $data['approved_by'] = $peticashSalaryTransaction->referenceUser->first_name.' '.$peticashSalaryTransaction->referenceUser->last_name;
             $file_name = 'PaymentVoucher-'.$salaryTransactionId.'.pdf';
             $pdf = App::make('dompdf.wrapper');
