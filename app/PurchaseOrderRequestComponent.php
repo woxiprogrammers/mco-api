@@ -11,7 +11,7 @@ class PurchaseOrderRequestComponent extends Model
     protected $fillable = ['purchase_order_request_id','is_approved','purchase_request_component_vendor_relation_id',
         'rate_per_unit','gst','hsn_code','expected_delivery_date','remark','credited_days',
         'quantity','unit_id','cgst_percentage','sgst_percentage','igst_percentage','cgst_amount',
-        'sgst_amount','igst_amount','total','category_id'
+        'sgst_amount','igst_amount','total','category_id','approve_disapprove_by_user'
     ];
 
     public function purchaseOrderRequest(){
@@ -28,5 +28,9 @@ class PurchaseOrderRequestComponent extends Model
 
     public function unit(){
         return $this->belongsTo('App\Unit','unit_id');
+    }
+
+    public function user(){
+        return $this->belongsTo('App\User','approve_disapprove_by_user');
     }
 }
