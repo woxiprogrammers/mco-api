@@ -214,7 +214,7 @@ use NotificationTrait;
         try{
             $now = Carbon::now();
             if($componentTypeSlug == 'new-material') {
-                $materialData['name'] = ucwords(trim($data['name']));
+                $materialData['name'] = ucwords($data['name']);
                 $categoryMaterialData['category_id'] = $data['miscellaneous_category_id'];
                 $materialData['rate_per_unit'] = round(($data['bill_amount'] / $data['quantity']),3);
                 $materialData['unit_id'] = $data['unit_id'];
@@ -237,7 +237,7 @@ use NotificationTrait;
                 }
                 $reference_id = $material['id'];
             }elseif($componentTypeSlug == 'new-asset'){
-                $assetData['name'] = ucwords(trim($data['name']));
+                $assetData['name'] = ucwords($data['name']);
                 $assetData['is_active'] = true;
                 $assetData['asset_types_id'] = AssetType::where('slug','other')->pluck('id')->first();
                 $asset = Asset::create($assetData);
