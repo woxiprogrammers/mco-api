@@ -237,6 +237,9 @@ class AuthController extends BaseController
                     $kIterator++;
                 }
             }
+            usort($projects, function($a, $b) {
+                return $a['project_name'] > $b['project_name'];
+            });
             $data['projects'] = $projects;
             return $data;
         }catch (\Exception $e){
