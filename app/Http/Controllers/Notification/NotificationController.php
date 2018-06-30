@@ -116,6 +116,9 @@ class NotificationController extends BaseController{
                     $kIterator++;
                 }
             }
+            usort($projects, function($a, $b) {
+                return $a['project_name'] > $b['project_name'];
+            });
             $data['projects'] = $projects;
 
         }catch(\Exception $e){
@@ -494,4 +497,5 @@ class NotificationController extends BaseController{
         }
         return $notificationCountArray;
     }
+
 }

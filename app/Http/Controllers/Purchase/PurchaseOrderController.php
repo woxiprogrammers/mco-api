@@ -429,7 +429,7 @@ class PurchaseOrderController extends BaseController{
             foreach($request['item_list'] as $key => $material){
                 $purchaseOrderTransactionComponent['purchase_order_component_id'] = $material['purchase_order_component_id'];
                 $purchaseOrderTransactionComponent['purchase_order_transaction_id'] = $purchaseOrderTransactionData['id'];
-                $purchaseOrderTransactionComponent['quantity'] = $material['quantity'];
+                $purchaseOrderTransactionComponent['quantity'] = round($material['quantity'],3);
                 $purchaseOrderTransactionComponent['unit_id'] = $material['unit_id'];
                 $purchaseOrderTransactionComponentData = PurchaseOrderTransactionComponent::create($purchaseOrderTransactionComponent);
                 $purchaseOrderComponent = PurchaseOrderComponent::where('id',$material['purchase_order_component_id'])->first();

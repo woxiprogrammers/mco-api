@@ -15,7 +15,9 @@ class ProjectSiteController extends BaseController{
             $data = ProjectSite::join('projects','project_sites.project_id','=','projects.id')
                 ->join('clients','clients.id','=','projects.client_id')
                 ->where('projects.is_active',true)
-                ->select('project_sites.id as project_site_id','project_sites.name as project_site_name','projects.id as project_id','projects.name as project_name','clients.id as client_id','clients.company as client_company')->get()->toArray();
+                ->select('project_sites.id as project_site_id','project_sites.name as project_site_name','projects.id as project_id','projects.name as project_name','clients.id as client_id','clients.company as client_company')
+                ->orderBy('project_name','asc')
+                ->get()->toArray();
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
