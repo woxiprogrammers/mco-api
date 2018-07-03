@@ -114,7 +114,7 @@ use NotificationTrait;
                         $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponentData['id'];
                         $materialRequestComponentVersion['component_status_id'] = $PRAssignedStatusId;
                         $materialRequestComponentVersion['user_id'] = $user['id'];
-                        $materialRequestComponentVersion['quantity'] = $materialRequestComponentData['quantity'];
+                        $materialRequestComponentVersion['quantity'] = round($materialRequestComponentData['quantity'],3);
                         $materialRequestComponentVersion['unit_id'] = $materialRequestComponentData['unit_id'];
                         $materialRequestComponentVersion['remark'] = $materialRequestComponentData['remark'];
                         MaterialRequestComponentVersion::create($materialRequestComponentVersion);
