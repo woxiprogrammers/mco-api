@@ -49,7 +49,7 @@ trait MaterialRequestTrait{
             foreach($data['item_list'] as $key => $itemData){
                 $materialRequestComponentData['material_request_id'] = $materialRequest['id'];
                 $materialRequestComponentData['name'] = $itemData['name'];
-                $materialRequestComponentData['quantity'] = $materialRequestComponentVersion['quantity'] =  $itemData['quantity'];
+                $materialRequestComponentData['quantity'] = $materialRequestComponentVersion['quantity'] =  round($itemData['quantity'],3);
                 $materialRequestComponentData['unit_id'] = $materialRequestComponentVersion['unit_id'] = $itemData['unit_id'];
                 $unitName = Unit::where('id',$materialRequestComponentData['unit_id'])->pluck('name')->first();
                 $materialRequestComponentData['component_type_id'] = $itemData['component_type_id'];
