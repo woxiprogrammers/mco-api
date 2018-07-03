@@ -344,14 +344,14 @@ use PurchaseTrait;
             $componentStatus = PurchaseRequestComponentStatuses::where('id',$request['change_component_status_id_to'])->pluck('slug')->first();
             if($request->has('quantity','unit_id')){
                 MaterialRequestComponents::where('id',$request['material_request_component_id'])->update([
-                    'quantity' => $request['quantity'],
+                    'quantity' => round($request['quantity'],3),
                     'unit_id' => $request['unit_id'],
                     'component_status_id' => $request['change_component_status_id_to']
                 ]);
                 $materialRequestComponentVersion['material_request_component_id'] = $request['material_request_component_id'];
                 $materialRequestComponentVersion['component_status_id'] = $request['change_component_status_id_to'];
                 $materialRequestComponentVersion['user_id'] = $user['id'];
-                $materialRequestComponentVersion['quantity'] = $request['quantity'];
+                $materialRequestComponentVersion['quantity'] = round($request['quantity'],3);
                 $materialRequestComponentVersion['unit_id'] = $request['unit_id'];
                 $materialRequestComponentVersion['remark'] = $request['remark'];
                 MaterialRequestComponentVersion::create($materialRequestComponentVersion);
