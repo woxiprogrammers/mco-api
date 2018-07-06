@@ -43,8 +43,9 @@ use NotificationTrait;
         try{
             $now = Carbon::now();
             $user = Auth::user();
-            $purchaseTransaction = $request->except('source_slug','token','images');
+            $purchaseTransaction = $request->except('source_slug','token','images','quantity');
             $purchaseTransaction['reference_user_id'] = $user['id'];
+            $purchaseTransaction['quantity'] = round($request['quantity'],3);
             $componentTypeSlug = MaterialRequestComponentTypes::where('id',$request['component_type_id'])->pluck('slug')->first();
             $materialId = Material::where('name',$request['name'])->pluck('id')->first();
             switch ($componentTypeSlug){
