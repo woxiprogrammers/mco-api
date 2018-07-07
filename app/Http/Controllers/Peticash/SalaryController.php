@@ -22,6 +22,7 @@ use App\ProjectSite;
 use App\ProjectSiteAdvancePayment;
 use App\PurchaseOrderAdvancePayment;
 use App\PurchasePeticashTransaction;
+use App\SubcontractorAdvancePayment;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -466,7 +467,9 @@ class SalaryController extends BaseController{
                     ->where('purchase_order_advance_payments.paid_from_slug','cash')
                     ->where('purchase_requests.project_site_id',$request['project_site_id'])
                     ->sum('amount');
-                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal);
+                $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
+                                    ->where('project_site_id',$request['project_site_id'])->sum('amount');
+                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
