@@ -20,6 +20,7 @@ use App\PeticashTransactionType;
 use App\Project;
 use App\ProjectSite;
 use App\ProjectSiteAdvancePayment;
+use App\PurchaseOrderAdvancePayment;
 use App\PurchasePeticashTransaction;
 use App\User;
 use Carbon\Carbon;
@@ -460,7 +461,12 @@ class SalaryController extends BaseController{
                                                     ->where('project_site_id',$request['project_site_id'])
                                                     ->where('peticash_status_id',$approvedPeticashStatusId)
                                                     ->sum('bill_amount');
-                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount']);
+                $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
+                    ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                    ->where('purchase_order_advance_payments.paid_from_slug','cash')
+                    ->where('purchase_requests.project_site_id',$request['project_site_id'])
+                    ->sum('amount');
+                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
