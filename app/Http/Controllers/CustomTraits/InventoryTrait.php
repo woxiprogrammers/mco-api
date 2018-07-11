@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CustomTraits;
 
 use App\GRNCount;
 use App\InventoryComponent;
+use App\InventoryComponentOpeningStockHistory;
 use App\InventoryComponentTransferImage;
 use App\InventoryComponentTransfers;
 use App\InventoryComponentTransferStatus;
@@ -91,6 +92,10 @@ trait InventoryTrait{
                         $inventoryData['opening_stock'] = 0;
                         $inventoryComponent = InventoryComponent::create($inventoryData);
                         $inventoryComponentId = $inventoryComponent->id;
+                        InventoryComponentOpeningStockHistory::create([
+                            'inventory_component_id' => $inventoryComponentId,
+                            'opening_stock' => $inventoryComponent['opening_stock']
+                        ]);
                     }
                     $requestData = $request->only('quantity','unit_id','remark');
                     $requestData['inventory_component_id'] = $inventoryComponentId;
