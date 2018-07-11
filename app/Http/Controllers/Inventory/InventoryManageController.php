@@ -97,7 +97,7 @@ use NotificationTrait;
                         $totalIN += $conversionData['quantity_to'];
                     }
                 }
-                $inventoryListingData[$iterator]['quantity_in'] = $totalIN;
+                $inventoryListingData[$iterator]['quantity_in'] = $totalIN  + $inventoryComponent['opening_stock'];
                 $inventoryComponentOutData = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
@@ -114,7 +114,7 @@ use NotificationTrait;
                     }
                 }
                 $inventoryListingData[$iterator]['quantity_out'] = $totalOUT;
-                $inventoryListingData[$iterator]['quantity_available'] = (string)(($inventoryListingData[$iterator]['quantity_in'] + $inventoryComponent['opening_stock']) - $inventoryListingData[$iterator]['quantity_out']);
+                $inventoryListingData[$iterator]['quantity_available'] = (string)($inventoryListingData[$iterator]['quantity_in'] - $inventoryListingData[$iterator]['quantity_out']);
                 $inventoryListingData[$iterator]['unit_id'] = $unitId;
                 $inventoryListingData[$iterator]['unit_name'] = Unit::where('id',$unitId)->pluck('name')->first();
                 $iterator++;
