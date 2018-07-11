@@ -277,7 +277,7 @@ class AssetManagementController extends BaseController
                 }
                 $inQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->where('inventory_component_transfer_status_id',$approvedStatusId)->whereIn('transfer_type_id',$inTransferIds)->sum('quantity');
                 $outQuantity = InventoryComponentTransfers::where('inventory_component_id',$dieselcomponentId)->where('inventory_component_transfer_status_id',$approvedStatusId)->whereIn('transfer_type_id',$outTransferIds)->sum('quantity');
-                $availableQuantity = $inQuantity - $outQuantity;
+                $availableQuantity = ($inQuantity + $inventoryComponent['opening_stock']) - $outQuantity;
                 if($availableQuantity < $data['top_up']){
                     $response = [
                         "message" => 'Diesel Top-up quantity is more than available quantity. Available diesel is '.$availableQuantity.' litre.',
