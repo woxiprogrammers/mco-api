@@ -97,7 +97,7 @@ use NotificationTrait;
                         $totalIN += $conversionData['quantity_to'];
                     }
                 }
-                $inventoryListingData[$iterator]['quantity_in'] = $totalIN;
+                $inventoryListingData[$iterator]['quantity_in'] = $totalIN  + $inventoryComponent['opening_stock'];
                 $inventoryComponentOutData = InventoryTransferTypes::join('inventory_component_transfers','inventory_transfer_types.id','=','inventory_component_transfers.transfer_type_id')
                                                                     ->whereIn('inventory_transfer_types.id',$inventoryTransferTypes)
                                                                     ->where('inventory_component_transfers.inventory_component_id',$inventoryComponent->id)
