@@ -23,6 +23,7 @@ use App\ProjectSiteAdvancePayment;
 use App\PurchaseOrderAdvancePayment;
 use App\PurchasePeticashTransaction;
 use App\SubcontractorAdvancePayment;
+use App\SubcontractorBillTransaction;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -234,7 +235,7 @@ class SalaryController extends BaseController{
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
-                    $purchaseTrasactionData = PurchasePeticashTransaction::
+                    $purchaseTransactionData = PurchasePeticashTransaction::
                                                 where('project_site_id',$request['project_site_id'])
                                                 ->whereMonth('date', $request['month'])
                                                 ->whereYear('date', $request['year'])
@@ -247,7 +248,7 @@ class SalaryController extends BaseController{
                                             ->select('id as salary_id','employee_id','project_site_id','peticash_transaction_type_id','amount','date','peticash_status_id','payment_type_id','created_at','payable_amount')
                                             ->get();
                     $transactionsData = new Collection();
-                    foreach($purchaseTrasactionData as $collection) {
+                    foreach($purchaseTransactionData as $collection) {
                         $transactionsData->push($collection);
                     }
                     foreach($salaryTransactionData as $collection) {
@@ -272,14 +273,12 @@ class SalaryController extends BaseController{
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->employee->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-    				if ($transactionData['peticash_transaction_type_id'] == 5) {	//salary
-	                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
-				} else {
-				    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
-
-				}
+    				            if ($transactionData->peticashTransactionType->slug == 'salary') {	//salary
+	                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
+				                }else{
+				                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
+				                }
                             }
-
                             $jIterator++;
                         }
                         $iterator++;
@@ -299,21 +298,20 @@ class SalaryController extends BaseController{
                             $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                             $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData->employee->name;
                             $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-                    	    if ($transactionData['peticash_transaction_type_id'] == 5) { //salary
-                                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
-                            } else {
-                                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];                               
+                    	    if ($transactionData->peticashTransactionType->slug == 'salary') { //salary
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
+                            }else{
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
                             }    
-
-			$jIterator++;
-                      }
+                			$jIterator++;
+                          }
                         $iterator++;
                     }
                     break;
 
                 case 'purchase' :
-                    $purchaseTrasactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
-                    $dataWiseTransactionsData = $purchaseTrasactionData->groupBy('date');
+                    $purchaseTransactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $dataWiseTransactionsData = $purchaseTransactionData->groupBy('date');
                     $iterator = 0;
                     foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
                         $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
@@ -469,7 +467,13 @@ class SalaryController extends BaseController{
                     ->sum('amount');
                 $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
                                     ->where('project_site_id',$request['project_site_id'])->sum('amount');
-                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal);
+
+                $cashSubcontractorBillTransactionTotal = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
+                    ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                    ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
+                    ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
+
+                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal + $cashSubcontractorBillTransactionTotal);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
