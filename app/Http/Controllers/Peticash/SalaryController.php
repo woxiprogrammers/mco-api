@@ -23,6 +23,7 @@ use App\ProjectSiteAdvancePayment;
 use App\PurchaseOrderAdvancePayment;
 use App\PurchasePeticashTransaction;
 use App\SubcontractorAdvancePayment;
+use App\SubcontractorBillReconcileTransaction;
 use App\SubcontractorBillTransaction;
 use App\User;
 use Carbon\Carbon;
@@ -479,7 +480,15 @@ class SalaryController extends BaseController{
                 ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
                 ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
                 ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
-            $data['remaining_amount'] = round((($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal + $cashSubcontractorBillTransactionTotal)),3);
+
+            $subcontractorBillReconcile = SubcontractorBillReconcileTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_reconcile_transactions.subcontractor_bill_id')
+                ->join('payment_types','payment_types.id','=','subcontractor_bill_reconcile_transactions.payment_type_id')
+                ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
+                ->where('subcontractor_bill_reconcile_transactions.paid_from_slug','cash')
+                ->sum('amount');
+
+            $data['remaining_amount'] = round((($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal + $cashSubcontractorBillTransactionTotal + $subcontractorBillReconcile)),3);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
