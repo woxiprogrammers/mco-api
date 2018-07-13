@@ -443,37 +443,43 @@ class SalaryController extends BaseController{
             $message = 'Success';
             $status = 200;
             $data = array();
-            $projectSiteAdvancedAmount = ProjectSiteAdvancePayment::where('paid_from_slug','cash')->sum('amount');
-            $salesBillCashAmount = BillReconcileTransaction::where('paid_from_slug','cash')->sum('amount');
-            $salesBillTransactions = BillTransaction::where('paid_from_slug','cash')->sum('total');
+            $projectSiteAdvancedAmount = ProjectSiteAdvancePayment::where('project_site_id',$request['project_site_id'])->where('paid_from_slug','cash')->sum('amount');
+            $salesBillCashAmount = BillReconcileTransaction::join('bills','bills.id','=','bill_reconcile_transactions.bill_id')
+                ->join('quotations','quotations.id','=','bills.quotation_id')
+                ->where('quotations.project_site_id', $request['project_site_id'])
+                ->where('bill_reconcile_transactions.paid_from_slug','cash')
+                ->sum('bill_reconcile_transactions.amount');
+            $salesBillTransactions = BillTransaction::join('bills','bills.id','=','bill_transactions.bill_id')
+                ->join('quotations','quotations.id','=','bills.quotation_id')
+                ->where('quotations.project_site_id', $request['project_site_id'])
+                ->where('bill_transactions.paid_from_slug','cash')
+                ->sum('total');
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
-                $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
-                $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
+            $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
+            $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
+                                            ->where('project_site_id',$request['project_site_id'])
+                                            ->where('peticash_status_id',$approvedPeticashStatusId)
+                                            ->sum('payable_amount');
+            $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
                                                 ->where('project_site_id',$request['project_site_id'])
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                ->sum('payable_amount');
-                $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
-                                                    ->where('project_site_id',$request['project_site_id'])
-                                                    ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                    ->sum('amount');
-                $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
-                                                    ->where('project_site_id',$request['project_site_id'])
-                                                    ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                    ->sum('bill_amount');
-                $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
-                    ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
-                    ->where('purchase_order_advance_payments.paid_from_slug','cash')
-                    ->where('purchase_requests.project_site_id',$request['project_site_id'])
-                    ->sum('amount');
-                $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
-                                    ->where('project_site_id',$request['project_site_id'])->sum('amount');
-
-                $cashSubcontractorBillTransactionTotal = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
-                    ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
-                    ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
-                    ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
-
-                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal + $cashSubcontractorBillTransactionTotal);
+                                                ->sum('amount');
+            $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
+                                                ->where('project_site_id',$request['project_site_id'])
+                                                ->where('peticash_status_id',$approvedPeticashStatusId)
+                                                ->sum('bill_amount');
+            $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
+                ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                ->where('purchase_order_advance_payments.paid_from_slug','cash')
+                ->where('purchase_requests.project_site_id',$request['project_site_id'])
+                ->sum('amount');
+            $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
+                                ->where('project_site_id',$request['project_site_id'])->sum('amount');
+            $cashSubcontractorBillTransactionTotal = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
+                ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
+                ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
+            $data['remaining_amount'] = round((($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal + $cashSubcontractorBillTransactionTotal)),3);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
