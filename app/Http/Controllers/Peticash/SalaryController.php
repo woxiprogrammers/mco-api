@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Peticash;
 
+use App\AssetMaintenanceBillPayment;
 use App\BankInfo;
 use App\BillReconcileTransaction;
 use App\BillTransaction;
@@ -20,8 +21,10 @@ use App\PeticashTransactionType;
 use App\Project;
 use App\ProjectSite;
 use App\ProjectSiteAdvancePayment;
+use App\ProjectSiteIndirectExpense;
 use App\PurchaseOrderAdvancePayment;
 use App\PurchasePeticashTransaction;
+use App\SiteTransferBillPayment;
 use App\SubcontractorAdvancePayment;
 use App\SubcontractorBillReconcileTransaction;
 use App\SubcontractorBillTransaction;
@@ -456,7 +459,7 @@ class SalaryController extends BaseController{
                 ->where('bill_transactions.paid_from_slug','cash')
                 ->sum('total');
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
-            $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
+            $allocatedAmount  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
             $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
                                             ->where('project_site_id',$request['project_site_id'])
                                             ->where('peticash_status_id',$approvedPeticashStatusId)
@@ -474,21 +477,47 @@ class SalaryController extends BaseController{
                 ->where('purchase_order_advance_payments.paid_from_slug','cash')
                 ->where('purchase_requests.project_site_id',$request['project_site_id'])
                 ->sum('amount');
+
             $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
                                 ->where('project_site_id',$request['project_site_id'])->sum('amount');
+
             $cashSubcontractorBillTransactionTotal = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
                 ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
                 ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
                 ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
 
             $subcontractorBillReconcile = SubcontractorBillReconcileTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_reconcile_transactions.subcontractor_bill_id')
-                ->join('payment_types','payment_types.id','=','subcontractor_bill_reconcile_transactions.payment_type_id')
                 ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
                 ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
                 ->where('subcontractor_bill_reconcile_transactions.paid_from_slug','cash')
-                ->sum('amount');
+                ->sum('subcontractor_bill_reconcile_transactions.amount');
 
-            $data['remaining_amount'] = round((($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal + $cashSubcontractorBillTransactionTotal + $subcontractorBillReconcile)),3);
+            $siteTransferCashAmount = SiteTransferBillPayment::join('site_transfer_bills','site_transfer_bills.id','=','site_transfer_bill_payments.site_transfer_bill_id')
+                ->join('inventory_component_transfers','inventory_component_transfers.id','=','site_transfer_bills.inventory_component_transfer_id')
+                ->join('inventory_components','inventory_components.id','inventory_component_transfers.inventory_component_id')
+                ->where('site_transfer_bill_payments.paid_from_slug','cash')
+                ->where('inventory_components.project_site_id',$request['project_site_id'])
+                ->sum('site_transfer_bill_payments.amount');
+
+            $assetMaintenanceCashAmount = AssetMaintenanceBillPayment::join('asset_maintenance_bills','asset_maintenance_bills.id','asset_maintenance_bill_payments.asset_maintenance_bill_id')
+                ->join('asset_maintenance','asset_maintenance.id','=','asset_maintenance_bills.asset_maintenance_id')
+                ->where('asset_maintenance.project_site_id',$request['project_site_id'])
+                ->where('asset_maintenance_bill_payments.paid_from_slug','cash')
+                ->sum('asset_maintenance_bill_payments.amount');
+
+            $indirectGSTCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
+                ->where('paid_from_slug','cash')->sum('gst');
+
+            $indirectTDSCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
+                ->where('paid_from_slug','cash')->sum('tds');
+
+            $data['remaining_amount'] = round((($allocatedAmount + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions)
+                                                    - ($data['total_salary_amount'] + $data['total_advance_amount']
+                                                        + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal
+                                                         + $cashSubcontractorBillTransactionTotal
+                                                        + $subcontractorBillReconcile + $siteTransferCashAmount + $assetMaintenanceCashAmount
+                                                        + $indirectGSTCashAmount + $indirectTDSCashAmount + $cashSubcontractorAdvancePaymentTotal)),3);
+            $data['allocated_amount'] = $allocatedAmount + $salesBillCashAmount + $salesBillTransactions + $projectSiteAdvancedAmount;
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
