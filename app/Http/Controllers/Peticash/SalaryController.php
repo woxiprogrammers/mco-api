@@ -12,6 +12,7 @@ use App\EmployeeImageType;
 use App\EmployeeType;
 use App\Helper\NumberHelper;
 use App\PaymentType;
+use App\PeticashRequestedSalaryTransaction;
 use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
 use App\PeticashSiteApprovedAmount;
@@ -74,14 +75,15 @@ class SalaryController extends BaseController{
                 $data[$iterator]['is_transaction_pending'] = ($transactionPendingCount > 0) ? true : false;
                 $salaryTransactions = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('id','amount','payable_amount','peticash_transaction_type_id','pf','pt','esic','tds','created_at')->get();
                 $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
-                $advanceSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount');
-                $actualSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount');
-                $payableSalaryTotal = $salaryTransactions->sum('payable_amount');
-                $pfTotal = $salaryTransactions->sum('pf');
-                $ptTotal = $salaryTransactions->sum('pt');
-                $esicTotal = $salaryTransactions->sum('esic');
-                $tdsTotal = $salaryTransactions->sum('tds');
-                $data[$iterator]['balance'] = $actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal-$pfTotal-$ptTotal-$esicTotal-$tdsTotal ;
+                $advanceSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount'),3);
+                $actualSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount'),3);
+                $payableSalaryTotal = round($salaryTransactions->sum('payable_amount'),3);
+                $pfTotal = round($salaryTransactions->sum('pf'),3);
+                $ptTotal = round($salaryTransactions->sum('pt'),3);
+                $esicTotal = round($salaryTransactions->sum('esic'),3);
+                $tdsTotal = round($salaryTransactions->sum('tds'),3);
+
+                $data[$iterator]['balance'] = round(($actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal - $pfTotal - $ptTotal - $esicTotal - $tdsTotal) ,3);
                 $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
                 $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
                 $data[$iterator]['advance_after_last_salary'] = $advanceAfterLastSalary;
@@ -547,15 +549,24 @@ class SalaryController extends BaseController{
                     $data['payable_amount'] = (string)$payable_amount;
                 }
             }
-            if($request->has('bank_id')){
-                $data['approved_amount'] = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount')->first();
+            $transactionTypeId = PeticashTransactionType::where('slug',$request['type'])->pluck('id')->first();
+            $lastRequestedSalary = PeticashRequestedSalaryTransaction::where('employee_id',$request['employee_id'])
+                ->where('project_site_id',$request['project_site_id'])
+                ->where('peticash_transaction_type_id',$transactionTypeId)->select('amount','created_at')->get()->last();
+            if($lastRequestedSalary != null){
+                $salaryTransactionAmountAfterLastRequest = PeticashSalaryTransaction::where('created_at','>=',$lastRequestedSalary['created_at'])
+                    ->where('employee_id',$request['employee_id'])
+                    ->where('project_site_id',$request['project_site_id'])
+                    ->where('peticash_transaction_type_id',$transactionTypeId)->sum('amount');
+                $approvedAmount = ($salaryTransactionAmountAfterLastRequest < $lastRequestedSalary['amount']) ? ($lastRequestedSalary['amount'] - $salaryTransactionAmountAfterLastRequest) : 0;
             }else{
-                $peticashApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
-                if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
-                    $data['approved_amount'] = $peticashApprovedAmount;
-                }else{
-                    $data['approved_amount'] = '0';
-                }
+                $approvedAmount = '0';
+            }
+            if($request->has('bank_id')){
+                $bankApprovedAmount = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount')->first();
+                $data['approved_amount'] = ($bankApprovedAmount > $approvedAmount) ? (string)$approvedAmount : (string)$bankApprovedAmount;
+            }else{
+                $data['approved_amount'] = (string)$approvedAmount;
             }
         }catch(\Exception $e){
             $message = "Fail";
