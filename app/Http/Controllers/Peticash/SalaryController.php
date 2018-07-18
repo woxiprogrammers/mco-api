@@ -264,7 +264,7 @@ class SalaryController extends BaseController{
                         ->where('purchase_requests.project_site_id',$projectSiteId)
                         ->whereMonth('purchase_order_advance_payments.created_at', $request['month'])->whereYear('purchase_order_advance_payments.created_at', $request['year'])->orderBy('purchase_order_advance_payments.created_at','desc')
                         ->select('purchase_order_advance_payments.id as payment_id','purchase_order_advance_payments.amount as amount'
-                            ,'purchase_order_advance_payments.created_at as created_at','purchase_requests.project_site_id as project_site_id'
+                            ,'purchase_order_advance_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
 
                     $purchaseOrderBillPayments = PurchaseOrderPayment::join('purchase_order_bills','purchase_order_bills.id','=','purchase_order_payments.purchase_order_bill_id')
@@ -275,7 +275,7 @@ class SalaryController extends BaseController{
                         ->where('purchase_requests.project_site_id',$projectSiteId)
                         ->whereMonth('purchase_order_payments.created_at', $request['month'])->whereYear('purchase_order_payments.created_at', $request['year'])->orderBy('purchase_order_payments.created_at','desc')
                         ->select('purchase_order_payments.id as payment_id','purchase_order_payments.amount as amount'
-                            ,'purchase_order_payments.created_at as created_at','purchase_requests.project_site_id as project_site_id'
+                            ,'purchase_order_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
 
                     $subcontractorAdvancePayments = SubcontractorAdvancePayment::join('subcontractor','subcontractor.id','=','subcontractor_advance_payments.subcontractor_id')
@@ -284,7 +284,7 @@ class SalaryController extends BaseController{
                         ->whereMonth('subcontractor_advance_payments.created_at', $request['month'])->whereYear('subcontractor_advance_payments.created_at', $request['year'])->orderBy('subcontractor_advance_payments.created_at','desc')
                         ->select('subcontractor_advance_payments.id as payment_id','subcontractor_advance_payments.amount as amount'
                             ,'subcontractor_advance_payments.project_site_id as project_site_id'
-                            ,'subcontractor_advance_payments.created_at as created_at'
+                            ,'subcontractor_advance_payments.created_at as date'
                             ,'subcontractor.company_name as name')->get();
 
                     $projectSiteAdvancePayments = ProjectSiteAdvancePayment::join('project_sites','project_sites.id','=','project_site_advance_payments.project_site_id')
@@ -293,7 +293,7 @@ class SalaryController extends BaseController{
                         ->whereMonth('project_site_advance_payments.created_at', $request['month'])->whereYear('project_site_advance_payments.created_at', $request['year'])->orderBy('project_site_advance_payments.created_at','desc')
                         ->select('project_site_advance_payments.id as payment_id'
                             ,'project_site_advance_payments.amount as amount'
-                            ,'project_site_advance_payments.created_at as created_at'
+                            ,'project_site_advance_payments.created_at as date'
                             ,'project_site_advance_payments.project_site_id as project_site_id'
                             ,'project_sites.name as name')->get();
 
@@ -305,7 +305,7 @@ class SalaryController extends BaseController{
                         ->where('inventory_components.project_site_id',$projectSiteId)
                         ->whereMonth('site_transfer_bill_payments.created_at', $request['month'])->whereYear('site_transfer_bill_payments.created_at', $request['year'])->orderBy('site_transfer_bill_payments.created_at','desc')
                         ->select('site_transfer_bill_payments.id as payment_id','site_transfer_bill_payments.amount as amount'
-                            ,'site_transfer_bill_payments.created_at as created_at'
+                            ,'site_transfer_bill_payments.created_at as date'
                             ,'inventory_components.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
 
@@ -318,7 +318,7 @@ class SalaryController extends BaseController{
                         ->where('asset_maintenance_bill_payments.paid_from_slug','cash')
                         ->whereMonth('asset_maintenance_bill_payments.created_at', $request['month'])->whereYear('asset_maintenance_bill_payments.created_at', $request['year'])->orderBy('asset_maintenance_bill_payments.created_at','desc')
                         ->select('asset_maintenance_bill_payments.id as payment_id','asset_maintenance_bill_payments.amount as amount'
-                            ,'asset_maintenance_bill_payments.created_at as created_at'
+                            ,'asset_maintenance_bill_payments.created_at as date'
                             ,'asset_maintenance.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
 
@@ -330,7 +330,7 @@ class SalaryController extends BaseController{
                         ->join('subcontractor','subcontractor.id','=','subcontractor_structure.subcontractor_id')
                         ->whereMonth('subcontractor_bill_transactions.created_at', $request['month'])->whereYear('subcontractor_bill_transactions.created_at', $request['year'])->orderBy('subcontractor_bill_transactions.created_at','desc')
                         ->select('subcontractor_bill_transactions.id as payment_id','subcontractor_bill_transactions.subtotal as amount'
-                            ,'subcontractor_bill_transactions.created_at as created_at'
+                            ,'subcontractor_bill_transactions.created_at as date'
                             ,'subcontractor_structure.project_site_id as project_site_id'
                             ,'subcontractor.company_name as name')->get();
 
@@ -341,7 +341,7 @@ class SalaryController extends BaseController{
                         ->where('bill_reconcile_transactions.paid_from_slug','cash')
                         ->whereMonth('bill_reconcile_transactions.created_at', $request['month'])->whereYear('bill_reconcile_transactions.created_at', $request['year'])->orderBy('bill_reconcile_transactions.created_at','desc')
                         ->select('bill_reconcile_transactions.id as payment_id','bill_reconcile_transactions.amount as amount'
-                            ,'bill_reconcile_transactions.created_at as created_at'
+                            ,'bill_reconcile_transactions.created_at as date'
                             ,'quotations.project_site_id as project_site_id'
                             ,'project_sites.name as name')->get();
 
@@ -352,7 +352,7 @@ class SalaryController extends BaseController{
                         ->join('subcontractor','subcontractor.id','=','subcontractor_structure.subcontractor_id')
                         ->whereMonth('subcontractor_bill_reconcile_transactions.created_at', $request['month'])->whereYear('subcontractor_bill_reconcile_transactions.created_at', $request['year'])->orderBy('subcontractor_bill_reconcile_transactions.created_at','desc')
                         ->select('subcontractor_bill_reconcile_transactions.id as payment_id','subcontractor_bill_reconcile_transactions.amount as amount'
-                            ,'subcontractor_bill_reconcile_transactions.created_at as created_at'
+                            ,'subcontractor_bill_reconcile_transactions.created_at as date'
                             ,'subcontractor_structure.project_site_id as project_site_id'
                             ,'subcontractor.company_name as name')->get();
 
@@ -364,7 +364,7 @@ class SalaryController extends BaseController{
                         ->whereMonth('project_site_indirect_expenses.created_at', $request['month'])->whereYear('project_site_indirect_expenses.created_at', $request['year'])->orderBy('project_site_indirect_expenses.created_at','desc')
                         ->select('project_site_indirect_expenses.id as payment_id'
                             ,DB::raw("sum(project_site_indirect_expenses.gst + project_site_indirect_expenses.tds) AS amount")
-                            ,'project_site_indirect_expenses.created_at as created_at'
+                            ,'project_site_indirect_expenses.created_at as date'
                             ,'project_site_indirect_expenses.project_site_id as project_site_id'
                             ,'project_sites.name as name')->get();
 
@@ -385,10 +385,12 @@ class SalaryController extends BaseController{
                     foreach($cashPaymentData as $collection){
                         $transactionsData->push($collection);
                     }
-                    $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy('date');
+                    $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy(function($transactionsData) {
+                        return Carbon::parse($transactionsData->date)->format('l, d F Y');
+                    });
                     $iterator = 0;
                     foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
-                        $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                        $listingData[$iterator]['date'] = $date;
                         $listingData[$iterator]['transaction_list'] = array();
                         $jIterator = 0;
                         foreach($dateWiseTransactionData as $transactionData){
