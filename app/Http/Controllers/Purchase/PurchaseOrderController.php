@@ -383,8 +383,7 @@ class PurchaseOrderController extends BaseController{
         return response()->json($response,$status);
     }
 
-    public function createPurchaseOrderTransaction(Request $request)
-    {
+    public function createPurchaseOrderTransaction(Request $request){
         try {
             $message = "Success";
             $status = 200;
@@ -509,6 +508,18 @@ class PurchaseOrderController extends BaseController{
                         InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
                     }
                 }
+            }
+            $poClose = false;
+            foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
+                $transactionQuantity = PurchaseOrderTransactionComponent::where('purchase_order_component_id',$purchaseOrderComponent['id'])->sum('quantity');
+                if($transactionQuantity >= $purchaseOrderComponent['quantity']){
+                    $poClose = true;
+                }
+            }
+            if($poClose && $purchaseOrder->purchaseOrderStatus->slug != 'close'){
+                $purchaseOrder->update([
+                    'purchase_order_status_id' => PurchaseOrderStatus::where('slug','close')->pluck('id')->first()
+                ]);
             }
         } catch (\Exception $e) {
             $message = "Fail";
