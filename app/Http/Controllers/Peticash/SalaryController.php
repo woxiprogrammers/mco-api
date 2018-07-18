@@ -24,6 +24,7 @@ use App\ProjectSite;
 use App\ProjectSiteAdvancePayment;
 use App\ProjectSiteIndirectExpense;
 use App\PurchaseOrderAdvancePayment;
+use App\PurchaseOrderPayment;
 use App\PurchasePeticashTransaction;
 use App\SiteTransferBillPayment;
 use App\SubcontractorAdvancePayment;
@@ -35,6 +36,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller as BaseController;
@@ -83,7 +85,7 @@ class SalaryController extends BaseController{
                 $esicTotal = round($salaryTransactions->sum('esic'),3);
                 $tdsTotal = round($salaryTransactions->sum('tds'),3);
 
-                $data[$iterator]['balance'] = round(($actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal - $pfTotal - $ptTotal - $esicTotal - $tdsTotal) ,3);
+                $data[$iterator]['balance'] = round((round((round(($actualSalaryTotal - $advanceSalaryTotal),1) - $payableSalaryTotal),1) - $pfTotal - $ptTotal - $esicTotal - $tdsTotal) ,1);
                 $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
                 $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
                 $data[$iterator]['advance_after_last_salary'] = $advanceAfterLastSalary;
@@ -253,6 +255,126 @@ class SalaryController extends BaseController{
                                             ->orderBy('date','desc')
                                             ->select('id as salary_id','employee_id','project_site_id','peticash_transaction_type_id','amount','date','peticash_status_id','payment_type_id','created_at','payable_amount')
                                             ->get();
+
+                    $projectSiteId = $request['project_site_id'];
+                    $purchaseOrderAdvancePayments = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','purchase_order_advance_payments.purchase_order_id')
+                        ->join('vendors','vendors.id','=','purchase_orders.vendor_id')
+                        ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                        ->where('purchase_order_advance_payments.paid_from_slug','cash')
+                        ->where('purchase_requests.project_site_id',$projectSiteId)
+                        ->whereMonth('purchase_order_advance_payments.created_at', $request['month'])->whereYear('purchase_order_advance_payments.created_at', $request['year'])->orderBy('purchase_order_advance_payments.created_at','desc')
+                        ->select('purchase_order_advance_payments.id as payment_id','purchase_order_advance_payments.amount as amount'
+                            ,'purchase_order_advance_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get();
+
+                    $purchaseOrderBillPayments = PurchaseOrderPayment::join('purchase_order_bills','purchase_order_bills.id','=','purchase_order_payments.purchase_order_bill_id')
+                        ->join('purchase_orders','purchase_orders.id','=','purchase_order_bills.purchase_order_id')
+                        ->join('vendors','vendors.id','=','purchase_orders.vendor_id')
+                        ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                        ->where('purchase_order_payments.paid_from_slug','cash')
+                        ->where('purchase_requests.project_site_id',$projectSiteId)
+                        ->whereMonth('purchase_order_payments.created_at', $request['month'])->whereYear('purchase_order_payments.created_at', $request['year'])->orderBy('purchase_order_payments.created_at','desc')
+                        ->select('purchase_order_payments.id as payment_id','purchase_order_payments.amount as amount'
+                            ,'purchase_order_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get();
+
+                    $subcontractorAdvancePayments = SubcontractorAdvancePayment::join('subcontractor','subcontractor.id','=','subcontractor_advance_payments.subcontractor_id')
+                        ->where('subcontractor_advance_payments.paid_from_slug','cash')
+                        ->where('subcontractor_advance_payments.project_site_id',$projectSiteId)
+                        ->whereMonth('subcontractor_advance_payments.created_at', $request['month'])->whereYear('subcontractor_advance_payments.created_at', $request['year'])->orderBy('subcontractor_advance_payments.created_at','desc')
+                        ->select('subcontractor_advance_payments.id as payment_id','subcontractor_advance_payments.amount as amount'
+                            ,'subcontractor_advance_payments.project_site_id as project_site_id'
+                            ,'subcontractor_advance_payments.created_at as date'
+                            ,'subcontractor.company_name as name')->get();
+
+                    $projectSiteAdvancePayments = ProjectSiteAdvancePayment::join('project_sites','project_sites.id','=','project_site_advance_payments.project_site_id')
+                        ->where('project_site_advance_payments.paid_from_slug','cash')
+                        ->where('project_site_advance_payments.project_site_id',$projectSiteId)
+                        ->whereMonth('project_site_advance_payments.created_at', $request['month'])->whereYear('project_site_advance_payments.created_at', $request['year'])->orderBy('project_site_advance_payments.created_at','desc')
+                        ->select('project_site_advance_payments.id as payment_id'
+                            ,'project_site_advance_payments.amount as amount'
+                            ,'project_site_advance_payments.created_at as date'
+                            ,'project_site_advance_payments.project_site_id as project_site_id'
+                            ,'project_sites.name as name')->get();
+
+                    $siteTransferPayments = SiteTransferBillPayment::join('site_transfer_bills','site_transfer_bills.id','=','site_transfer_bill_payments.site_transfer_bill_id')
+                        ->join('inventory_component_transfers','inventory_component_transfers.id','=','site_transfer_bills.inventory_component_transfer_id')
+                        ->join('vendors','vendors.id','=','inventory_component_transfers.vendor_id')
+                        ->join('inventory_components','inventory_components.id','inventory_component_transfers.inventory_component_id')
+                        ->where('site_transfer_bill_payments.paid_from_slug','cash')
+                        ->where('inventory_components.project_site_id',$projectSiteId)
+                        ->whereMonth('site_transfer_bill_payments.created_at', $request['month'])->whereYear('site_transfer_bill_payments.created_at', $request['year'])->orderBy('site_transfer_bill_payments.created_at','desc')
+                        ->select('site_transfer_bill_payments.id as payment_id','site_transfer_bill_payments.amount as amount'
+                            ,'site_transfer_bill_payments.created_at as date'
+                            ,'inventory_components.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get();
+
+                    $assetMaintenancePayments = AssetMaintenanceBillPayment::join('asset_maintenance_bills','asset_maintenance_bills.id','asset_maintenance_bill_payments.asset_maintenance_bill_id')
+                        ->join('asset_maintenance','asset_maintenance.id','=','asset_maintenance_bills.asset_maintenance_id')
+                        ->join('asset_maintenance_vendor_relation','asset_maintenance_vendor_relation.asset_maintenance_id','=','asset_maintenance.id')
+                        ->where('asset_maintenance_vendor_relation.is_approved',true)
+                        ->join('vendors','vendors.id','=','asset_maintenance_vendor_relation.vendor_id')
+                        ->where('asset_maintenance.project_site_id',$projectSiteId)
+                        ->where('asset_maintenance_bill_payments.paid_from_slug','cash')
+                        ->whereMonth('asset_maintenance_bill_payments.created_at', $request['month'])->whereYear('asset_maintenance_bill_payments.created_at', $request['year'])->orderBy('asset_maintenance_bill_payments.created_at','desc')
+                        ->select('asset_maintenance_bill_payments.id as payment_id','asset_maintenance_bill_payments.amount as amount'
+                            ,'asset_maintenance_bill_payments.created_at as date'
+                            ,'asset_maintenance.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get();
+
+
+                    $subcontractorCashBillTransactions = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
+                        ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                        ->where('subcontractor_structure.project_site_id',$projectSiteId)
+                        ->where('subcontractor_bill_transactions.paid_from_slug','cash')
+                        ->join('subcontractor','subcontractor.id','=','subcontractor_structure.subcontractor_id')
+                        ->whereMonth('subcontractor_bill_transactions.created_at', $request['month'])->whereYear('subcontractor_bill_transactions.created_at', $request['year'])->orderBy('subcontractor_bill_transactions.created_at','desc')
+                        ->select('subcontractor_bill_transactions.id as payment_id','subcontractor_bill_transactions.subtotal as amount'
+                            ,'subcontractor_bill_transactions.created_at as date'
+                            ,'subcontractor_structure.project_site_id as project_site_id'
+                            ,'subcontractor.company_name as name')->get();
+
+                    $salesBillReconcileCash = BillReconcileTransaction::join('bills','bills.id','=','bill_reconcile_transactions.bill_id')
+                        ->join('quotations','quotations.id','=','bills.quotation_id')
+                        ->join('project_sites','project_sites.id','=','quotations.project_site_id')
+                        ->where('quotations.project_site_id',$projectSiteId)
+                        ->where('bill_reconcile_transactions.paid_from_slug','cash')
+                        ->whereMonth('bill_reconcile_transactions.created_at', $request['month'])->whereYear('bill_reconcile_transactions.created_at', $request['year'])->orderBy('bill_reconcile_transactions.created_at','desc')
+                        ->select('bill_reconcile_transactions.id as payment_id','bill_reconcile_transactions.amount as amount'
+                            ,'bill_reconcile_transactions.created_at as date'
+                            ,'quotations.project_site_id as project_site_id'
+                            ,'project_sites.name as name')->get();
+
+                    $subcontractorBillReconcileCash = SubcontractorBillReconcileTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_reconcile_transactions.subcontractor_bill_id')
+                        ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                        ->where('subcontractor_structure.project_site_id',$projectSiteId)
+                        ->where('subcontractor_bill_reconcile_transactions.paid_from_slug','cash')
+                        ->join('subcontractor','subcontractor.id','=','subcontractor_structure.subcontractor_id')
+                        ->whereMonth('subcontractor_bill_reconcile_transactions.created_at', $request['month'])->whereYear('subcontractor_bill_reconcile_transactions.created_at', $request['year'])->orderBy('subcontractor_bill_reconcile_transactions.created_at','desc')
+                        ->select('subcontractor_bill_reconcile_transactions.id as payment_id','subcontractor_bill_reconcile_transactions.amount as amount'
+                            ,'subcontractor_bill_reconcile_transactions.created_at as date'
+                            ,'subcontractor_structure.project_site_id as project_site_id'
+                            ,'subcontractor.company_name as name')->get();
+
+                    $indirectCashPayments = ProjectSiteIndirectExpense::join('project_sites','project_sites.id','=','project_site_indirect_expenses.project_site_id')
+                        ->where('project_site_indirect_expenses.project_site_id',$projectSiteId)
+                        ->where('project_site_indirect_expenses.paid_from_slug','cash')
+                        ->groupBy('project_site_indirect_expenses.id')
+                        ->groupBy('project_sites.id')
+                        ->whereMonth('project_site_indirect_expenses.created_at', $request['month'])->whereYear('project_site_indirect_expenses.created_at', $request['year'])->orderBy('project_site_indirect_expenses.created_at','desc')
+                        ->select('project_site_indirect_expenses.id as payment_id'
+                            ,DB::raw("sum(project_site_indirect_expenses.gst + project_site_indirect_expenses.tds) AS amount")
+                            ,'project_site_indirect_expenses.created_at as date'
+                            ,'project_site_indirect_expenses.project_site_id as project_site_id'
+                            ,'project_sites.name as name')->get();
+
+                    $cashPaymentData = $purchaseOrderAdvancePayments->merge($purchaseOrderBillPayments)
+                                                        ->merge($subcontractorAdvancePayments)->merge($projectSiteAdvancePayments)
+                                                        ->merge($siteTransferPayments)->merge($assetMaintenancePayments)
+                                                        ->merge($subcontractorCashBillTransactions)->merge($salesBillReconcileCash)
+                                                        ->merge($subcontractorBillReconcileCash)->merge($indirectCashPayments);
+
+
                     $transactionsData = new Collection();
                     foreach($purchaseTransactionData as $collection) {
                         $transactionsData->push($collection);
@@ -260,21 +382,26 @@ class SalaryController extends BaseController{
                     foreach($salaryTransactionData as $collection) {
                         $transactionsData->push($collection);
                     }
-                    $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy('date');
+                    foreach($cashPaymentData as $collection){
+                        $transactionsData->push($collection);
+                    }
+                    $dataWiseTransactionsData = $transactionsData->sortByDesc('date')->groupBy(function($transactionsData) {
+                        return Carbon::parse($transactionsData->date)->format('l, d F Y');
+                    });
                     $iterator = 0;
-                    $purchaseTransactionTypeIds = PeticashTransactionType::where('type','PURCHASE')->pluck('id')->toArray();
                     foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
-                        $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                        $listingData[$iterator]['date'] = $date;
                         $listingData[$iterator]['transaction_list'] = array();
                         $jIterator = 0;
                         foreach($dateWiseTransactionData as $transactionData){
-                            if(in_array($transactionData->peticash_transaction_type_id,$purchaseTransactionTypeIds)){
+                            if(array_key_exists('purchase_id',$transactionData->toArray())){
+
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['purchase_id'];
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['bill_amount'];
-                            }else{
+                            }elseif(array_key_exists('salary_id',$transactionData->toArray())){
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = $transactionData['salary_id'];
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->employee->name;
@@ -284,6 +411,12 @@ class SalaryController extends BaseController{
 				                }else{
 				                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
 				                }
+                            }else{
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_id'] = 0;
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = "Cash";
+                                $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData['name'];
+                                $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = 'Approved';
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
                             }
                             $jIterator++;
                         }
@@ -334,10 +467,143 @@ class SalaryController extends BaseController{
                         $iterator++;
                     }
                     break;
+
+                case 'cash' :
+                    $projectSiteId = $request['project_site_id'];
+                    $purchaseOrderAdvancePayments = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','purchase_order_advance_payments.purchase_order_id')
+                        ->join('vendors','vendors.id','=','purchase_orders.vendor_id')
+                        ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                        ->where('purchase_order_advance_payments.paid_from_slug','cash')
+                        ->where('purchase_requests.project_site_id',$projectSiteId)
+                        ->whereMonth('purchase_order_advance_payments.created_at', $request['month'])->whereYear('purchase_order_advance_payments.created_at', $request['year'])->orderBy('purchase_order_advance_payments.created_at','desc')
+                        ->select('purchase_order_advance_payments.id as payment_id','purchase_order_advance_payments.amount as amount'
+                            ,'purchase_order_advance_payments.created_at as created_at','purchase_requests.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get()->toArray();
+
+                    $purchaseOrderBillPayments = PurchaseOrderPayment::join('purchase_order_bills','purchase_order_bills.id','=','purchase_order_payments.purchase_order_bill_id')
+                        ->join('purchase_orders','purchase_orders.id','=','purchase_order_bills.purchase_order_id')
+                        ->join('vendors','vendors.id','=','purchase_orders.vendor_id')
+                        ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                        ->where('purchase_order_payments.paid_from_slug','cash')
+                        ->where('purchase_requests.project_site_id',$projectSiteId)
+                        ->whereMonth('purchase_order_payments.created_at', $request['month'])->whereYear('purchase_order_payments.created_at', $request['year'])->orderBy('purchase_order_payments.created_at','desc')
+                        ->select('purchase_order_payments.id as payment_id','purchase_order_payments.amount as amount'
+                            ,'purchase_order_payments.created_at as created_at','purchase_requests.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get()->toArray();
+
+                    $subcontractorAdvancePayments = SubcontractorAdvancePayment::join('subcontractor','subcontractor.id','=','subcontractor_advance_payments.subcontractor_id')
+                        ->where('subcontractor_advance_payments.paid_from_slug','cash')
+                        ->where('subcontractor_advance_payments.project_site_id',$projectSiteId)
+                        ->whereMonth('subcontractor_advance_payments.created_at', $request['month'])->whereYear('subcontractor_advance_payments.created_at', $request['year'])->orderBy('subcontractor_advance_payments.created_at','desc')
+                        ->select('subcontractor_advance_payments.id as payment_id','subcontractor_advance_payments.amount as amount'
+                            ,'subcontractor_advance_payments.project_site_id as project_site_id'
+                            ,'subcontractor_advance_payments.created_at as created_at'
+                            ,'subcontractor.company_name as name')->get()->toArray();
+
+                    $projectSiteAdvancePayments = ProjectSiteAdvancePayment::join('project_sites','project_sites.id','=','project_site_advance_payments.project_site_id')
+                        ->where('project_site_advance_payments.paid_from_slug','cash')
+                        ->where('project_site_advance_payments.project_site_id',$projectSiteId)
+                        ->whereMonth('project_site_advance_payments.created_at', $request['month'])->whereYear('project_site_advance_payments.created_at', $request['year'])->orderBy('project_site_advance_payments.created_at','desc')
+                        ->select('project_site_advance_payments.id as payment_id'
+                            ,'project_site_advance_payments.amount as amount'
+                            ,'project_site_advance_payments.created_at as created_at'
+                            ,'project_site_advance_payments.project_site_id as project_site_id'
+                            ,'project_sites.name as name')->get()->toArray();
+
+                    $siteTransferPayments = SiteTransferBillPayment::join('site_transfer_bills','site_transfer_bills.id','=','site_transfer_bill_payments.site_transfer_bill_id')
+                        ->join('inventory_component_transfers','inventory_component_transfers.id','=','site_transfer_bills.inventory_component_transfer_id')
+                        ->join('vendors','vendors.id','=','inventory_component_transfers.vendor_id')
+                        ->join('inventory_components','inventory_components.id','inventory_component_transfers.inventory_component_id')
+                        ->where('site_transfer_bill_payments.paid_from_slug','cash')
+                        ->where('inventory_components.project_site_id',$projectSiteId)
+                        ->whereMonth('site_transfer_bill_payments.created_at', $request['month'])->whereYear('site_transfer_bill_payments.created_at', $request['year'])->orderBy('site_transfer_bill_payments.created_at','desc')
+                        ->select('site_transfer_bill_payments.id as payment_id','site_transfer_bill_payments.amount as amount'
+                            ,'site_transfer_bill_payments.created_at as created_at'
+                            ,'inventory_components.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get()->toArray();
+
+                    $assetMaintenancePayments = AssetMaintenanceBillPayment::join('asset_maintenance_bills','asset_maintenance_bills.id','asset_maintenance_bill_payments.asset_maintenance_bill_id')
+                        ->join('asset_maintenance','asset_maintenance.id','=','asset_maintenance_bills.asset_maintenance_id')
+                        ->join('asset_maintenance_vendor_relation','asset_maintenance_vendor_relation.asset_maintenance_id','=','asset_maintenance.id')
+                        ->where('asset_maintenance_vendor_relation.is_approved',true)
+                        ->join('vendors','vendors.id','=','asset_maintenance_vendor_relation.vendor_id')
+                        ->where('asset_maintenance.project_site_id',$projectSiteId)
+                        ->where('asset_maintenance_bill_payments.paid_from_slug','cash')
+                        ->whereMonth('asset_maintenance_bill_payments.created_at', $request['month'])->whereYear('asset_maintenance_bill_payments.created_at', $request['year'])->orderBy('asset_maintenance_bill_payments.created_at','desc')
+                        ->select('asset_maintenance_bill_payments.id as payment_id','asset_maintenance_bill_payments.amount as amount'
+                            ,'asset_maintenance_bill_payments.created_at as created_at'
+                            ,'asset_maintenance.project_site_id as project_site_id'
+                            ,'vendors.company as name')->get()->toArray();
+
+
+                    $subcontractorCashBillTransactions = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
+                        ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                        ->where('subcontractor_structure.project_site_id',$projectSiteId)
+                        ->where('subcontractor_bill_transactions.paid_from_slug','cash')
+                        ->join('subcontractor','subcontractor.id','=','subcontractor_structure.subcontractor_id')
+                        ->whereMonth('subcontractor_bill_transactions.created_at', $request['month'])->whereYear('subcontractor_bill_transactions.created_at', $request['year'])->orderBy('subcontractor_bill_transactions.created_at','desc')
+                        ->select('subcontractor_bill_transactions.id as payment_id','subcontractor_bill_transactions.subtotal as amount'
+                            ,'subcontractor_bill_transactions.created_at as created_at'
+                            ,'subcontractor_structure.project_site_id as project_site_id'
+                            ,'subcontractor.company_name as name')->get()->toArray();
+
+                    $salesBillReconcileCash = BillReconcileTransaction::join('bills','bills.id','=','bill_reconcile_transactions.bill_id')
+                        ->join('quotations','quotations.id','=','bills.quotation_id')
+                        ->join('project_sites','project_sites.id','=','quotations.project_site_id')
+                        ->where('quotations.project_site_id',$projectSiteId)
+                        ->where('bill_reconcile_transactions.paid_from_slug','cash')
+                        ->whereMonth('bill_reconcile_transactions.created_at', $request['month'])->whereYear('bill_reconcile_transactions.created_at', $request['year'])->orderBy('bill_reconcile_transactions.created_at','desc')
+                        ->select('bill_reconcile_transactions.id as payment_id','bill_reconcile_transactions.amount as amount'
+                            ,'bill_reconcile_transactions.created_at as created_at'
+                            ,'quotations.project_site_id as project_site_id'
+                            ,'project_sites.name as name')->get()->toArray();
+
+                    $subcontractorBillReconcileCash = SubcontractorBillReconcileTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_reconcile_transactions.subcontractor_bill_id')
+                        ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                        ->where('subcontractor_structure.project_site_id',$projectSiteId)
+                        ->where('subcontractor_bill_reconcile_transactions.paid_from_slug','cash')
+                        ->join('subcontractor','subcontractor.id','=','subcontractor_structure.subcontractor_id')
+                        ->whereMonth('subcontractor_bill_reconcile_transactions.created_at', $request['month'])->whereYear('subcontractor_bill_reconcile_transactions.created_at', $request['year'])->orderBy('subcontractor_bill_reconcile_transactions.created_at','desc')
+                        ->select('subcontractor_bill_reconcile_transactions.id as payment_id','subcontractor_bill_reconcile_transactions.amount as amount'
+                            ,'subcontractor_bill_reconcile_transactions.created_at as created_at'
+                            ,'subcontractor_structure.project_site_id as project_site_id'
+                            ,'subcontractor.company_name as name')->get()->toArray();
+
+                    $indirectCashPayments = ProjectSiteIndirectExpense::join('project_sites','project_sites.id','=','project_site_indirect_expenses.project_site_id')
+                        ->where('project_site_indirect_expenses.project_site_id',$projectSiteId)
+                        ->where('project_site_indirect_expenses.paid_from_slug','cash')
+                        ->groupBy('project_site_indirect_expenses.id')
+                        ->groupBy('project_sites.id')
+                        ->whereMonth('project_site_indirect_expenses.created_at', $request['month'])->whereYear('project_site_indirect_expenses.created_at', $request['year'])->orderBy('project_site_indirect_expenses.created_at','desc')
+                        ->select('project_site_indirect_expenses.id as payment_id'
+                            ,DB::raw("sum(project_site_indirect_expenses.gst + project_site_indirect_expenses.tds) AS amount")
+                            ,'project_site_indirect_expenses.created_at as created_at'
+                            ,'project_site_indirect_expenses.project_site_id as project_site_id'
+                            ,'project_sites.name as name')->get()->toArray();
+
+                    $cashPaymentData = array_merge($purchaseOrderAdvancePayments,$purchaseOrderBillPayments,$subcontractorAdvancePayments,$projectSiteAdvancePayments,$siteTransferPayments,$assetMaintenancePayments,$subcontractorCashBillTransactions,$salesBillReconcileCash,$subcontractorBillReconcileCash,$indirectCashPayments);
+                    $transactionsData = new Collection();
+                    foreach($cashPaymentData as $collection) {
+                        $transactionsData->push($collection);
+                    }
+                    $dataWiseTransactionsData = $transactionsData->sortByDesc('created_at')->groupBy('created_at');
+                    $iterator = 0;
+                    foreach($dataWiseTransactionsData as $date => $cashTransactionData){
+                        $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
+                        $listingData[$iterator]['transaction_list'] = array();
+                        $jIterator = 0;
+                        foreach($cashTransactionData as $transactionData){
+                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_salary_transaction_id'] = 0;
+                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = 'cash';
+                            $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData['name'];
+                            $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = 'Approved';
+                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
+                            $jIterator++;
+                        }
+                        $iterator++;
+                    }
+                    break;
             }
-
-
-
             $pageId = $request['page'];
             $displayLength = 30;
             $start = ((int)$pageId) * $displayLength;
@@ -419,7 +685,7 @@ class SalaryController extends BaseController{
             $message = $e->getMessage();
             $status = 500;
             $data = [
-                'action' => 'Get Transaction Listing',
+                'action' => 'Get Transaction Detail',
                 'exception' => $e->getMessage(),
                 'params' => $request->all()
             ];
