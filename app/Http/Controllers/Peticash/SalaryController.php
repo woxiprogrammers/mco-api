@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Peticash;
 
+use App\AssetMaintenanceBillPayment;
 use App\BankInfo;
 use App\BillReconcileTransaction;
 use App\BillTransaction;
@@ -11,6 +12,7 @@ use App\EmployeeImageType;
 use App\EmployeeType;
 use App\Helper\NumberHelper;
 use App\PaymentType;
+use App\PeticashRequestedSalaryTransaction;
 use App\PeticashSalaryTransaction;
 use App\PeticashSalaryTransactionImages;
 use App\PeticashSiteApprovedAmount;
@@ -20,9 +22,13 @@ use App\PeticashTransactionType;
 use App\Project;
 use App\ProjectSite;
 use App\ProjectSiteAdvancePayment;
+use App\ProjectSiteIndirectExpense;
 use App\PurchaseOrderAdvancePayment;
 use App\PurchasePeticashTransaction;
+use App\SiteTransferBillPayment;
 use App\SubcontractorAdvancePayment;
+use App\SubcontractorBillReconcileTransaction;
+use App\SubcontractorBillTransaction;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -69,14 +75,15 @@ class SalaryController extends BaseController{
                 $data[$iterator]['is_transaction_pending'] = ($transactionPendingCount > 0) ? true : false;
                 $salaryTransactions = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('id','amount','payable_amount','peticash_transaction_type_id','pf','pt','esic','tds','created_at')->get();
                 $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
-                $advanceSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount');
-                $actualSalaryTotal = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount');
-                $payableSalaryTotal = $salaryTransactions->sum('payable_amount');
-                $pfTotal = $salaryTransactions->sum('pf');
-                $ptTotal = $salaryTransactions->sum('pt');
-                $esicTotal = $salaryTransactions->sum('esic');
-                $tdsTotal = $salaryTransactions->sum('tds');
-                $data[$iterator]['balance'] = $actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal-$pfTotal-$ptTotal-$esicTotal-$tdsTotal ;
+                $advanceSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount'),3);
+                $actualSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount'),3);
+                $payableSalaryTotal = round($salaryTransactions->sum('payable_amount'),3);
+                $pfTotal = round($salaryTransactions->sum('pf'),3);
+                $ptTotal = round($salaryTransactions->sum('pt'),3);
+                $esicTotal = round($salaryTransactions->sum('esic'),3);
+                $tdsTotal = round($salaryTransactions->sum('tds'),3);
+
+                $data[$iterator]['balance'] = round(($actualSalaryTotal - $advanceSalaryTotal - $payableSalaryTotal - $pfTotal - $ptTotal - $esicTotal - $tdsTotal) ,3);
                 $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
                 $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
                 $data[$iterator]['advance_after_last_salary'] = $advanceAfterLastSalary;
@@ -234,7 +241,7 @@ class SalaryController extends BaseController{
             $listingData = array();
             switch ($request['type']){
                 case 'both' :
-                    $purchaseTrasactionData = PurchasePeticashTransaction::
+                    $purchaseTransactionData = PurchasePeticashTransaction::
                                                 where('project_site_id',$request['project_site_id'])
                                                 ->whereMonth('date', $request['month'])
                                                 ->whereYear('date', $request['year'])
@@ -247,7 +254,7 @@ class SalaryController extends BaseController{
                                             ->select('id as salary_id','employee_id','project_site_id','peticash_transaction_type_id','amount','date','peticash_status_id','payment_type_id','created_at','payable_amount')
                                             ->get();
                     $transactionsData = new Collection();
-                    foreach($purchaseTrasactionData as $collection) {
+                    foreach($purchaseTransactionData as $collection) {
                         $transactionsData->push($collection);
                     }
                     foreach($salaryTransactionData as $collection) {
@@ -272,14 +279,12 @@ class SalaryController extends BaseController{
                                 $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['name'] = $transactionData->employee->name;
                                 $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-    				if ($transactionData['peticash_transaction_type_id'] == 5) {	//salary
-	                            $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
-				} else {
-				    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
-
-				}
+    				            if ($transactionData->peticashTransactionType->slug == 'salary') {	//salary
+	                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
+				                }else{
+				                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
+				                }
                             }
-
                             $jIterator++;
                         }
                         $iterator++;
@@ -299,21 +304,20 @@ class SalaryController extends BaseController{
                             $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_type'] = $transactionData->peticashTransactionType->name;
                             $listingData[$iterator]['transaction_list'][$jIterator]['employee_name'] = $transactionData->employee->name;
                             $listingData[$iterator]['transaction_list'][$jIterator]['payment_status'] = $transactionData->peticashStatus->name;
-                    	    if ($transactionData['peticash_transaction_type_id'] == 5) { //salary
-                                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
-                            } else {
-                                    $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];                               
+                    	    if ($transactionData->peticashTransactionType->slug == 'salary') { //salary
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['payable_amount'];
+                            }else{
+                                $listingData[$iterator]['transaction_list'][$jIterator]['peticash_transaction_amount'] = $transactionData['amount'];
                             }    
-
-			$jIterator++;
-                      }
+                			$jIterator++;
+                          }
                         $iterator++;
                     }
                     break;
 
                 case 'purchase' :
-                    $purchaseTrasactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
-                    $dataWiseTransactionsData = $purchaseTrasactionData->groupBy('date');
+                    $purchaseTransactionData = PurchasePeticashTransaction::where('project_site_id',$request['project_site_id'])->whereMonth('date', $request['month'])->whereYear('date', $request['year'])->orderBy('date','desc')->get();
+                    $dataWiseTransactionsData = $purchaseTransactionData->groupBy('date');
                     $iterator = 0;
                     foreach($dataWiseTransactionsData as $date => $dateWiseTransactionData){
                         $listingData[$iterator]['date'] = date('l, d F Y',strtotime($date));
@@ -445,31 +449,77 @@ class SalaryController extends BaseController{
             $message = 'Success';
             $status = 200;
             $data = array();
-            $projectSiteAdvancedAmount = ProjectSiteAdvancePayment::where('paid_from_slug','cash')->sum('amount');
-            $salesBillCashAmount = BillReconcileTransaction::where('paid_from_slug','cash')->sum('amount');
-            $salesBillTransactions = BillTransaction::where('paid_from_slug','cash')->sum('total');
+            $projectSiteAdvancedAmount = ProjectSiteAdvancePayment::where('project_site_id',$request['project_site_id'])->where('paid_from_slug','cash')->sum('amount');
+            $salesBillCashAmount = BillReconcileTransaction::join('bills','bills.id','=','bill_reconcile_transactions.bill_id')
+                ->join('quotations','quotations.id','=','bills.quotation_id')
+                ->where('quotations.project_site_id', $request['project_site_id'])
+                ->where('bill_reconcile_transactions.paid_from_slug','cash')
+                ->sum('bill_reconcile_transactions.amount');
+            $salesBillTransactions = BillTransaction::join('bills','bills.id','=','bill_transactions.bill_id')
+                ->join('quotations','quotations.id','=','bills.quotation_id')
+                ->where('quotations.project_site_id', $request['project_site_id'])
+                ->where('bill_transactions.paid_from_slug','cash')
+                ->sum('total');
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
-                $data['allocated_amount']  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
-                $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
+            $allocatedAmount  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
+            $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
+                                            ->where('project_site_id',$request['project_site_id'])
+                                            ->where('peticash_status_id',$approvedPeticashStatusId)
+                                            ->sum('payable_amount');
+            $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
                                                 ->where('project_site_id',$request['project_site_id'])
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                ->sum('payable_amount');
-                $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
-                                                    ->where('project_site_id',$request['project_site_id'])
-                                                    ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                    ->sum('amount');
-                $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
-                                                    ->where('project_site_id',$request['project_site_id'])
-                                                    ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                    ->sum('bill_amount');
-                $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
-                    ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
-                    ->where('purchase_order_advance_payments.paid_from_slug','cash')
-                    ->where('purchase_requests.project_site_id',$request['project_site_id'])
-                    ->sum('amount');
-                $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
-                                    ->where('project_site_id',$request['project_site_id'])->sum('amount');
-                $data['remaining_amount'] = ($data['allocated_amount'] + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions) - ($data['total_salary_amount'] + $data['total_advance_amount'] + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal + $cashSubcontractorAdvancePaymentTotal);
+                                                ->sum('amount');
+            $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
+                                                ->where('project_site_id',$request['project_site_id'])
+                                                ->where('peticash_status_id',$approvedPeticashStatusId)
+                                                ->sum('bill_amount');
+            $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
+                ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                ->where('purchase_order_advance_payments.paid_from_slug','cash')
+                ->where('purchase_requests.project_site_id',$request['project_site_id'])
+                ->sum('amount');
+
+            $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
+                                ->where('project_site_id',$request['project_site_id'])->sum('amount');
+
+            $cashSubcontractorBillTransactionTotal = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
+                ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
+                ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
+
+            $subcontractorBillReconcile = SubcontractorBillReconcileTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_reconcile_transactions.subcontractor_bill_id')
+                ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
+                ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
+                ->where('subcontractor_bill_reconcile_transactions.paid_from_slug','cash')
+                ->sum('subcontractor_bill_reconcile_transactions.amount');
+
+            $siteTransferCashAmount = SiteTransferBillPayment::join('site_transfer_bills','site_transfer_bills.id','=','site_transfer_bill_payments.site_transfer_bill_id')
+                ->join('inventory_component_transfers','inventory_component_transfers.id','=','site_transfer_bills.inventory_component_transfer_id')
+                ->join('inventory_components','inventory_components.id','inventory_component_transfers.inventory_component_id')
+                ->where('site_transfer_bill_payments.paid_from_slug','cash')
+                ->where('inventory_components.project_site_id',$request['project_site_id'])
+                ->sum('site_transfer_bill_payments.amount');
+
+            $assetMaintenanceCashAmount = AssetMaintenanceBillPayment::join('asset_maintenance_bills','asset_maintenance_bills.id','asset_maintenance_bill_payments.asset_maintenance_bill_id')
+                ->join('asset_maintenance','asset_maintenance.id','=','asset_maintenance_bills.asset_maintenance_id')
+                ->where('asset_maintenance.project_site_id',$request['project_site_id'])
+                ->where('asset_maintenance_bill_payments.paid_from_slug','cash')
+                ->sum('asset_maintenance_bill_payments.amount');
+
+            $indirectGSTCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
+                ->where('paid_from_slug','cash')->sum('gst');
+
+            $indirectTDSCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
+                ->where('paid_from_slug','cash')->sum('tds');
+
+            $data['remaining_amount'] = round((($allocatedAmount + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions)
+                                                    - ($data['total_salary_amount'] + $data['total_advance_amount']
+                                                        + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal
+                                                         + $cashSubcontractorBillTransactionTotal
+                                                        + $subcontractorBillReconcile + $siteTransferCashAmount + $assetMaintenanceCashAmount
+                                                        + $indirectGSTCashAmount + $indirectTDSCashAmount + $cashSubcontractorAdvancePaymentTotal)),3);
+            $data['allocated_amount'] = $allocatedAmount + $salesBillCashAmount + $salesBillTransactions + $projectSiteAdvancedAmount;
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
@@ -499,15 +549,24 @@ class SalaryController extends BaseController{
                     $data['payable_amount'] = (string)$payable_amount;
                 }
             }
-            if($request->has('bank_id')){
-                $data['approved_amount'] = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount')->first();
+            $transactionTypeId = PeticashTransactionType::where('slug',$request['type'])->pluck('id')->first();
+            $lastRequestedSalary = PeticashRequestedSalaryTransaction::where('employee_id',$request['employee_id'])
+                ->where('project_site_id',$request['project_site_id'])
+                ->where('peticash_transaction_type_id',$transactionTypeId)->select('amount','created_at')->get()->last();
+            if($lastRequestedSalary != null){
+                $salaryTransactionAmountAfterLastRequest = PeticashSalaryTransaction::where('created_at','>=',$lastRequestedSalary['created_at'])
+                    ->where('employee_id',$request['employee_id'])
+                    ->where('project_site_id',$request['project_site_id'])
+                    ->where('peticash_transaction_type_id',$transactionTypeId)->sum('amount');
+                $approvedAmount = ($salaryTransactionAmountAfterLastRequest < $lastRequestedSalary['amount']) ? ($lastRequestedSalary['amount'] - $salaryTransactionAmountAfterLastRequest) : 0;
             }else{
-                $peticashApprovedAmount = PeticashSiteApprovedAmount::where('project_site_id',$request['project_site_id'])->pluck('salary_amount_approved')->first();
-                if (count($peticashApprovedAmount) > 0 && $peticashApprovedAmount != null){
-                    $data['approved_amount'] = $peticashApprovedAmount;
-                }else{
-                    $data['approved_amount'] = '0';
-                }
+                $approvedAmount = '0';
+            }
+            if($request->has('bank_id')){
+                $bankApprovedAmount = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount')->first();
+                $data['approved_amount'] = ($bankApprovedAmount > $approvedAmount) ? (string)$approvedAmount : (string)$bankApprovedAmount;
+            }else{
+                $data['approved_amount'] = (string)$approvedAmount;
             }
         }catch(\Exception $e){
             $message = "Fail";
