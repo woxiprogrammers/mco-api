@@ -510,13 +510,21 @@ class PurchaseOrderController extends BaseController{
                 }
             }
             $poClose = false;
-            foreach($purchaseOrder->purchaseOrderComponent as $key => $purchaseOrderComponent){
-                $transactionQuantity = PurchaseOrderTransactionComponent::where('purchase_order_component_id',$purchaseOrderComponent['id'])->sum('quantity');
-                if($transactionQuantity >= $purchaseOrderComponent['quantity']){
-                    $poClose = true;
-                }
+            $purchaseOrderComponentIds = $purchaseOrder->purchaseOrderComponent->pluck('id');
+            $purchaseOrderComponentQuantities = $purchaseOrder->purchaseOrderComponent->sum('quantity');
+            $transactionQuantity = PurchaseOrderTransactionComponent::whereIn('purchase_order_component_id',$purchaseOrderComponentIds)->sum('quantity');
+            if($transactionQuantity >= $purchaseOrderComponentQuantities){
+                $poClose = true;
             }
             if($poClose && $purchaseOrder->purchaseOrderStatus->slug != 'close'){
+                $mail_id = Vendor::where('id',$purchaseOrder['vendor_id'])->pluck('email')->first();
+                $mailData = ['toMail' => $mail_id];
+                $purchaseOrderComponent = $purchaseOrder->purchaseOrderComponent;
+                Mail::send('purchase.purchase-order.email.purchase-order-close', ['purchaseOrder' => $purchaseOrder,'purchaseOrderComponent' => $purchaseOrderComponent], function($message) use ($mailData,$purchaseOrder){
+                    $message->subject('PO '.$purchaseOrder->purchaseRequest->format_id.'has been closed');
+                    $message->to($mailData['toMail']);
+                    $message->from(env('MAIL_USERNAME'));
+                });
                 $purchaseOrder->update([
                     'purchase_order_status_id' => PurchaseOrderStatus::where('slug','close')->pluck('id')->first()
                 ]);
