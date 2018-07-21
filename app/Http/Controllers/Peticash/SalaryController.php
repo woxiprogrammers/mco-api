@@ -84,7 +84,6 @@ class SalaryController extends BaseController{
                 $ptTotal = round($salaryTransactions->sum('pt'),3);
                 $esicTotal = round($salaryTransactions->sum('esic'),3);
                 $tdsTotal = round($salaryTransactions->sum('tds'),3);
-
                 $data[$iterator]['balance'] = round((round((round(($actualSalaryTotal - $advanceSalaryTotal),1) - $payableSalaryTotal),1) - $pfTotal - $ptTotal - $esicTotal - $tdsTotal) ,1);
                 $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
                 $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
