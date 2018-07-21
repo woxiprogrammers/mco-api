@@ -383,8 +383,7 @@ class PurchaseOrderController extends BaseController{
         return response()->json($response,$status);
     }
 
-    public function createPurchaseOrderTransaction(Request $request)
-    {
+    public function createPurchaseOrderTransaction(Request $request){
         try {
             $message = "Success";
             $status = 200;
@@ -509,6 +508,26 @@ class PurchaseOrderController extends BaseController{
                         InventoryComponentTransferImage::create(['name' => $image['name'],'inventory_component_transfer_id' => $createdTransferId]);
                     }
                 }
+            }
+            $poClose = false;
+            $purchaseOrderComponentIds = $purchaseOrder->purchaseOrderComponent->pluck('id');
+            $purchaseOrderComponentQuantities = $purchaseOrder->purchaseOrderComponent->sum('quantity');
+            $transactionQuantity = PurchaseOrderTransactionComponent::whereIn('purchase_order_component_id',$purchaseOrderComponentIds)->sum('quantity');
+            if($transactionQuantity >= $purchaseOrderComponentQuantities){
+                $poClose = true;
+            }
+            if($poClose && $purchaseOrder->purchaseOrderStatus->slug != 'close'){
+                $mail_id = Vendor::where('id',$purchaseOrder['vendor_id'])->pluck('email')->first();
+                $mailData = ['toMail' => $mail_id];
+                $purchaseOrderComponent = $purchaseOrder->purchaseOrderComponent;
+                Mail::send('purchase.purchase-order.email.purchase-order-close', ['purchaseOrder' => $purchaseOrder,'purchaseOrderComponent' => $purchaseOrderComponent], function($message) use ($mailData,$purchaseOrder){
+                    $message->subject('PO '.$purchaseOrder->purchaseRequest->format_id.'has been closed');
+                    $message->to($mailData['toMail']);
+                    $message->from(env('MAIL_USERNAME'));
+                });
+                $purchaseOrder->update([
+                    'purchase_order_status_id' => PurchaseOrderStatus::where('slug','close')->pluck('id')->first()
+                ]);
             }
         } catch (\Exception $e) {
             $message = "Fail";
