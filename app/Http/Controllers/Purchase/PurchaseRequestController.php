@@ -288,7 +288,7 @@ use NotificationTrait;
                 }
             }
             $displayLength = 30;
-            $start = ((int)$pageId) * $displayLength;
+            $start = ((int)$pageId + 1) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = count($purchaseRequestList);
             $remainingCount = $totalMaterialCount - $totalSent;

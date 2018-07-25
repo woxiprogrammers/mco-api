@@ -142,7 +142,7 @@ class PurchaseOrderController extends BaseController{
                 }
             }
             $displayLength = 30;
-            $start = ((int)$pageId) * $displayLength;
+            $start = ((int)$pageId + 1) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalOrderCount = count($purchaseOrderList);
             $remainingCount = $totalOrderCount - $totalSent;
@@ -624,7 +624,7 @@ class PurchaseOrderController extends BaseController{
                 $iterator++;
             }
             $displayLength = 30;
-            $start = ((int)$pageId) * $displayLength;
+            $start = ((int)$pageId + 1) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalTransactionCount = count($transactionData);
             $remainingCount = $totalTransactionCount - $totalSent;

@@ -77,13 +77,13 @@ class SalaryController extends BaseController{
                 $data[$iterator]['is_transaction_pending'] = ($transactionPendingCount > 0) ? true : false;
                 $salaryTransactions = PeticashSalaryTransaction::where('project_site_id',$request['project_site_id'])->where('employee_id',$employeeDetail['id'])->where('peticash_status_id',$peticashStatus->where('slug','approved')->pluck('id')->first())->select('id','amount','payable_amount','peticash_transaction_type_id','pf','pt','esic','tds','created_at')->get();
                 $paymentSlug = PeticashTransactionType::where('type','PAYMENT')->select('id','slug')->get();
-                $advanceSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount'),3);
-                $actualSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount'),3);
-                $payableSalaryTotal = round($salaryTransactions->sum('payable_amount'),3);
-                $pfTotal = round($salaryTransactions->sum('pf'),3);
-                $ptTotal = round($salaryTransactions->sum('pt'),3);
-                $esicTotal = round($salaryTransactions->sum('esic'),3);
-                $tdsTotal = round($salaryTransactions->sum('tds'),3);
+                $advanceSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->sum('amount'),1);
+                $actualSalaryTotal = round($salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sum('amount'),1);
+                $payableSalaryTotal = round($salaryTransactions->sum('payable_amount'),1);
+                $pfTotal = round($salaryTransactions->sum('pf'),1);
+                $ptTotal = round($salaryTransactions->sum('pt'),1);
+                $esicTotal = round($salaryTransactions->sum('esic'),1);
+                $tdsTotal = round($salaryTransactions->sum('tds'),1);
                 $data[$iterator]['balance'] = round((round((round(($actualSalaryTotal - $advanceSalaryTotal),1) - $payableSalaryTotal),1) - $pfTotal - $ptTotal - $esicTotal - $tdsTotal) ,1);
                 $lastSalaryId = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','salary')->pluck('id')->first())->sortByDesc('created_at')->pluck('id')->first();
                 $advanceAfterLastSalary = $salaryTransactions->where('peticash_transaction_type_id',$paymentSlug->where('slug','advance')->pluck('id')->first())->where('id','>',$lastSalaryId)->sum('amount');
@@ -605,7 +605,7 @@ class SalaryController extends BaseController{
             }
             $pageId = $request['page'];
             $displayLength = 30;
-            $start = ((int)$pageId) * $displayLength;
+            $start = ((int)$pageId + 1) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalTransactionCount = count($listingData);
             $remainingCount = $totalTransactionCount - $totalSent;

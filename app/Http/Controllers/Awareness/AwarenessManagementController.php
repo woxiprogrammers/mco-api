@@ -31,7 +31,7 @@
                 $status = 200;
                 $message = "Success";
                 $displayLength = 30;
-                $start = ((int)$pageId) * $displayLength;
+                $start = ((int)$pageId + 1) * $displayLength;
                 $totalSent = ($pageId + 1) * $displayLength;
                 $totalMainCategoriesCount = count($main_categories);
                 $remainingCount = $totalMainCategoriesCount - $totalSent;
@@ -70,7 +70,7 @@
                 $status = 200;
                 $message = "Success";
                 $displayLength = 30;
-                $start = ((int)$pageId) * $displayLength;
+                $start = ((int)$pageId + 1) * $displayLength;
                 $totalSent = ($pageId + 1) * $displayLength;
                 $totalMainCategoriesCount = count($sub_categories);
                 $remainingCount = $totalMainCategoriesCount - $totalSent;
