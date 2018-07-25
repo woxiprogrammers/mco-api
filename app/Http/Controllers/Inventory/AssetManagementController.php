@@ -61,9 +61,9 @@ class AssetManagementController extends BaseController
                         $inventoryListingData[$iterator]['electricity_per_unit'] = -1;
                         $inventoryListingData[$iterator]['slug'] = '';
                         $inventoryListingData[$iterator]['total_electricity_consumed'] = -1;
-                        $inventoryListingData[$iterator]['in'] = -1;
-                        $inventoryListingData[$iterator]['out'] = -1;
-                        $inventoryListingData[$iterator]['available'] = -1;
+                        $inventoryListingData[$iterator]['in'] = (float)$inQuantity;
+                        $inventoryListingData[$iterator]['out'] = (float)$outQuantity;
+                        $inventoryListingData[$iterator]['available'] = (float)$availableQuantity;
                     }else{
                         $inventoryListingData[$iterator]['model_number'] = $inventoryComponent->asset->model_number;
                         if($inventoryComponent->asset->assetTypes->slug != 'other'){
@@ -97,9 +97,9 @@ class AssetManagementController extends BaseController
                             $inventoryListingData[$iterator]['electricity_per_unit'] = (float)$inventoryComponent->asset->electricity_per_unit;
                             $inventoryListingData[$iterator]['slug'] = $inventoryComponent->asset->assetTypes->slug;
                             $inventoryListingData[$iterator]['total_electricity_consumed'] = (float)$totalElectricityConsumed;
-                            $inventoryListingData[$iterator]['in'] = -1;
-                            $inventoryListingData[$iterator]['out'] = -1;
-                            $inventoryListingData[$iterator]['available'] = -1;
+                            $inventoryListingData[$iterator]['in'] = (float)$inQuantity;
+                            $inventoryListingData[$iterator]['out'] = (float)$outQuantity;
+                            $inventoryListingData[$iterator]['available'] = (float)$availableQuantity;
                         }else{
                             $inventoryListingData[$iterator]['assets_units'] = -1;
                             $inventoryListingData[$iterator]['total_work_hour'] = -1;
@@ -122,7 +122,7 @@ class AssetManagementController extends BaseController
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = count($inventoryListingData);
             $remainingCount = $totalMaterialCount - $totalSent;
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalMaterialCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['assets_list'][] = $inventoryListingData[$iterator];
             }
             if($remainingCount > 0 ){

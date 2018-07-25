@@ -36,7 +36,7 @@
                 $totalMainCategoriesCount = count($main_categories);
                 $remainingCount = $totalMainCategoriesCount - $totalSent;
                 $data['main_categories'] = array();
-                for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMainCategoriesCount; $iterator++,$jIterator++){
+                for($iterator = $start,$jIterator = 0; $iterator < $totalMainCategoriesCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                     $data['main_categories'][] = $main_categories[$iterator];
                 }
                 if($remainingCount > 0 ){
@@ -75,7 +75,7 @@
                 $totalMainCategoriesCount = count($sub_categories);
                 $remainingCount = $totalMainCategoriesCount - $totalSent;
                 $data['sub_categories'] = array();
-                for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMainCategoriesCount; $iterator++,$jIterator++){
+                for($iterator = $start,$jIterator = 0; $iterator < $totalMainCategoriesCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                     $data['sub_categories'][] = $sub_categories[$iterator];
                 }
                 if($remainingCount > 0 ){

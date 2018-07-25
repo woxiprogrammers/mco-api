@@ -64,7 +64,7 @@
                 $totalMainCategoriesCount = count($sub_categories);
                 $remainingCount = $totalMainCategoriesCount - $totalSent;
                 $data['sub_categories'] = array();
-                for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMainCategoriesCount; $iterator++,$jIterator++){
+                for($iterator = $start,$jIterator = 0; $iterator < $totalMainCategoriesCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                     $data['sub_categories'][] = $sub_categories[$iterator];
                 }
                 if($remainingCount > 0 ){
@@ -114,7 +114,7 @@
                 $totalMainCategoriesCount = count($drawing_image_latest_version);
                 $remainingCount = $totalMainCategoriesCount - $totalSent;
                 $data['images'] = array();
-                for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMainCategoriesCount; $iterator++,$jIterator++){
+                for($iterator = $start,$jIterator = 0; $iterator < $totalMainCategoriesCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                     $data['images'][] = $drawing_image_latest_version[$iterator];
                 }
                 if($remainingCount > 0 ){
