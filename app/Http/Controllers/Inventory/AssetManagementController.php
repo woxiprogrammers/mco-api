@@ -125,9 +125,6 @@ class AssetManagementController extends BaseController
             for($iterator = $start,$jIterator = 0; $iterator < $totalMaterialCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['assets_list'][] = $inventoryListingData[$iterator];
             }
-            /*for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
-                $data['assets_list'][] = $inventoryListingData[$iterator];
-            }*/
             if($remainingCount > 0 ){
                 $page_id = (string)($pageId + 1);
                 $next_url = "/inventory/asset/listing";
