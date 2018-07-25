@@ -605,12 +605,12 @@ class SalaryController extends BaseController{
             }
             $pageId = $request['page'];
             $displayLength = 30;
-            $start = ((int)$pageId + 1) * $displayLength;
+            $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalTransactionCount = count($listingData);
             $remainingCount = $totalTransactionCount - $totalSent;
             $data['transactions_list'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalTransactionCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalTransactionCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['transactions_list'][] = $listingData[$iterator];
             }
             if($remainingCount > 0 ){

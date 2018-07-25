@@ -288,12 +288,12 @@ use NotificationTrait;
                 }
             }
             $displayLength = 30;
-            $start = ((int)$pageId + 1) * $displayLength;
+            $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalMaterialCount = count($purchaseRequestList);
             $remainingCount = $totalMaterialCount - $totalSent;
             $data['purchase_request_list'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalMaterialCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalMaterialCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['purchase_request_list'][] = $purchaseRequestList[$iterator];
             }
             if($remainingCount > 0 ){

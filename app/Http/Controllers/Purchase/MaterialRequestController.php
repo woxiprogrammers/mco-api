@@ -550,7 +550,7 @@ use PurchaseTrait;
 
                     case 'in-indent':
                         $data[$iterator]['id'] = $iterator;
-                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material moved to Purchase by '.$user->first_name.' '.$user->last_name.' '.$materialComponentVersion->remark;
+                        $data[$iterator]['display_message'] = date('l, d F Y',strtotime($materialComponentVersion['created_at'])).' '.$materialComponentVersion['quantity'].' '.$materialComponentVersion->unit->name.' material moved to in-indent by '.$user->first_name.' '.$user->last_name.' '.$materialComponentVersion->remark;
                         break;
 
                     case 'p-r-assigned':

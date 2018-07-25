@@ -142,12 +142,12 @@ class PurchaseOrderController extends BaseController{
                 }
             }
             $displayLength = 30;
-            $start = ((int)$pageId + 1) * $displayLength;
+            $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalOrderCount = count($purchaseOrderList);
             $remainingCount = $totalOrderCount - $totalSent;
             $data['purchase_order_list'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalOrderCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalOrderCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['purchase_order_list'][] = $purchaseOrderList[$iterator];
             }
             if($remainingCount > 0 ){
@@ -624,12 +624,12 @@ class PurchaseOrderController extends BaseController{
                 $iterator++;
             }
             $displayLength = 30;
-            $start = ((int)$pageId + 1) * $displayLength;
+            $start = ((int)$pageId) * $displayLength;
             $totalSent = ($pageId + 1) * $displayLength;
             $totalTransactionCount = count($transactionData);
             $remainingCount = $totalTransactionCount - $totalSent;
             $data['purchase_order_transaction_listing'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalTransactionCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalTransactionCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['purchase_order_transaction_listing'][] = $transactionData[$iterator];
             }
             if($remainingCount > 0 ){
