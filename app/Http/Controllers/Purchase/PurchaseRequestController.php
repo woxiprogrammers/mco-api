@@ -107,16 +107,17 @@ use NotificationTrait;
                 $materialComponentHistoryData['component_status_id'] = $PRAssignedStatusId;
                 $iterator = 0;
                 foreach($request['material_request_component'] as $key => $materialRequestComponentData){
-                    MaterialRequestComponents::where('id',$request['material_request_component'][$iterator]['id'])->update(['component_status_id' => $PRAssignedStatusId]);
+                    $materialRequestComponent = MaterialRequestComponents::where('id',$request['material_request_component'][$iterator]['id']);
+                    $materialRequestComponent->update(['component_status_id' => $PRAssignedStatusId]);
                     $materialComponentHistoryData['material_request_component_id'] = $materialRequestComponentData['id'];
                     MaterialRequestComponentHistory::create($materialComponentHistoryData);
                     if(array_key_exists('quantity',$request['material_request_component'][$iterator])){
-                        $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponentData['id'];
+                        $materialRequestComponentVersion['material_request_component_id'] = $materialRequestComponent['id'];
                         $materialRequestComponentVersion['component_status_id'] = $PRAssignedStatusId;
                         $materialRequestComponentVersion['user_id'] = $user['id'];
-                        $materialRequestComponentVersion['quantity'] = round($materialRequestComponentData['quantity'],3);
-                        $materialRequestComponentVersion['unit_id'] = $materialRequestComponentData['unit_id'];
-                        $materialRequestComponentVersion['remark'] = $materialRequestComponentData['remark'];
+                        $materialRequestComponentVersion['quantity'] = round($materialRequestComponent['quantity'],3);
+                        $materialRequestComponentVersion['unit_id'] = $materialRequestComponent['unit_id'];
+                        $materialRequestComponentVersion['remark'] = $materialRequestComponent['remark'];
                         MaterialRequestComponentVersion::create($materialRequestComponentVersion);
                     }
                     $iterator++;

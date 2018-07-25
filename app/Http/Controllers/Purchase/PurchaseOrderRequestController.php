@@ -302,19 +302,27 @@ class PurchaseOrderRequestController extends BaseController
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
                 foreach ($purchaseOrderDatum as $vendorId => $purchaseOrderDataArray){
+                    Log::info('$purchaseOrderDataArray');
+                    Log::info(json_encode($purchaseOrderDataArray));
                     $purchaseOrder = PurchaseOrder::create($purchaseOrderDataArray['purchase_order_data']);
                     if(!isset($purchaseRequestFormatId)){
                         $purchaseRequestFormatId = $purchaseOrder->purchaseRequest->format_id;
                     }
                     foreach ($purchaseOrderDataArray['component_data'] as $purchaseOrderComponentData){
+                        Log::info('$purchaseOrderComponentData');
+                        Log::info($purchaseOrderComponentData);
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
                         $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_component_id']);
                         $purchaseOrderComponent = PurchaseOrderComponent::create($purchaseOrderComponentData);
                         $purchaseOrderRequestComponent->update(['is_approved' => true]);
                         $componentTypeId = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->component_type_id;
+                        Log::info('$componentTypeId');
+                        Log::info($componentTypeId);
                         if($newMaterialTypeId == $componentTypeId){
                             $materialName = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
                             $isMaterialExists = Material::where('name','ilike',$materialName)->first();
+                            Log::info('$isMaterialExists');
+                            Log::info($isMaterialExists);
                             if($isMaterialExists == null){
                                 $materialData = [
                                     'name' => $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name,
