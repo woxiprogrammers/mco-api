@@ -147,7 +147,7 @@ class PurchaseOrderController extends BaseController{
             $totalOrderCount = count($purchaseOrderList);
             $remainingCount = $totalOrderCount - $totalSent;
             $data['purchase_order_list'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalOrderCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalOrderCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['purchase_order_list'][] = $purchaseOrderList[$iterator];
             }
             if($remainingCount > 0 ){
@@ -629,7 +629,7 @@ class PurchaseOrderController extends BaseController{
             $totalTransactionCount = count($transactionData);
             $remainingCount = $totalTransactionCount - $totalSent;
             $data['purchase_order_transaction_listing'] = array();
-            for($iterator = $start,$jIterator = 0; $iterator < $totalSent && $jIterator < $totalTransactionCount; $iterator++,$jIterator++){
+            for($iterator = $start,$jIterator = 0; $iterator < $totalTransactionCount && $jIterator < $displayLength; $iterator++,$jIterator++){
                 $data['purchase_order_transaction_listing'][] = $transactionData[$iterator];
             }
             if($remainingCount > 0 ){
