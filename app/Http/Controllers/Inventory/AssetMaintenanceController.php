@@ -78,8 +78,10 @@ class AssetMaintenanceController extends BaseController{
 
         public function getAssetRequestMaintenanceListing(Request $request){
             try{
-                $assetMaintenanceData = AssetMaintenance::where('project_site_id',$request['project_site_id'])->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
-                    ->orderBy('created_at','desc')->get();
+                $assetMaintenanceData = AssetMaintenance::where('project_site_id',$request['project_site_id'])
+                                            ->where('asset_id',$request['asset_id'])
+                                            ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
+                                            ->orderBy('created_at','desc')->get();
                 $iterator = 0;
                 $assetMaintenanceList = array();
                 foreach($assetMaintenanceData as $key => $assetMaintenance){
