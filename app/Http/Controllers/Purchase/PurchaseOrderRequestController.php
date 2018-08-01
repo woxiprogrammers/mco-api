@@ -296,8 +296,9 @@ class PurchaseOrderRequestController extends BaseController
                     $purchaseRequestComponentId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                     $disapprovePurchaseOrderRequestComponentIds = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
                                                                         ->where('purchase_request_component_vendor_relation.purchase_request_component_id',$purchaseRequestComponentId)
+                                                                        ->where('purchase_order_request_components.id','!=',$purchaseOrderRequestComponent['id'])
                                                                         ->where('purchase_order_request_components.purchase_order_request_id',$purchaseOrderRequestComponent['purchase_order_request_id'])
-                                                                        ->pluck('purchase_order_request_components.id')->toArray();
+                                                                        ->pluck('purchase_order_request_components.purchase_order_request_id')->toArray();
                     if(count($disapprovePurchaseOrderRequestComponentIds) > 0){
                         PurchaseOrderRequestComponent::whereIn('id',$disapprovePurchaseOrderRequestComponentIds)
                                 ->update([
