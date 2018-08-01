@@ -219,10 +219,10 @@ class PurchaseOrderRequestController extends BaseController
             $user = Auth::user();
             $purchaseOrderCount = PurchaseOrder::whereDate('created_at', Carbon::now())->count();
             $projectSiteId = PurchaseRequests::join('purchase_order_requests','purchase_requests.id','=','purchase_order_requests.purchase_request_id')
-                                ->join('purchase_order_request_components','purchase_order_request_components.purchase_order_request_id','=','purchase_order_requests.id')
-                                ->where('purchase_order_request_components.id',$request['purchase_order_request_components'][0]['id'])
-                                ->pluck('purchase_requests.project_site_id')
-                                ->first();
+                ->join('purchase_order_request_components','purchase_order_request_components.purchase_order_request_id','=','purchase_order_requests.id')
+                ->where('purchase_order_request_components.id',$request['purchase_order_request_components'][0]['id'])
+                ->pluck('purchase_requests.project_site_id')
+                ->first();
             $newAssetTypeId = MaterialRequestComponentTypes::where('slug','new-asset')->pluck('id')->first();
             $newMaterialTypeId = MaterialRequestComponentTypes::where('slug','new-material')->pluck('id')->first();
             $purchaseRequestFormatId = null;
@@ -293,11 +293,15 @@ class PurchaseOrderRequestController extends BaseController
                         $purchaseOrderComponentData['purchase_request_component_id'] = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
                         $purchaseOrderData['vendors'][$vendorId]['component_data'][] = $purchaseOrderComponentData;
                     }
-
-                }else{
-                    /*disapprove*/
-                    PurchaseOrderRequestComponent::where('id', $purchase_order_request_component['id'])
-                        ->update(['is_approved' => $purchase_order_request_component['is_approved'], 'approve_disapprove_by_user' => $user['id']]);
+                    $purchaseRequestComponentId = $purchaseOrderRequestComponent->purchaseRequestComponentVendorRelation->purchase_request_component_id;
+                    $disapprovePurchaseOrderRequestComponentIds = PurchaseOrderRequestComponent::join('purchase_request_component_vendor_relation','purchase_request_component_vendor_relation.id','=','purchase_order_request_components.purchase_request_component_vendor_relation_id')
+                                                                        ->where('purchase_request_component_vendor_relation.purchase_request_component_id',$purchaseRequestComponentId)
+                                                                        ->where('purchase_order_request_components.id','!=',$purchaseOrderRequestComponent['id'])
+                                                                        ->where('purchase_order_request_components.purchase_order_request_id',$purchaseOrderRequestComponent['purchase_order_request_id'])
+                                                                        ->pluck('purchase_order_request_components.id')->toArray();
+                    if(count($disapprovePurchaseOrderRequestComponentIds) > 0){
+                        PurchaseOrderRequestComponent::whereIn('id',$disapprovePurchaseOrderRequestComponentIds)->update(['is_approved' => false]);
+                    }
                 }
             }
             foreach ($purchaseOrderData as $slug => $purchaseOrderDatum){
