@@ -212,8 +212,6 @@ class PurchaseOrderRequestController extends BaseController
     use NotificationTrait;
     public function changeStatus(Request $request){
         try{
-            Log::info('inside here');
-            Log::info(json_encode($request->all()));
             $purchaseOrderData = [
                 'vendors' => array(),
                 'clients' => array()
