@@ -300,7 +300,11 @@ class PurchaseOrderRequestController extends BaseController
                                                                         ->where('purchase_order_request_components.purchase_order_request_id',$purchaseOrderRequestComponent['purchase_order_request_id'])
                                                                         ->pluck('purchase_order_request_components.id')->toArray();
                     if(count($disapprovePurchaseOrderRequestComponentIds) > 0){
-                        PurchaseOrderRequestComponent::whereIn('id',$disapprovePurchaseOrderRequestComponentIds)->update(['is_approved' => false]);
+                        PurchaseOrderRequestComponent::whereIn('id',$disapprovePurchaseOrderRequestComponentIds)
+                                ->update([
+                                    'is_approved' => false,
+                                    'approve_disapprove_by_user' => $user['id']
+                                ]);
                     }
                 }
             }
