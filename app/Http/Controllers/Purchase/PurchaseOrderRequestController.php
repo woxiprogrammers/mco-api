@@ -217,6 +217,7 @@ class PurchaseOrderRequestController extends BaseController
                 'vendors' => array(),
                 'clients' => array()
             ];
+            Log::info(json_encode($request->all()));
             $user = Auth::user();
             $purchaseOrderCount = PurchaseOrder::whereDate('created_at', Carbon::now())->count();
             $projectSiteId = PurchaseRequests::join('purchase_order_requests','purchase_requests.id','=','purchase_order_requests.purchase_request_id')
@@ -304,9 +305,9 @@ class PurchaseOrderRequestController extends BaseController
                                                                         ->where('purchase_request_component_vendor_relation.purchase_request_component_id',$purchaseRequestComponentId)
                                                                         ->where('purchase_order_request_components.id','!=',$purchaseOrderRequestComponent['id'])
                                                                         ->where('purchase_order_request_components.purchase_order_request_id',$purchaseOrderRequestComponent['purchase_order_request_id'])
-                                                                        ->pluck('purchase_order_request_components.purchase_order_request_id')->toArray();
+                                                                        ->pluck('purchase_order_request_components.id')->toArray();
                     Log::info('$disapprovePurchaseOrderRequestComponentIds');
-                    Log::info($disapprovePurchaseOrderRequestComponentIds);
+                    Log::info(json_encode($disapprovePurchaseOrderRequestComponentIds));
                     if(count($disapprovePurchaseOrderRequestComponentIds) > 0){
                         PurchaseOrderRequestComponent::whereIn('id',$disapprovePurchaseOrderRequestComponentIds)
                                 ->update([
