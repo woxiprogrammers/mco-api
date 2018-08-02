@@ -327,7 +327,10 @@ class PurchaseOrderRequestController extends BaseController
                         $purchaseOrderComponentData['purchase_order_id'] = $purchaseOrder->id;
                         $purchaseOrderRequestComponent = PurchaseOrderRequestComponent::findOrFail($purchaseOrderComponentData['purchase_order_request_component_id']);
                         $purchaseOrderComponent = PurchaseOrderComponent::create($purchaseOrderComponentData);
+                        Log::info('$purchaseOrderRequestComponent');
+                        Log::info(json_encode($purchaseOrderRequestComponent));
                         $purchaseOrderRequestComponent->update(['is_approved' => true]);
+                        Log::info('after update');
                         $componentTypeId = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->component_type_id;
                         if($newMaterialTypeId == $componentTypeId){
                             $materialName = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
