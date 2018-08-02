@@ -18,6 +18,7 @@ use App\InventoryTransferTypes;
 use App\Material;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
+use App\MaterialRequestComponentVersion;
 use App\PaymentType;
 use App\Permission;
 use App\PurchaseOrder;
@@ -432,6 +433,14 @@ class PurchaseOrderController extends BaseController{
                 $purchaseOrderTransactionComponent['unit_id'] = $material['unit_id'];
                 $purchaseOrderTransactionComponentData = PurchaseOrderTransactionComponent::create($purchaseOrderTransactionComponent);
                 $purchaseOrderComponent = PurchaseOrderComponent::where('id',$material['purchase_order_component_id'])->first();
+                $materialRequestComponentVersion['material_request_component_id'] = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->id;
+                $materialRequestComponentVersion['purchase_order_transaction_status_id'] = $purchaseOrderTransactionData['purchase_order_transaction_status_id'];
+                $materialRequestComponentVersion['user_id'] = $user['id'];
+                $materialRequestComponentVersion['quantity'] = $purchaseOrderTransactionComponent['quantity'];
+                $materialRequestComponentVersion['unit_id'] = $purchaseOrderTransactionComponent['unit_id'];
+                $materialRequestComponentVersion['remark'] = $request['remark'];
+                MaterialRequestComponentVersion::create($materialRequestComponentVersion);
+
                 $materialRequestUserToken = User::join('material_requests','material_requests.on_behalf_of','=','users.id')
                     ->join('material_request_components','material_request_components.material_request_id','=','material_requests.id')
                     ->join('purchase_request_components','purchase_request_components.material_request_component_id','=','material_request_components.id')

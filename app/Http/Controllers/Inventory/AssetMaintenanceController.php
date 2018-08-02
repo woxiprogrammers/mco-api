@@ -89,7 +89,11 @@ class AssetMaintenanceController extends BaseController{
                     $assetMaintenanceList[$iterator]['user_id'] = $assetMaintenance['user_id'];
                     $assetMaintenanceList[$iterator]['user_name'] = $assetMaintenance->user->first_name.' '.$assetMaintenance->user->last_name;
                     $status = $assetMaintenance->assetMaintenanceStatus;
-                    $assetMaintenanceList[$iterator]['status'] = $status->name;
+                    if($assetMaintenance->assetMaintenanceTransaction->count() > 0){
+                        $assetMaintenanceList[$iterator]['status'] = $assetMaintenance->assetMaintenanceTransaction->first()->assetMaintenanceTransactionStatus->name;
+                    }else{
+                        $assetMaintenanceList[$iterator]['status'] = $status->name;
+                    }
                     if($status->slug == 'vendor-approved'){
                         $approvedVendor = $assetMaintenance->assetMaintenanceVendorRelation->where('is_approved',true)->first();
                         $assetMaintenanceList[$iterator]['approved_vendor_id'] = (string)$approvedVendor['vendor_id'];
@@ -142,7 +146,7 @@ class AssetMaintenanceController extends BaseController{
             return response()->json($response,$status);
         }
 
-    public function generateGRN(){
+        public function generateGRN(){
         try{
             $currentDate = Carbon::now();
             $monthlyGrnGeneratedCount = GRNCount::where('month',$currentDate->month)->where('year',$currentDate->year)->pluck('count')->first();
@@ -212,7 +216,7 @@ class AssetMaintenanceController extends BaseController{
             return response()->json($response,$status);
         }
 
-    public function createTransaction(Request $request){
+        public function createTransaction(Request $request){
         try{
             $assetMaintenanceTransaction = AssetMaintenanceTransaction::where('grn',$request['grn'])->first();
             $assetMaintenanceTransactionData = $request->only('bill_number','bill_amount',' remark');
