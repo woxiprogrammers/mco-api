@@ -348,7 +348,7 @@ class PurchaseOrderRequestController extends BaseController
                                 MaterialVersion::create($materialVersionData);
                             }
                         }elseif ($newAssetTypeId == $componentTypeId){
-                            $assetName = $purchaseOrderRequestComponent->purchaseRequestComponent->materialRequestComponent->name;
+                            $assetName = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->name;
                             $is_present = Asset::where('name','ilike',$assetName)->first();
                             if($is_present == null){
                                 $asset_type = AssetType::where('slug','other')->pluck('id')->first();
