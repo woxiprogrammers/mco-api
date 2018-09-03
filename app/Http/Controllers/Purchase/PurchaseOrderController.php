@@ -466,7 +466,13 @@ class PurchaseOrderController extends BaseController{
                 $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
                 $project_site_id = $materialRequestComponent->materialRequest->project_site_id;
                 $materialComponentSlug = $materialRequestComponent->materialRequestComponentTypes->slug;
-                $alreadyPresent = InventoryComponent::where('name','ilike',$materialRequestComponent->name)->where('project_site_id',$project_site_id)->first();
+                $assetComponentTypeIds = MaterialRequestComponentTypes::whereIn('slug',['system-asset','new-asset'])->pluck('id')->toArray();
+                if(in_array($purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->component_type_id,$assetComponentTypeIds)){
+                    $isMaterial = false;
+                }else{
+                    $isMaterial = true;
+                }
+                $alreadyPresent = InventoryComponent::where('name','ilike',$materialRequestComponent->name)->where('is_material',$isMaterial)->where('project_site_id',$project_site_id)->first();
                 if($alreadyPresent != null){
                     $inventoryComponentId = $alreadyPresent['id'];
                 }else{
