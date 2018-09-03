@@ -7,6 +7,8 @@
 
 namespace App\Http\Controllers\Notification;
 
+use App\AssetMaintenance;
+use App\AssetMaintenanceStatus;
 use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\InventoryComponentTransfers;
 use App\InventoryComponentTransferStatus;
@@ -147,6 +149,7 @@ class NotificationController extends BaseController{
             $materialSiteOutTransferApproveCount = $checklistAssignedCount = 0;
             $checklistAssignedCount = $reviewChecklistCount = 0;
             $peticashSalaryRequestCount = $peticashSalaryApprovedCount = 0;
+            $assetMaintenanceRequestCount = 0;
 
             if(!in_array($user->roles[0]->role->slug, ['admin','superadmin'])){
                 if($user->customHasPermission('approve-material-request')){
@@ -355,6 +358,7 @@ class NotificationController extends BaseController{
                             ->count('purchase_order_requests.id');
                     }
                 }
+
                 if($user->customHasPermission('approve-component-transfer')){
                     $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
                         ->where('modules.slug','component-transfer')
@@ -411,6 +415,7 @@ class NotificationController extends BaseController{
                             ->count('inventory_component_transfers.id');
                     }
                 }
+
                 if($user->customHasPermission('create-checklist-management')){
                     $checklistAssignedCount = ProjectSiteUserChecklistAssignment::join('checklist_statuses','checklist_statuses.id','=','project_site_user_checklist_assignments.checklist_status_id')
                         ->join('project_site_checklists','project_site_checklists.id','=','project_site_user_checklist_assignments.project_site_checklist_id')
@@ -426,6 +431,7 @@ class NotificationController extends BaseController{
                         ->where('project_site_checklists.project_site_id',$projectSiteId)
                         ->count('project_site_user_checklist_assignments.id');
                 }
+
                 if($user->customHasPermission('approve-peticash-management')){
                     $peticashSalaryRequestCount = PeticashRequestedSalaryTransaction::join('peticash_statuses','peticash_statuses.id','=','peticash_requested_salary_transactions.peticash_status_id')
                         ->where('peticash_statuses.slug','pending')
@@ -453,6 +459,29 @@ class NotificationController extends BaseController{
                             ->count();
                     }
                 }
+
+                if($user->customHasPermission('approve-asset-maintenance-approval')){
+                    $lastLogin = UserLastLogin::join('modules','modules.id','=','user_last_logins.module_id')
+                        ->where('modules.slug','asset-maintenance-approval')
+                        ->where('user_last_logins.user_id',$user->id)
+                        ->pluck('user_last_logins.last_login')
+                        ->first();
+                    if($lastLogin == null){
+                        $assetMaintenanceRequestCount = AssetMaintenance::join('user_project_site_relation','user_project_site_relation.project_site_id','=','asset_maintenance.project_site_id')
+                            ->where('asset_maintenance.asset_maintenance_status_id',AssetMaintenanceStatus::where('slug','maintenance-requested')->pluck('id')->first())
+                            ->where('asset_maintenance.project_site_id',$projectSiteId)
+                            ->where('user_project_site_relation.user_id',$user->id)
+                            ->count();
+                    }else{
+                        $assetMaintenanceRequestCount = AssetMaintenance::join('user_project_site_relation','user_project_site_relation.project_site_id','=','asset_maintenance.project_site_id')
+                            ->where('asset_maintenance.asset_maintenance_status_id',AssetMaintenanceStatus::where('slug','maintenance-requested')->pluck('id')->first())
+                            ->where('asset_maintenance.project_site_id',$projectSiteId)
+                            ->where('user_project_site_relation.user_id',$user->id)
+                            ->where('asset_maintenance.created_at','>=',$lastLogin)
+                            ->count();
+                    }
+
+                }
             }
             $notificationCountArray = [
                 'material_request_create_count' => $materialRequestCreateCount,
@@ -468,7 +497,8 @@ class NotificationController extends BaseController{
                 'checklist_assigned_count' => $checklistAssignedCount,
                 'review_checklist_count' => $reviewChecklistCount,
                 'salary_request_count' => $peticashSalaryRequestCount,
-                'salary_approved_count' => $peticashSalaryApprovedCount
+                'salary_approved_count' => $peticashSalaryApprovedCount,
+                'asset_maintenance_request' => $assetMaintenanceRequestCount
             ];
         }catch(\Exception $e){
             $data = [
@@ -492,7 +522,8 @@ class NotificationController extends BaseController{
                 'checklist_assigned_count' => 0,
                 'review_checklist_count' => 0,
                 'salary_request_count' => 0,
-                'salary_approved_count' => 0
+                'salary_approved_count' => 0,
+                'asset_maintenance_request' => 0
             ];
         }
         return $notificationCountArray;

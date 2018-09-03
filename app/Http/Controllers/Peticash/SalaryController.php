@@ -815,14 +815,28 @@ class SalaryController extends BaseController{
                 }
             }
             $transactionTypeId = PeticashTransactionType::where('slug',$request['type'])->pluck('id')->first();
-            $lastRequestedSalary = PeticashRequestedSalaryTransaction::where('employee_id',$request['employee_id'])
+           /* $lastRequestedSalary = PeticashRequestedSalaryTransaction::where('employee_id',$request['employee_id'])
                 ->where('project_site_id',$request['project_site_id'])
                 ->where('peticash_status_id',PeticashStatus::where('slug','approved')->pluck('id')->first())
                 ->where('peticash_transaction_type_id',$transactionTypeId)
                 ->select('amount','created_at')->get()->last();
-            if($lastRequestedSalary != null){
-                $salaryTransactionAmountAfterLastRequest = PeticashSalaryTransaction::where('created_at','>=',$lastRequestedSalary['created_at'])
-                    ->where('employee_id',$request['employee_id'])
+           if($lastRequestedSalary != null){
+                 $salaryTransactionAmountAfterLastRequest = PeticashSalaryTransaction::where('created_at','>=',$lastRequestedSalary['created_at'])
+                     ->where('employee_id',$request['employee_id'])
+                     ->where('project_site_id',$request['project_site_id'])
+                     ->where('peticash_transaction_type_id',$transactionTypeId)->sum('amount');
+                 $approvedAmount = ($salaryTransactionAmountAfterLastRequest < $lastRequestedSalary['amount']) ? ($lastRequestedSalary['amount'] - $salaryTransactionAmountAfterLastRequest) : 0;
+             }else{
+                 $approvedAmount = '0';
+             }*/
+            $requestedSalary = PeticashRequestedSalaryTransaction::where('employee_id',$request['employee_id'])
+                                ->where('project_site_id',$request['project_site_id'])
+                                ->where('peticash_status_id',PeticashStatus::where('slug','approved')->pluck('id')->first())
+                                ->where('peticash_transaction_type_id',$transactionTypeId)
+                                ->sum('amount');
+            $lastRequestedSalary['amount'] = $requestedSalary;
+            if($requestedSalary != null){
+                $salaryTransactionAmountAfterLastRequest = PeticashSalaryTransaction::where('employee_id',$request['employee_id'])
                     ->where('project_site_id',$request['project_site_id'])
                     ->where('peticash_transaction_type_id',$transactionTypeId)->sum('amount');
                 $approvedAmount = ($salaryTransactionAmountAfterLastRequest < $lastRequestedSalary['amount']) ? ($lastRequestedSalary['amount'] - $salaryTransactionAmountAfterLastRequest) : 0;
