@@ -120,7 +120,9 @@ class PurchaseOrderController extends BaseController{
                         ->distinct('material_request_components.name')->select('material_request_components.name')->take(5)->get();
                     $purchaseOrderList[$iterator]['materials'] = $material_names->implode('name', ', ');
                     $purchaseOrderList[$iterator]['status'] = ($purchaseOrder['is_approved'] == true) ? 'Approved' : 'Disapproved';
-                    $alreadyGRNGenerated = PurchaseOrderTransaction::where('purchase_order_id',$purchaseOrder['id'])->whereNull('bill_number')->orderBy('created_at','desc')->pluck('grn')->first();
+                    $alreadyGRNGenerated = PurchaseOrderTransaction::where('purchase_order_id',$purchaseOrder['id'])
+                                            ->where('purchase_order_transaction_status_id',PurchaseOrderTransactionStatus::where('slug','grn-generated')->pluck('id')->first())
+                                            ->orderBy('created_at','desc')->pluck('grn')->first();
                     $purchaseOrderList[$iterator]['images'] = array();
                     if(($alreadyGRNGenerated) != null){
                         $transactionImages = PurchaseOrderTransactionImage::join('purchase_order_transactions','purchase_order_transactions.id','=','purchase_order_transaction_images.purchase_order_transaction_id')
@@ -466,7 +468,13 @@ class PurchaseOrderController extends BaseController{
                 $materialRequestComponent = $purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent;
                 $project_site_id = $materialRequestComponent->materialRequest->project_site_id;
                 $materialComponentSlug = $materialRequestComponent->materialRequestComponentTypes->slug;
-                $alreadyPresent = InventoryComponent::where('name','ilike',$materialRequestComponent->name)->where('project_site_id',$project_site_id)->first();
+                $assetComponentTypeIds = MaterialRequestComponentTypes::whereIn('slug',['system-asset','new-asset'])->pluck('id')->toArray();
+                if(in_array($purchaseOrderComponent->purchaseRequestComponent->materialRequestComponent->component_type_id,$assetComponentTypeIds)){
+                    $isMaterial = false;
+                }else{
+                    $isMaterial = true;
+                }
+                $alreadyPresent = InventoryComponent::where('name','ilike',$materialRequestComponent->name)->where('is_material',$isMaterial)->where('project_site_id',$project_site_id)->first();
                 if($alreadyPresent != null){
                     $inventoryComponentId = $alreadyPresent['id'];
                 }else{
