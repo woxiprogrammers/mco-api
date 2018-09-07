@@ -38,7 +38,16 @@ class AssetManagementController extends BaseController
             $status = 200;
             $pageId = $request->page;
             $projectSiteId = $request->project_site_id;
-            $inventoryComponents = InventoryComponent::where('is_material',((boolean)false))->where('project_site_id',$projectSiteId)->get();
+            $inventoryComponents = array();
+            if ($request->has('asset_name') && $request->asset_name != null && $request->asset_name != "") {
+                $inventoryComponents = InventoryComponent::
+                    where('project_site_id',$request->project_site_id)
+                    ->where('is_material',((boolean)false))
+                    ->where('name','ilike','%'.$request->asset_name.'%')->get();
+            } else {
+                $inventoryComponents = InventoryComponent::where('is_material',((boolean)false))->where('project_site_id',$projectSiteId)->get();
+            }
+
             $approvedStatusId = InventoryComponentTransferStatus::where('slug','approved')->pluck('id')->first();
             $inventoryListingData = array();
             $iterator = 0;
