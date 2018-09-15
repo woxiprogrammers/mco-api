@@ -76,7 +76,13 @@ class PurchaseOrderController extends BaseController{
                 $purchaseOrderDetail = PurchaseOrder::where('purchase_request_id',$request['purchase_request_id'])->orderBy('created_at','desc')->get();
             }else{
                 $purchaseRequestIds = PurchaseRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
-                $purchaseOrderDetail = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->orderBy('created_at','desc')->get();
+                if ($request->has('search_format_id') && $request->search_format_id != "" && $request->search_format_id != null) {
+                    $purchaseOrderDetail = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->where('format_id','ilike','%'.$request->search_format_id.'%')
+                         ->orderBy('created_at','desc')->get();
+                } else {
+                    $purchaseOrderDetail = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->orderBy('created_at','desc')->get();
+                }
+                
             }
             $purchaseRequest = PurchaseRequests::where('id',$request['purchase_request_id'])->first();
             $purchaseOrderList = array();
@@ -582,7 +588,20 @@ class PurchaseOrderController extends BaseController{
             if($request->has('project_site_id')){
                 $purchaseRequestIds = PurchaseRequests::where('project_site_id',$request['project_site_id'])->pluck('id');
                 $purchaseOrderIds = PurchaseOrder::whereIn('purchase_request_id',$purchaseRequestIds)->pluck('id');
-                $purchaseOrderTransactions = PurchaseOrderTransaction::whereIn('purchase_order_id',$purchaseOrderIds)->orderBy('created_at','desc')->get();
+                if ($request->has('search_grn') && $request->search_grn != "" && $request->search_grn != null) {
+                    $purchaseOrderTransactions = PurchaseOrderTransaction::whereIn('purchase_order_id',$purchaseOrderIds)
+                        ->where('grn','ilike','%'.$request->search_grn.'%')
+                        ->orderBy('created_at','desc')->get();
+                } else {
+                    if ($request->has('search_grn') && $request->search_grn != "" && $request->search_grn != null) {
+                        $purchaseOrderTransactions = PurchaseOrderTransaction::whereIn('purchase_order_id',$purchaseOrderIds)
+                            ->where('grn','ilike','%'.$request->search_grn.'%')
+                            ->orderBy('created_at','desc')->get();
+                    }else {
+                        $purchaseOrderTransactions = PurchaseOrderTransaction::whereIn('purchase_order_id',$purchaseOrderIds)->orderBy('created_at','desc')->get();
+                    }
+                }
+                
             }else{
                 $purchaseOrderTransactions = PurchaseOrderTransaction::where('purchase_order_id',$request['purchase_order_id'])->orderBy('created_at','desc')->get();
             }

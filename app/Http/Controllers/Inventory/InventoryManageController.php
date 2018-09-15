@@ -47,7 +47,16 @@ use NotificationTrait;
             $displayLength = 30;
             $pageId = $request->page_id;
             $totalRecords = $pageId * $displayLength;
-            $inventoryComponents = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->skip($totalRecords)->take($displayLength)->get();
+            $inventoryComponents = array();
+            if ($request->has('material_name') && $request->material_name != null && $request->material_name != "") {
+                $inventoryComponents = InventoryComponent::
+                    where('project_site_id',$request->project_site_id)
+                    ->where('is_material',true)
+                    ->where('name','ilike','%'.$request->material_name.'%')
+                    ->skip($totalRecords)->take($displayLength)->get();
+            } else {
+                $inventoryComponents = InventoryComponent::where('project_site_id',$request->project_site_id)->where('is_material',true)->skip($totalRecords)->take($displayLength)->get();
+            }
             $quotation = Quotation::where('project_site_id',$request->project_site_id)->first();
             $inventoryListingData = array();
             $iterator = 0;

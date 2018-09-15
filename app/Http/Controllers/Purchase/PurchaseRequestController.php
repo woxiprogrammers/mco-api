@@ -225,9 +225,23 @@ use NotificationTrait;
                 ->where('permissions.name','approve-purchase-request')
                 ->where('user_has_permissions.user_id',$user['id'])
                 ->count();
-            $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
-                ->whereMonth('created_at', $request['month'])->whereYear('created_at', $request['year'])
+
+            $purchaseRequests = array();
+            if ($request->has('search_format_id') && $request->search_format_id != null && $request->search_format_id != "") {
+                $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
+                ->where('format_id','ilike','%'.$request->search_format_id.'%')
+                ->whereMonth('created_at', $request['month'])
+                ->whereYear('created_at', $request['year'])
+                ->orderBy('created_at','desc')
+                ->get();
+                    
+            } else {
+                $purchaseRequests = PurchaseRequests::where('project_site_id',$request['project_site_id'])
+                ->whereMonth('created_at', $request['month'])
+                ->whereYear('created_at', $request['year'])
                 ->orderBy('created_at','desc')->get();
+            }
+
             if($approvalAclPermissionCount > 0){
                 $has_approve_access = true;
             }else{
