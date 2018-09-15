@@ -61,7 +61,7 @@ class SalaryController extends BaseController{
                 $data[$iterator]['employee_id'] = $employeeDetail['id'];
                 $data[$iterator]['format_employee_id'] = $employeeDetail['employee_id'];
                 $data[$iterator]['employee_name'] = $employeeDetail['name'];
-                $data[$iterator]['per_day_wages'] = (int)$employeeDetail['per_day_wages'];
+                $data[$iterator]['per_day_wages'] = $employeeDetail['per_day_wages'];
                 $data[$iterator]['employee_profile_picture'] = '/assets/global/img/logo.jpg';
                 $profilePicTypeId = EmployeeImageType::where('slug','profile')->pluck('id')->first();
                 $employeeProfilePic = EmployeeImage::where('employee_id',$employeeDetail['id'])->where('employee_image_type_id',$profilePicTypeId)->first();
