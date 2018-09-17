@@ -103,7 +103,15 @@ use NotificationTrait;
                         $totalIN += $inventoryComponentINTransfer['quantity'];
                     }else{
                         $conversionData = $this->unitConversion($inventoryComponentINTransfer['unit_id'],$unitId,$inventoryComponentINTransfer['quantity']);
-                        $totalIN += $conversionData['quantity_to'];
+                        if($conversionData['error_message']){
+                            $inventoryListingData[$iterator]['error_message'] = 'Unit Conversion for '.Unit::where('id',$inventoryComponentINTransfer['unit_id'])->pluck('name')->first()
+                                    .'-'.Unit::where('id',$unitId)->pluck('name')->first()
+                                    .' not present for material '.$inventoryComponent['name'];
+                            break;
+                        }else{
+                            $inventoryListingData[$iterator]['error_message'] = '';
+                            $totalIN += $conversionData['quantity_to'];
+                        }
                     }
                 }
                 $inventoryListingData[$iterator]['quantity_in'] = $totalIN  + $inventoryComponent['opening_stock'];
@@ -119,7 +127,15 @@ use NotificationTrait;
                         $totalOUT += $inventoryComponentOUTTransfer['quantity'];
                     }else{
                         $conversionData = $this->unitConversion($inventoryComponentOUTTransfer['unit_id'],$unitId,$inventoryComponentOUTTransfer['quantity']);
-                        $totalOUT += $conversionData['quantity_to'];
+                        if($conversionData['error_message']){
+                            $inventoryListingData[$iterator]['error_message'] = 'Unit Conversion for '.Unit::where('id',$inventoryComponentOUTTransfer['unit_id'])->pluck('name')->first()
+                                .'-'.Unit::where('id',$unitId)->pluck('name')->first()
+                                .' not present for material '.$inventoryComponent['name'];
+                            break;
+                        }else{
+                            $inventoryListingData[$iterator]['error_message'] = '';
+                            $totalOUT += $conversionData['quantity_to'];
+                        }
                     }
                 }
                 $inventoryListingData[$iterator]['quantity_out'] = $totalOUT;
