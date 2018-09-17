@@ -101,6 +101,7 @@ use NotificationTrait;
                 foreach($inventoryComponentInData as $key1 => $inventoryComponentINTransfer){
                     if($inventoryComponentINTransfer['unit_id'] == $unitId){
                         $totalIN += $inventoryComponentINTransfer['quantity'];
+                        $inventoryListingData[$iterator]['error_message'] = '';
                     }else{
                         $conversionData = $this->unitConversion($inventoryComponentINTransfer['unit_id'],$unitId,$inventoryComponentINTransfer['quantity']);
                         if($conversionData['error_message']){
@@ -124,6 +125,7 @@ use NotificationTrait;
                 $totalOUT = 0;
                 foreach($inventoryComponentOutData as $key1 => $inventoryComponentOUTTransfer){
                     if($inventoryComponentOUTTransfer['unit_id'] == $unitId){
+                        $inventoryListingData[$iterator]['error_message'] = '';
                         $totalOUT += $inventoryComponentOUTTransfer['quantity'];
                     }else{
                         $conversionData = $this->unitConversion($inventoryComponentOUTTransfer['unit_id'],$unitId,$inventoryComponentOUTTransfer['quantity']);
