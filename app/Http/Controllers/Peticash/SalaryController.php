@@ -367,12 +367,12 @@ class SalaryController extends BaseController{
                             ,'project_site_indirect_expenses.project_site_id as project_site_id'
                             ,'project_sites.name as name')->get();
 
-                    $cashPaymentData = $purchaseOrderAdvancePayments->merge($purchaseOrderBillPayments)
+                    $cashPaymentData = new Collection();
+                    $cashPaymentData = $cashPaymentData->merge($purchaseOrderAdvancePayments)->merge($purchaseOrderBillPayments)
                                                         ->merge($subcontractorAdvancePayments)->merge($projectSiteAdvancePayments)
                                                         ->merge($siteTransferPayments)->merge($assetMaintenancePayments)
                                                         ->merge($subcontractorCashBillTransactions)->merge($salesBillReconcileCash)
                                                         ->merge($subcontractorBillReconcileCash)->merge($indirectCashPayments);
-
 
                     $transactionsData = new Collection();
                     foreach($purchaseTransactionData as $collection) {
@@ -811,7 +811,7 @@ class SalaryController extends BaseController{
                 if($payable_amount < 0){
                     $data['payable_amount'] = '0';
                 }else{
-                    $data['payable_amount'] = (string)$payable_amount;
+                    $data['payable_amount'] = (string)round($payable_amount,3);
                 }
             }
             $transactionTypeId = PeticashTransactionType::where('slug',$request['type'])->pluck('id')->first();
@@ -845,9 +845,9 @@ class SalaryController extends BaseController{
             }
             if($request->has('bank_id')){
                 $bankApprovedAmount = BankInfo::where('id',$request['bank_id'])->pluck('balance_amount')->first();
-                $data['approved_amount'] = ($bankApprovedAmount > $approvedAmount) ? (string)$approvedAmount : (string)$bankApprovedAmount;
+                $data['approved_amount'] = ($bankApprovedAmount > $approvedAmount) ? (string)round($approvedAmount,3) : (string)round($bankApprovedAmount,3);
             }else{
-                $data['approved_amount'] = (string)$approvedAmount;
+                $data['approved_amount'] = (string)round($approvedAmount,3);
             }
         }catch(\Exception $e){
             $message = "Fail";
