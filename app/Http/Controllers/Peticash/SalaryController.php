@@ -778,13 +778,13 @@ class SalaryController extends BaseController{
             $indirectTDSCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
                 ->where('paid_from_slug','cash')->sum('tds');
 
-            $data['remaining_amount'] = round((($allocatedAmount + $projectSiteAdvancedAmount + $salesBillCashAmount + $salesBillTransactions)
+            $data['remaining_amount'] = round(($allocatedAmount
                                                     - ($data['total_salary_amount'] + $data['total_advance_amount']
                                                         + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal
                                                          + $cashSubcontractorBillTransactionTotal
                                                         + $subcontractorBillReconcile + $siteTransferCashAmount + $assetMaintenanceCashAmount
                                                         + $indirectGSTCashAmount + $indirectTDSCashAmount + $cashSubcontractorAdvancePaymentTotal)),3);
-            $data['allocated_amount'] = $allocatedAmount + $salesBillCashAmount + $salesBillTransactions + $projectSiteAdvancedAmount;
+            $data['allocated_amount'] = $allocatedAmount;
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
