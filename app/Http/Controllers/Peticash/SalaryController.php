@@ -727,18 +727,18 @@ class SalaryController extends BaseController{
                 ->sum('total');
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
             $allocatedAmount  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
-            $data['total_salary_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
+            $data['total_salary_amount'] = round(PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
                                             ->where('project_site_id',$request['project_site_id'])
                                             ->where('peticash_status_id',$approvedPeticashStatusId)
-                                            ->sum('payable_amount');
-            $data['total_advance_amount'] = PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
+                                            ->sum('payable_amount'),2);
+            $data['total_advance_amount'] = round(PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
                                                 ->where('project_site_id',$request['project_site_id'])
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                ->sum('amount');
-            $data['total_purchase_amount'] = PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
+                                                ->sum('amount'),2);
+            $data['total_purchase_amount'] = round(PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
                                                 ->where('project_site_id',$request['project_site_id'])
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
-                                                ->sum('bill_amount');
+                                                ->sum('bill_amount'), 2);
 
 
             $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
@@ -780,7 +780,9 @@ class SalaryController extends BaseController{
             $indirectTDSCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
                 ->where('paid_from_slug','cash')->sum('tds');
 
-            $data['total_subcontractor_amount'] = $cashSubcontractorBillTransactionTotal + $subcontractorBillReconcile + $cashSubcontractorAdvancePaymentTotal;
+            $data['total_subcontractor_amount'] = round($cashSubcontractorBillTransactionTotal + $subcontractorBillReconcile + $cashSubcontractorAdvancePaymentTotal,2);
+
+            $data['total_asset_amount'] = round($assetMaintenanceCashAmount,2);
 
             $data['remaining_amount'] = round(($allocatedAmount
                                                     - ($data['total_salary_amount'] + $data['total_advance_amount']
@@ -788,7 +790,7 @@ class SalaryController extends BaseController{
                                                          + $cashSubcontractorBillTransactionTotal
                                                         + $subcontractorBillReconcile + $siteTransferCashAmount + $assetMaintenanceCashAmount
                                                         + $indirectGSTCashAmount + $indirectTDSCashAmount + $cashSubcontractorAdvancePaymentTotal)),3);
-            $data['allocated_amount'] = $allocatedAmount;
+            $data['allocated_amount'] = round($allocatedAmount,2);
         }catch(\Exception $e){
             $message = $e->getMessage();
             $status = 500;
