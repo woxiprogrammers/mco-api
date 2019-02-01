@@ -276,7 +276,7 @@ class SalaryController extends BaseController{
                         ->select('purchase_order_payments.id as payment_id','purchase_order_payments.amount as amount'
                             ,'purchase_order_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
-
+                    dd($purchaseOrderBillPayments);
                     $subcontractorAdvancePayments = SubcontractorAdvancePayment::join('subcontractor','subcontractor.id','=','subcontractor_advance_payments.subcontractor_id')
                         ->where('subcontractor_advance_payments.paid_from_slug','cash')
                         ->where('subcontractor_advance_payments.project_site_id',$projectSiteId)
