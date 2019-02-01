@@ -740,7 +740,12 @@ class SalaryController extends BaseController{
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
                                                 ->sum('bill_amount'), 2);
 
-
+            $purchaseOrderBillPayments = PurchaseOrderPayment::join('purchase_order_bills','purchase_order_bills.id','=','purchase_order_payments.purchase_order_bill_id')
+                ->join('purchase_orders','purchase_orders.id','=','purchase_order_bills.purchase_order_id')
+                ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
+                ->where('purchase_order_payments.paid_from_slug','cash')
+                ->where('purchase_requests.project_site_id',$request['project_site_id'])
+                ->sum('purchase_order_payments.amount');
             $cashPurchaseOrderAdvancePaymentTotal = PurchaseOrderAdvancePayment::join('purchase_orders','purchase_orders.id','=','purchase_order_advance_payments.purchase_order_id')
                 ->join('purchase_requests','purchase_requests.id','=','purchase_orders.purchase_request_id')
                 ->where('purchase_order_advance_payments.paid_from_slug','cash')
@@ -789,7 +794,7 @@ class SalaryController extends BaseController{
                                                         + $data['total_purchase_amount'] + $cashPurchaseOrderAdvancePaymentTotal
                                                          + $cashSubcontractorBillTransactionTotal
                                                         + $subcontractorBillReconcile + $siteTransferCashAmount + $assetMaintenanceCashAmount
-                                                        + $indirectGSTCashAmount + $indirectTDSCashAmount + $cashSubcontractorAdvancePaymentTotal)),3);
+                                                        + $indirectGSTCashAmount + $indirectTDSCashAmount + $cashSubcontractorAdvancePaymentTotal + $purchaseOrderBillPayments)),3);
             $data['allocated_amount'] = round($allocatedAmount,2);
         }catch(\Exception $e){
             $message = $e->getMessage();
