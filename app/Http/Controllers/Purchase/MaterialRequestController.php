@@ -128,7 +128,7 @@ use PurchaseTrait;
                             $materialList[$iterator]['material_request_component_type_id'] = $quotationMaterialSlug->id;
                             $iterator++;
                         }
-                        $structureMaterials = Material::whereNotIn('id',$quotationMaterialId)->where('name','ilike','%'.$request->keyword.'%')->get();
+                        $structureMaterials = Material::whereNotIn('id',$quotationMaterialId)->where('name','ilike','%'.$request->keyword.'%')->where('is_active',true)->get();
                     }else{
                         $structureMaterials = Material::where('name','ilike','%'.$request->keyword.'%')->where('is_active',true)->get();
                     }
