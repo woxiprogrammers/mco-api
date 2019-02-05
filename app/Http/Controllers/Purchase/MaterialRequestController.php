@@ -75,7 +75,7 @@ use PurchaseTrait;
                     $quotation = Quotation::where('project_site_id',$request['project_site_id'])->first();
                     if( count($quotation) > 0){
                         $quotationMaterialId = Material::whereIn('id',array_column($quotation->quotation_materials->toArray(),'material_id'))
-                            ->where('name','ilike','%'.$request->keyword.'%')->pluck('id')->toArray();
+                            ->where('name','ilike','%'.$request->keyword.'%')->where('is_active',true)->pluck('id')->toArray();
                         $quotationMaterials = QuotationMaterial::where('quotation_id',$quotation->id)->whereIn('material_id',$quotationMaterialId)->get();
                         $quotationMaterialSlug = MaterialRequestComponentTypes::where('slug','quotation-material')->first();
                         foreach($quotationMaterials as $key => $quotationMaterial){
@@ -128,9 +128,9 @@ use PurchaseTrait;
                             $materialList[$iterator]['material_request_component_type_id'] = $quotationMaterialSlug->id;
                             $iterator++;
                         }
-                        $structureMaterials = Material::whereNotIn('id',$quotationMaterialId)->where('name','ilike','%'.$request->keyword.'%')->get();
+                        $structureMaterials = Material::whereNotIn('id',$quotationMaterialId)->where('name','ilike','%'.$request->keyword.'%')->where('is_active',true)->get();
                     }else{
-                        $structureMaterials = Material::where('name','ilike','%'.$request->keyword.'%')->get();
+                        $structureMaterials = Material::where('name','ilike','%'.$request->keyword.'%')->where('is_active',true)->get();
                     }
                     $structureMaterialSlug = MaterialRequestComponentTypes::where('slug','structure-material')->first();
                     foreach($structureMaterials as $key1 => $material){
@@ -170,7 +170,7 @@ use PurchaseTrait;
 
                 case "asset" :
                     $assetList = array();
-                    $alreadyExistAsset = Asset::where('name','ilike','%'.$request['keyword'].'%')->get();
+                    $alreadyExistAsset = Asset::where('name','ilike','%'.$request['keyword'].'%')->where('is_active',true)->get();
                     $assetUnit = Unit::where('slug','nos')->first();
                     $systemAssetStatus = MaterialRequestComponentTypes::where('slug','system-asset')->first();
                     foreach ($alreadyExistAsset as $key => $asset){
