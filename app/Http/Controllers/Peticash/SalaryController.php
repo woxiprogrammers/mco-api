@@ -265,7 +265,6 @@ class SalaryController extends BaseController{
                         ->select('purchase_order_advance_payments.id as payment_id','purchase_order_advance_payments.amount as amount'
                             ,'purchase_order_advance_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
-
                     $purchaseOrderBillPayments = PurchaseOrderPayment::join('purchase_order_bills','purchase_order_bills.id','=','purchase_order_payments.purchase_order_bill_id')
                         ->join('purchase_orders','purchase_orders.id','=','purchase_order_bills.purchase_order_id')
                         ->join('vendors','vendors.id','=','purchase_orders.vendor_id')
@@ -276,7 +275,6 @@ class SalaryController extends BaseController{
                         ->select('purchase_order_payments.id as payment_id','purchase_order_payments.amount as amount'
                             ,'purchase_order_payments.created_at as date','purchase_requests.project_site_id as project_site_id'
                             ,'vendors.company as name')->get();
-
                     $subcontractorAdvancePayments = SubcontractorAdvancePayment::join('subcontractor','subcontractor.id','=','subcontractor_advance_payments.subcontractor_id')
                         ->where('subcontractor_advance_payments.paid_from_slug','cash')
                         ->where('subcontractor_advance_payments.project_site_id',$projectSiteId)
