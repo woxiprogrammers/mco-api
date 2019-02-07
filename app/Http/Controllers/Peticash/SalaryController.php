@@ -783,6 +783,8 @@ class SalaryController extends BaseController{
             $indirectTDSCashAmount = ProjectSiteIndirectExpense::where('project_site_id',$request['project_site_id'])
                 ->where('paid_from_slug','cash')->sum('tds');
 
+            $data['total_po_amount'] = round($purchaseOrderBillPayments,2);
+
             $data['total_subcontractor_amount'] = round($cashSubcontractorBillTransactionTotal + $subcontractorBillReconcile + $cashSubcontractorAdvancePaymentTotal,2);
 
             $data['total_asset_amount'] = round($assetMaintenanceCashAmount,2);
