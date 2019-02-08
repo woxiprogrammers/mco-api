@@ -31,6 +31,30 @@ class AuthController extends BaseController
             $this->user = Auth::user();
         }
     }
+    public function logout(Request $request){
+        try{
+            $response = array();
+            $status = 200;
+            $user = Auth::user();
+            $user->update(['mobile_fcm_token' => '']);
+            $response['message'] = 'Token deleted successfully';
+        }catch(\Exception $e){
+            $user = Auth::user();
+            $data = [
+                'action' => 'FCM token deleted',
+                'params' => $request->all(),
+                'user' => $user,
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            $status = 500;
+            $response = [
+                'message' => 'Something went wrong'
+            ];
+        }
+        return response()->json($response,$status);
+    }
+
     public function login(Request $request){
         try{
             $token = null;
