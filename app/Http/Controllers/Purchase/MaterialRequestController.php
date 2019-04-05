@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Purchase;
 use App\Asset;
+use App\AssetImages;
 use App\Helper\UnitHelper;
 use App\Http\Controllers\CustomTraits\MaterialRequestTrait;
 use App\Http\Controllers\CustomTraits\NotificationTrait;
 use App\Http\Controllers\CustomTraits\PurchaseTrait;
 use App\Material;
+use App\MaterialImages;
 use App\MaterialRequestComponentHistory;
 use App\MaterialRequestComponents;
 use App\MaterialRequestComponentTypes;
@@ -126,6 +128,15 @@ use PurchaseTrait;
                             }
                             $materialList[$iterator]['material_request_component_type_slug'] = $quotationMaterialSlug->slug;
                             $materialList[$iterator]['material_request_component_type_id'] = $quotationMaterialSlug->id;
+                            $matId = Material::where('name', $quotationMaterial->material->name)->pluck('id');
+                            $mat_name = MaterialImages::whereIn('material_id',$matId)->value('name');
+                            $assetDirectoryName = sha1($matId);
+                            $newFilePath = env('MATERIAL_IMAGE_UPLOAD') . DIRECTORY_SEPARATOR . $assetDirectoryName . DIRECTORY_SEPARATOR . $mat_name;
+                            if (count($mat_name) != 0) {
+                                $materialList[$iterator]['material_image'] = $newFilePath;
+                            } else {
+                                $materialList[$iterator]['material_image'] = "";
+                            }
                             $iterator++;
                         }
                         $structureMaterials = Material::whereNotIn('id',$quotationMaterialId)->where('name','ilike','%'.$request->keyword.'%')->where('is_active',true)->get();
@@ -151,6 +162,15 @@ use PurchaseTrait;
                         }
                         $materialList[$iterator]['material_request_component_type_slug'] = $structureMaterialSlug->slug;
                         $materialList[$iterator]['material_request_component_type_id'] = $structureMaterialSlug->id;
+                        $matId = Material::where('name', $material->name)->pluck('id');
+                        $mat_name = MaterialImages::whereIn('material_id',$matId)->value('name');
+                        $assetDirectoryName = sha1($matId);
+                        $newFilePath = env('MATERIAL_IMAGE_UPLOAD') . DIRECTORY_SEPARATOR . $assetDirectoryName . DIRECTORY_SEPARATOR . $mat_name;
+                        if (count($mat_name) != 0) {
+                            $materialList[$iterator]['material_image'] = $newFilePath;
+                        } else {
+                            $materialList[$iterator]['material_image'] = "";
+                        }
                         $iterator++;
                     }
                     if(count($materialList) == 0){
@@ -164,6 +184,7 @@ use PurchaseTrait;
                         $newMaterialSlug = MaterialRequestComponentTypes::where('slug','new-material')->first();
                         $materialList[$iterator]['material_request_component_type_slug'] = $newMaterialSlug->slug;
                         $materialList[$iterator]['material_request_component_type_id'] = $newMaterialSlug->id;
+                        $materialList[$iterator]['material_image'] = "";
                     }
                     $data['material_list'] = $materialList;
                 break;
@@ -181,6 +202,14 @@ use PurchaseTrait;
                         $assetList[$iterator]['material_request_component_type_slug'] = $systemAssetStatus->slug;
                         $assetList[$iterator]['material_request_component_type_id'] = $systemAssetStatus->id;
                         $assetList[$iterator]['asset_type_slug'] = $asset->assetTypes->slug;
+                        $mat_name = AssetImages::where('asset_id', $asset['id'])->value('name');
+                        $assetDirectoryName = sha1($asset['id']);
+                        $newFilePath = env('ASSET_IMAGE_UPLOAD') . DIRECTORY_SEPARATOR . $assetDirectoryName . DIRECTORY_SEPARATOR . $mat_name;
+                        if (count($mat_name) != 0) {
+                            $assetList[$iterator]['asset_image'] = $newFilePath;
+                        } else {
+                            $assetList[$iterator]['asset_image'] = "";
+                        }
                         $iterator++;
                     }
                     if(count($assetList) == 0){
@@ -192,6 +221,7 @@ use PurchaseTrait;
                         $assetList[$iterator]['material_request_component_type_slug'] = $newAssetSlug->slug;
                         $assetList[$iterator]['material_request_component_type_id'] = $newAssetSlug->id;
                         $assetList[$iterator]['asset_type_slug'] = null;
+                        $assetList[$iterator]['asset_image'] = "";
                     }
                     $data['asset_list'] = $assetList;
                 break;
