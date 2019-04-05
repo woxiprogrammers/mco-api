@@ -130,7 +130,7 @@ use PurchaseTrait;
                             $materialList[$iterator]['material_request_component_type_id'] = $quotationMaterialSlug->id;
                             $matId = Material::where('name', $quotationMaterial->material->name)->pluck('id');
                             $mat_name = MaterialImages::whereIn('material_id',$matId)->value('name');
-                            $assetDirectoryName = sha1($matId);
+                            $assetDirectoryName = sha1($matId[0]);
                             $newFilePath = env('MATERIAL_IMAGE_UPLOAD') . DIRECTORY_SEPARATOR . $assetDirectoryName . DIRECTORY_SEPARATOR . $mat_name;
                             if (count($mat_name) != 0) {
                                 $materialList[$iterator]['material_image'] = $newFilePath;
@@ -164,7 +164,7 @@ use PurchaseTrait;
                         $materialList[$iterator]['material_request_component_type_id'] = $structureMaterialSlug->id;
                         $matId = Material::where('name', $material->name)->pluck('id');
                         $mat_name = MaterialImages::whereIn('material_id',$matId)->value('name');
-                        $assetDirectoryName = sha1($matId);
+                        $assetDirectoryName = sha1($matId[0]);
                         $newFilePath = env('MATERIAL_IMAGE_UPLOAD') . DIRECTORY_SEPARATOR . $assetDirectoryName . DIRECTORY_SEPARATOR . $mat_name;
                         if (count($mat_name) != 0) {
                             $materialList[$iterator]['material_image'] = $newFilePath;
