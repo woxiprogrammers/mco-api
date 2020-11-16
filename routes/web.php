@@ -23,6 +23,8 @@ $app->post('save-image', array('uses' => 'ImageController@saveImages'));
 $app->group(['prefix' => 'inventory'], function () use ($app) {
     $app->group(['prefix' => 'challan'], function () use ($app) {
         $app->get('pending/project-site-id/{projectSiteId}', array('uses' => 'Inventory\InventoryTransferChallanController@getPendingChallans'));
+        $app->post('{challanId}/project-site-id/{projectSiteId}/site-in', array('uses' => 'Inventory\InventoryTransferChallanController@generateSiteIn'));
+        $app->patch('{challanId}/project-site-id/{projectSiteId}/site-in', array('uses' => 'Inventory\InventoryTransferChallanController@createSiteIn'));
         $app->get('{challanId}/project-site-id/{projectSiteId}', array('uses' => 'Inventory\InventoryTransferChallanController@getChallanDetail'));
     });
     $app->post('generate-grn', array('uses' => 'Inventory\InventoryManageController@generateGRN'));
