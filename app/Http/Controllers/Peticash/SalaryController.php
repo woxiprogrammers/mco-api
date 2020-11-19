@@ -36,6 +36,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use App\TransactionStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -718,20 +719,26 @@ class SalaryController extends BaseController{
                 ->where('quotations.project_site_id', $request['project_site_id'])
                 ->where('bill_reconcile_transactions.paid_from_slug','cash')
                 ->sum('bill_reconcile_transactions.amount');
-            $salesBillTransactions = BillTransaction::join('bills','bills.id','=','bill_transactions.bill_id')
+            
+   	    $billTxnStatusIds = TransactionStatus::where('slug',['approved'])->pluck('id');
+	    $salesBillTransactions = BillTransaction::join('bills','bills.id','=','bill_transactions.bill_id')
                 ->join('quotations','quotations.id','=','bills.quotation_id')
                 ->where('quotations.project_site_id', $request['project_site_id'])
                 ->where('bill_transactions.paid_from_slug','cash')
+		->whereIn('bill_transactions.transaction_status_id',$billTxnStatusIds)
                 ->sum('total');
             $approvedPeticashStatusId = PeticashStatus::where('slug','approved')->pluck('id')->first();
+	    $paymenttypes = PaymentType::whereIn('slug',['cheque','neft','rtgs','internet-banking'])->pluck('id');
             $allocatedAmount  = PeticashSiteTransfer::where('project_site_id',$request['project_site_id'])->sum('amount');
             $data['total_salary_amount'] = round(PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','salary')->pluck('id')->first())
                                             ->where('project_site_id',$request['project_site_id'])
                                             ->where('peticash_status_id',$approvedPeticashStatusId)
+					    ->whereNotIn('payment_type_id',$paymenttypes)
                                             ->sum('payable_amount'),2);
             $data['total_advance_amount'] = round(PeticashSalaryTransaction::where('peticash_transaction_type_id',PeticashTransactionType::where('slug','advance')->pluck('id')->first())
                                                 ->where('project_site_id',$request['project_site_id'])
                                                 ->where('peticash_status_id',$approvedPeticashStatusId)
+                                                ->whereNotIn('payment_type_id',$paymenttypes)
                                                 ->sum('amount'),2);
             $data['total_purchase_amount'] = round(PurchasePeticashTransaction::whereIn('peticash_transaction_type_id', PeticashTransactionType::where('type','PURCHASE')->pluck('id'))
                                                 ->where('project_site_id',$request['project_site_id'])
@@ -753,9 +760,11 @@ class SalaryController extends BaseController{
             $cashSubcontractorAdvancePaymentTotal = SubcontractorAdvancePayment::where('subcontractor_advance_payments.paid_from_slug','cash')
                                 ->where('project_site_id',$request['project_site_id'])->sum('amount');
 
+	    $approvedBillStatusId = TransactionStatus::where('slug','approved')->pluck('id')->first();
             $cashSubcontractorBillTransactionTotal = SubcontractorBillTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_transactions.subcontractor_bills_id')
                 ->join('subcontractor_structure','subcontractor_structure.id','=','subcontractor_bills.sc_structure_id')
                 ->where('subcontractor_structure.project_site_id',$request['project_site_id'])
+		->where('subcontractor_bill_transactions.transaction_status_id', $approvedBillStatusId)
                 ->where('subcontractor_bill_transactions.paid_from_slug','cash')->sum('subcontractor_bill_transactions.subtotal');
 
             $subcontractorBillReconcile = SubcontractorBillReconcileTransaction::join('subcontractor_bills','subcontractor_bills.id','=','subcontractor_bill_reconcile_transactions.subcontractor_bill_id')

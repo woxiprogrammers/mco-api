@@ -538,6 +538,9 @@ class PurchaseOrderController extends BaseController{
             $transactionQuantity = PurchaseOrderTransactionComponent::whereIn('purchase_order_component_id',$purchaseOrderComponentIds)->sum('quantity');
             if($transactionQuantity >= $purchaseOrderComponentQuantities){
                 $poClose = true;
+		$purchaseOrder->update([
+                    'purchase_order_status_id' => PurchaseOrderStatus::where('slug','close')->pluck('id')->first()
+                ]);
             }
             if($poClose && $purchaseOrder->purchaseOrderStatus->slug != 'close'){
                 $mail_id = Vendor::where('id',$purchaseOrder['vendor_id'])->pluck('email')->first();
