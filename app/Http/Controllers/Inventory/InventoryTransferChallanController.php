@@ -121,7 +121,7 @@ class InventoryTransferChallanController extends BaseController
             $updateChallanStatusToClose = true;
             $currentDate = Carbon::now();
             $challan = InventoryTransferChallan::find($challanID);
-            if (!$challan['project_site_in_date']) {
+            if ($challan['project_site_in_date']) {
                 return response()->json([
                     "message"   => 'Site in already done'
                 ], 200);
