@@ -240,7 +240,10 @@ class InventoryTransferChallanController extends BaseController
             $status = 500;
             $data = [
                 'action' => 'Pre GRN site In',
-                'params' => [],
+                'params' => [
+                    'request'   => $request->all(),
+                    'challan_id'    => $challanID
+                ],
                 'exception' => $e->getMessage()
             ];
             Log::critical(json_encode($data));
