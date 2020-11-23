@@ -213,7 +213,7 @@ class InventoryTransferChallanController extends BaseController
             if ($request->has('images')) {
                 $sha1UserId = sha1($user['id']);
                 $sha1challanId = sha1($challan['id']);
-                $imageUploadPath = env('WEB_PUBLIC_PATH') . env('INVENTORY_CHALLAN_IMAGE_UPLOAD');
+                $imageUploadPath = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_IMAGE_UPLOAD');
                 $newInUploadPath = $imageUploadPath . DIRECTORY_SEPARATOR . $sha1challanId . DIRECTORY_SEPARATOR . 'in';
                 foreach ($request['images'] as $key1 => $imageName) {
                     $tempUploadFile = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
@@ -260,7 +260,7 @@ class InventoryTransferChallanController extends BaseController
     {
         try {
             $user = Auth::user();
-            $updateChallanStatusToClose = false;
+            $updateChallanStatusToClose = true;
             $now = Carbon::now();
             $challan = InventoryTransferChallan::find($challanId);
             $approvedStatusId = InventoryComponentTransferStatus::where('slug', 'approved')->pluck('id')->first();
@@ -300,7 +300,7 @@ class InventoryTransferChallanController extends BaseController
             if ($request->has('images') && count($request->images) > 0) {
                 $sha1UserId = sha1($user['id']);
                 $sha1challanId = sha1($challan['id']);
-                $imageUploadPath = env('WEB_PUBLIC_PATH') . env('INVENTORY_CHALLAN_IMAGE_UPLOAD');
+                $imageUploadPath = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_IMAGE_UPLOAD');
                 $newInUploadPath = $imageUploadPath . DIRECTORY_SEPARATOR . $sha1challanId . DIRECTORY_SEPARATOR . 'in';
                 foreach ($request['images'] as $key1 => $imageName) {
                     $tempUploadFile = env('WEB_PUBLIC_PATH') . env('INVENTORY_TRANSFER_TEMP_IMAGE_UPLOAD') . $sha1UserId . DIRECTORY_SEPARATOR . $imageName;
