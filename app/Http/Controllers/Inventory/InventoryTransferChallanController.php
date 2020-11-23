@@ -204,11 +204,9 @@ class InventoryTransferChallanController extends BaseController
             $challanUpdateData['project_site_in_date'] = $currentDate;
             if ($updateChallanStatusToClose) {
                 $challanStatusSlug = 'close';
-            } else {
-                $challanStatusSlug = 'open';
+                $challanUpdateData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug', $challanStatusSlug)->pluck('id')->first();
+                $challan->update($challanUpdateData);
             }
-            $challanUpdateData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug', $challanStatusSlug)->pluck('id')->first();
-            $challan->update($challanUpdateData);
 
             if ($request->has('images')) {
                 $sha1UserId = sha1($user['id']);
@@ -292,11 +290,10 @@ class InventoryTransferChallanController extends BaseController
             }
             if ($updateChallanStatusToClose) {
                 $challanStatusSlug = 'close';
-            } else {
-                $challanStatusSlug = 'open';
+                $challanUpdateData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug', $challanStatusSlug)->pluck('id')->first();
+                $challan->update($challanUpdateData);
             }
-            $challanUpdateData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug', $challanStatusSlug)->pluck('id')->first();
-            $challan->update($challanUpdateData);
+
             if ($request->has('images') && count($request->images) > 0) {
                 $sha1UserId = sha1($user['id']);
                 $sha1challanId = sha1($challan['id']);
