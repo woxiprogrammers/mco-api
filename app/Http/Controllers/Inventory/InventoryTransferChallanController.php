@@ -82,9 +82,9 @@ class InventoryTransferChallanController extends BaseController
                     'out_transfer_component_id' => $outTransferComponent['id'],
                     'name'                      => $outTransferComponent->inventoryComponent->name,
                     'is_material'               => $outTransferComponent->inventoryComponent->is_material,
-                    'unit'                      => $outTransferComponent->unit->name,
+                    'unit'                      => $outTransferComponent->unit->name ?? '',
                     'site_out_quantity'         => $outTransferComponent->quantity,
-                    'in_transfer_component_id'  => $outTransferComponent['related_transfer_id'],
+                    'in_transfer_component_id'  => $outTransferComponent['related_transfer_id'] ?? '',
                     'site_in_quantity'          => $siteInQuantity
                 ];
             }
