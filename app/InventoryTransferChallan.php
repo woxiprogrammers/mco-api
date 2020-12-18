@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class InventoryTransferChallan extends Model
 {
@@ -56,6 +57,24 @@ class InventoryTransferChallan extends Model
         } else {
             $data['transportation_amount'] = $data['transportation_cgst_percent'] = $data['transportation_sgst_percent'] = $data['transportation_igst_percent'] = 0;
         }
+        $data['transportation_cgst_percent'] = (float) $data['transportation_cgst_percent'];
+        if ($data) {
+            $data = $this->getcastedData($data);
+        }
+        return $data;
+    }
+
+    public function getcastedData($data)
+    {
+        $data['bill_number'] = (string) ($data['bill_number'] ?? '');
+        $data['transportation_amount'] = (float) ($data['transportation_amount'] ?? 0.0);
+        $data['transportation_cgst_percent'] = (float) ($data['transportation_cgst_percent'] ?? 0.0);
+        $data['transportation_sgst_percent'] = (float) ($data['transportation_sgst_percent'] ?? 0.0);
+        $data['transportation_igst_percent'] = (float) ($data['transportation_igst_percent'] ?? 0.0);
+        $data['driver_name'] = (string) ($data['driver_name'] ?? '');
+        $data['mobile'] = (string) ($data['mobile'] ?? '');
+        $data['source_name'] = (string) ($data['source_name'] ?? '');
+        $data['vendor_name'] = (string) ($data['vendor_name'] ?? '');
         return $data;
     }
 }
