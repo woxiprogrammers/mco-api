@@ -118,7 +118,7 @@ class InventoryTransferChallanController extends BaseController
     {
         try {
             $user = Auth::user();
-            $updateChallanStatusToClose = true;
+            //$updateChallanStatusToClose = true;
             $currentDate = Carbon::now();
             $challan = InventoryTransferChallan::find($challanID);
             if ($challan['project_site_in_date']) {
@@ -194,17 +194,17 @@ class InventoryTransferChallanController extends BaseController
                 } else {
                     GRNCount::create(['month' => $currentDate->month, 'year' => $currentDate->year, 'count' => $serialNumber]);
                 }
-                if ($updateChallanStatusToClose && ($relatedInventoryComponentOutTransferData['quantity'] != $inventoryComponentInTransfer['quantity'])) {
-                    $updateChallanStatusToClose = false;
-                }
+                // if ($updateChallanStatusToClose && ($relatedInventoryComponentOutTransferData['quantity'] != $inventoryComponentInTransfer['quantity'])) {
+                //     $updateChallanStatusToClose = false;
+                // }
                 $inventoryComponentTransferImages[] = [
                     'inventory_component_transfer_id'   => $inventoryComponentInTransfer['id'],
                 ];
             }
             $challanUpdateData['project_site_in_date'] = $currentDate;
-            if ($updateChallanStatusToClose) {
-                $challanUpdateData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug', 'close')->pluck('id')->first();
-            }
+            // if ($updateChallanStatusToClose) {
+            //     $challanUpdateData['inventory_component_transfer_status_id'] = InventoryComponentTransferStatus::where('slug', 'close')->pluck('id')->first();
+            // }
             $challan->update($challanUpdateData);
 
             if ($request->has('images')) {
